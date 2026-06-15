@@ -103,12 +103,12 @@
 
         .main-content { padding-bottom: 120px; }
 
-        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
-        .cal-day { min-height: 80px; padding: 4px; border-radius: 0.5rem; background: #1e1e1e; border: 1px solid #2d3748; display: flex; flex-direction: column; cursor: pointer; }
+        .cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+        .cal-day { min-height: 80px; padding: 4px; border-radius: 0.5rem; background: #1e1e1e; border: 1px solid #2d3748; display: flex; flex-direction: column; cursor: pointer; overflow: hidden; }
         .cal-day.holiday { background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3); }
         .cal-date-num { font-size: 0.875rem; font-weight: bold; margin-bottom: 4px; }
         .cal-day.holiday .cal-date-num { color: #ef4444; }
-        .sched-badge { font-size: 0.7rem; padding: 2px 4px; border-radius: 4px; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: bold; }
+        .sched-badge { font-size: 0.7rem; padding: 2px 4px; border-radius: 4px; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: bold; display: block; width: 100%; box-sizing: border-box; }
     </style>
 
     <script>
@@ -983,7 +983,7 @@ function toggleHoliday(dateStr) {
             renderCalendar();
         }
 
-        function renderCalendar() {
+function renderCalendar() {
             const y = currentDate.getFullYear();
             const m = currentDate.getMonth();
             document.getElementById('cal-title').innerText = `${y}년 ${m+1}월`;
@@ -1009,7 +1009,9 @@ function toggleHoliday(dateStr) {
                     const v = vehicles.find(x => x.id === s.vId);
                     const color = s.cycle === '반년' ? 'bg-red-600' : (s.cycle === '월간' ? 'bg-amber-600' : 'bg-blue-600');
                     const avoidTag = s.assignedDate !== s.originalDate ? `<i class="fa-solid fa-arrow-left text-yellow-300"></i> ` : '';
-                    badges += `<div class="${color} text-white sched-badge" onclick="event.stopPropagation(); goToMaint(${v.id}, '${s.cycle}')">${avoidTag}${v.plate}</div>`;
+                    
+                    // 클릭 시 원래 날짜와 변경된 날짜 데이터를 같이 넘겨줌
+                    badges += `<div class="${color} text-white sched-badge" onclick="event.stopPropagation(); goToMaint(${v.id}, '${s.cycle}', '${s.originalDate}', '${s.assignedDate}')">${avoidTag}${v.plate}</div>`;
                 });
 
                 calBody.innerHTML += `
@@ -1022,13 +1024,27 @@ function toggleHoliday(dateStr) {
             document.getElementById('dash-month-count').innerHTML = `${monthCount}<span class="text-sm font-medium text-gray-500 ml-1">대</span>`;
         }
 
-        function goToMaint(vId, cycle) {
-            switchTab('maintenance');
-            setTimeout(() => {
-                document.getElementById('maint-vehicle').value = vId;
-                document.getElementById('maint-type').value = cycle;
-                loadChecklist();
-            }, 50);
+        function goToMaint(vId, cycle, origDate, assignDate) {
+            let msg = "해당 차량의 예방정비를 수행하시겠습니까?";
+            
+            // 날짜가 다를 경우 며칠이 앞당겨졌는지 계산해서 팝업 메시지에 추가
+            if (origDate && assignDate && origDate !== assignDate) {
+                const d1 = new Date(origDate.split('-')[0], origDate.split('-')[1] - 1, origDate.split('-')[2]);
+                const d2 = new Date(assignDate.split('-')[0], assignDate.split('-')[1] - 1, assignDate.split('-')[2]);
+                const diff = Math.round((d1 - d2) / (1000 * 60 * 60 * 24));
+                
+                msg = `원래 계획일(${origDate})에서 [ ${diff}일 ] 앞당겨진 일정입니다.\n\n정비를 수행하시겠습니까?`;
+            }
+            
+            // 확인(예)을 눌렀을 때만 정비 수행 탭으로 이동
+            if(confirm(msg)) {
+                switchTab('maintenance');
+                setTimeout(() => {
+                    document.getElementById('maint-vehicle').value = vId;
+                    document.getElementById('maint-type').value = cycle;
+                    loadChecklist();
+                }, 50);
+            }
         }
 
         // --- Multi-period Report Gen (요청하신 양식 완벽 반영) ---
