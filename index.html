@@ -904,34 +904,39 @@
             icon.style.transform = content.classList.contains('open') ? 'rotate(180deg)' : 'rotate(0deg)';
         }
 
-// --- 4. Dashboard & Calendar (스마트 분산 스케줄러) ---
+// --- 4. Dashboard & Calendar (스마트 분산 스케줄러 - 하루 최대 2대, 주말 절대 방지) ---
         function isHolidayOrWeekend(dateStr) {
-            const d = new Date(dateStr);
-            if(d.getDay() === 0 || d.getDay() === 6) return true;
+            // 날짜 오차 버그 방지를 위해 로컬 시간으로 명확히 쪼개서 계산
+            const parts = dateStr.split('-');
+            const d = new Date(parts[0], parts[1] - 1, parts[2]);
+            if(d.getDay() === 0 || d.getDay() === 6) return true; // 0=일요일, 6=토요일
             if(holidays.includes(dateStr)) return true;
             return false;
         }
 
         function recalcAllSchedules() {
-            // 날짜별 배정된 차량 대수를 추적하는 보관함
+            // 날짜별 배정된 차량 대수 보관함
             const assignedCount = {};
             
-            // 원래 날짜 순서대로 정렬해서, 먼저 도래하는 일정부터 자리를 잡도록 함
+            // 원래 날짜 순서대로 정렬
             schedules.sort((a,b) => a.originalDate.localeCompare(b.originalDate));
 
             schedules.forEach(s => {
-                let dt = new Date(s.originalDate);
+                const parts = s.originalDate.split('-');
+                let dt = new Date(parts[0], parts[1] - 1, parts[2]);
                 let str = s.originalDate;
                 
-                // 핵심 로직: 휴무/주말이거나 이미 그 날짜에 배정된 정비가 1대 이상 있다면 앞으로 당김
-                while(isHolidayOrWeekend(str) || (assignedCount[str] && assignedCount[str] >= 1)) {
+                // 핵심 로직: 주말/휴무일이거나, 그 날짜에 '2대 이상' 배정되었다면 앞당김!
+                while(isHolidayOrWeekend(str) || (assignedCount[str] && assignedCount[str] >= 2)) {
                     dt.setDate(dt.getDate() - 1);
-                    str = dt.toISOString().split('T')[0];
+                    const y = dt.getFullYear();
+                    const m = String(dt.getMonth() + 1).padStart(2, '0');
+                    const dNum = String(dt.getDate()).padStart(2, '0');
+                    str = `${y}-${m}-${dNum}`;
                 }
                 
-                // 빈 날짜를 찾았으면 배정하고 카운트 +1
                 s.assignedDate = str;
-                assignedCount[str] = 1;
+                assignedCount[str] = (assignedCount[str] || 0) + 1;
             });
         }
 
