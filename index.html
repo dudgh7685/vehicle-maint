@@ -904,39 +904,61 @@
             icon.style.transform = content.classList.contains('open') ? 'rotate(180deg)' : 'rotate(0deg)';
         }
 
-// --- 4. Dashboard & Calendar (스마트 분산 스케줄러 - 하루 최대 2대, 주말 절대 방지) ---
-        function isHolidayOrWeekend(dateStr) {
-            // 날짜 오차 버그 방지를 위해 로컬 시간으로 명확히 쪼개서 계산
+// --- 4. Dashboard & Calendar  ---
+     function isHolidayOrWeekend(dateStr) {
             const parts = dateStr.split('-');
             const d = new Date(parts[0], parts[1] - 1, parts[2]);
-            if(d.getDay() === 0 || d.getDay() === 6) return true; // 0=일요일, 6=토요일
-            if(holidays.includes(dateStr)) return true;
-            return false;
+            const day = d.getDay();
+            return day === 0 || day === 6 || holidays.includes(dateStr);
         }
 
         function recalcAllSchedules() {
-            // 날짜별 배정된 차량 대수 보관함
             const assignedCount = {};
             
-            // 원래 날짜 순서대로 정렬
             schedules.sort((a,b) => a.originalDate.localeCompare(b.originalDate));
 
             schedules.forEach(s => {
                 const parts = s.originalDate.split('-');
-                let dt = new Date(parts[0], parts[1] - 1, parts[2]);
-                let str = s.originalDate;
+                const origDate = new Date(parts[0], parts[1] - 1, parts[2]);
                 
-                // 핵심 로직: 주말/휴무일이거나, 그 날짜에 '2대 이상' 배정되었다면 앞당김!
-                while(isHolidayOrWeekend(str) || (assignedCount[str] && assignedCount[str] >= 2)) {
+                let targetStr = null;
+                let dt = new Date(origDate);
+
+                for(let i=0; i<7; i++) {
+                    let str = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+                    if(!isHolidayOrWeekend(str) && (!assignedCount[str] || assignedCount[str] === 0)) {
+                        targetStr = str;
+                        break;
+                    }
                     dt.setDate(dt.getDate() - 1);
-                    const y = dt.getFullYear();
-                    const m = String(dt.getMonth() + 1).padStart(2, '0');
-                    const dNum = String(dt.getDate()).padStart(2, '0');
-                    str = `${y}-${m}-${dNum}`;
                 }
-                
-                s.assignedDate = str;
-                assignedCount[str] = (assignedCount[str] || 0) + 1;
+
+                if(!targetStr) {
+                    dt = new Date(origDate);
+                    for(let i=0; i<7; i++) {
+                        let str = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+                        if(!isHolidayOrWeekend(str) && assignedCount[str] < 2) {
+                            targetStr = str;
+                            break;
+                        }
+                        dt.setDate(dt.getDate() - 1);
+                    }
+                }
+
+                if(!targetStr) {
+                    dt = new Date(origDate);
+                    while(true) {
+                        let str = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+                        if(!isHolidayOrWeekend(str) && (!assignedCount[str] || assignedCount[str] < 2)) {
+                            targetStr = str;
+                            break;
+                        }
+                        dt.setDate(dt.getDate() - 1);
+                    }
+                }
+
+                s.assignedDate = targetStr;
+                assignedCount[targetStr] = (assignedCount[targetStr] || 0) + 1;
             });
         }
 
