@@ -904,7 +904,7 @@
             icon.style.transform = content.classList.contains('open') ? 'rotate(180deg)' : 'rotate(0deg)';
         }
 
-        // --- 4. Dashboard & Calendar ---
+// --- 4. Dashboard & Calendar (스마트 분산 스케줄러) ---
         function isHolidayOrWeekend(dateStr) {
             const d = new Date(dateStr);
             if(d.getDay() === 0 || d.getDay() === 6) return true;
@@ -912,18 +912,27 @@
             return false;
         }
 
-        function adjustDate(originalStr) {
-            let dt = new Date(originalStr);
-            let str = originalStr;
-            while(isHolidayOrWeekend(str)) {
-                dt.setDate(dt.getDate() - 1);
-                str = dt.toISOString().split('T')[0];
-            }
-            return str;
-        }
-
         function recalcAllSchedules() {
-            schedules.forEach(s => { s.assignedDate = adjustDate(s.originalDate); });
+            // 날짜별 배정된 차량 대수를 추적하는 보관함
+            const assignedCount = {};
+            
+            // 원래 날짜 순서대로 정렬해서, 먼저 도래하는 일정부터 자리를 잡도록 함
+            schedules.sort((a,b) => a.originalDate.localeCompare(b.originalDate));
+
+            schedules.forEach(s => {
+                let dt = new Date(s.originalDate);
+                let str = s.originalDate;
+                
+                // 핵심 로직: 휴무/주말이거나 이미 그 날짜에 배정된 정비가 1대 이상 있다면 앞으로 당김
+                while(isHolidayOrWeekend(str) || (assignedCount[str] && assignedCount[str] >= 1)) {
+                    dt.setDate(dt.getDate() - 1);
+                    str = dt.toISOString().split('T')[0];
+                }
+                
+                // 빈 날짜를 찾았으면 배정하고 카운트 +1
+                s.assignedDate = str;
+                assignedCount[str] = 1;
+            });
         }
 
         function toggleHoliday(dateStr) {
