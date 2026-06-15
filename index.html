@@ -962,13 +962,20 @@
             });
         }
 
-        function toggleHoliday(dateStr) {
-            const idx = holidays.indexOf(dateStr);
-            if(idx > -1) holidays.splice(idx, 1);
-            else holidays.push(dateStr);
-            recalcAllSchedules();
-            saveData();
-            renderCalendar();
+function toggleHoliday(dateStr) {
+            const isAlreadyHoliday = holidays.includes(dateStr);
+            const msg = isAlreadyHoliday ? "휴일 설정을 해제하시겠습니까?" : "휴일로 바꾸겠습니까?";
+            
+            if(confirm(msg)) {
+                if(isAlreadyHoliday) {
+                    holidays.splice(holidays.indexOf(dateStr), 1);
+                } else {
+                    holidays.push(dateStr);
+                }
+                recalcAllSchedules();
+                saveData();
+                renderCalendar();
+            }
         }
 
         function changeMonth(delta) {
