@@ -34,7 +34,7 @@
             -webkit-tap-highlight-color: transparent;
             touch-action: manipulation;
         }
-        ::-webkit-scrollbar { display: none; }
+        ::-webkit-scrollbar { display: none; } /* 스크롤바 숨김 (디자인용) */
 
         .touch-target { min-height: 64px; display: flex; align-items: center; }
         .touch-btn { 
@@ -102,12 +102,15 @@
 
         .main-content { padding-bottom: 120px; }
 
-        .cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
-        .cal-day { min-height: 80px; padding: 4px; border-radius: 0.5rem; background: #1e1e1e; border: 1px solid #2d3748; display: flex; flex-direction: column; cursor: pointer; overflow: hidden; }
+        /* 월~금 5일치만 보여주는 달력 그리드 */
+        .cal-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
+        .cal-day { min-height: 100px; padding: 4px; border-radius: 0.5rem; background: #1e1e1e; border: 1px solid #2d3748; display: flex; flex-direction: column; cursor: pointer; }
         .cal-day.holiday { background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3); }
         .cal-date-num { font-size: 0.875rem; font-weight: bold; margin-bottom: 4px; }
         .cal-day.holiday .cal-date-num { color: #ef4444; }
-        .sched-badge { font-size: 0.7rem; padding: 2px 4px; border-radius: 4px; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: bold; display: block; width: 100%; box-sizing: border-box; }
+        
+        /* 뱃지가 숨겨지지 않도록 수정 */
+        .sched-badge { font-size: 0.75rem; padding: 4px; border-radius: 4px; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: bold; display: block; width: 100%; box-sizing: border-box; }
     </style>
 
     <script>
@@ -152,6 +155,7 @@
             <h2 class="text-2xl font-bold border-l-4 border-blue-500 pl-3">스마트 스케줄러</h2>
             
             <div class="flex gap-3">
+                <!-- 월간 예정사항 단일 버튼으로 통합 -->
                 <button onclick="generateMonthlyReport()" class="flex-1 touch-btn bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg flex-col !items-start p-4 h-auto py-5">
                     <span class="text-sm font-normal text-indigo-200"><i class="fa-solid fa-calendar-check mr-1"></i>현재 표시된 달력 기준</span>
                     <span class="text-2xl font-extrabold mt-1" id="btn-report-title">월간 예정 복사</span>
@@ -169,13 +173,13 @@
                     <button onclick="changeMonth(1)" class="px-5 py-2 text-2xl"><i class="fa-solid fa-chevron-right"></i></button>
                 </div>
                 <div class="p-2">
-                    <div class="cal-grid mb-2 text-center text-sm font-bold text-gray-400">
-                        <div class="text-red-400">일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div class="text-blue-400">토</div>
+                    <div class="cal-grid mb-2 text-center text-sm font-bold text-gray-300">
+                        <div>월</div><div>화</div><div>수</div><div>목</div><div>금</div>
                     </div>
                     <div id="cal-body" class="cal-grid"></div>
                 </div>
                 <div class="p-3 bg-gray-800 text-xs text-gray-400 flex justify-around">
-                    <span><i class="fa-solid fa-square text-red-500/50 mr-1"></i>휴무/주말</span>
+                    <span><i class="fa-solid fa-square text-red-500/50 mr-1"></i>사용자 지정 휴무</span>
                     <span><i class="fa-solid fa-arrow-left text-yellow-500 mr-1"></i>당겨진 일정</span>
                 </div>
             </div>
@@ -296,7 +300,6 @@
     </div>
 
     <script>
-        // --- 1. 군용차 명칭 변경이 적용된 Database ---
         const defaultMaintenanceDB = {
           "상용트럭(1~5톤)": {
             "일일": [
@@ -648,7 +651,6 @@
           }
         };
 
-        // 118건 2026년 전체 스케줄 텍스트 데이터 (30kw 발전기 삭제 반영)
         const csvRawData = `품명,호수,예방정비계획일자,점검주기
 코란도 스포츠 상용지프차(영관/위관),103,2026-01-05,부대정비(월간)
 15톤덤프트럭,163,2026-01-06,부대정비(반기)
@@ -842,7 +844,6 @@
             { sys: "구동/제동", sym: "가속 시 하부에서 탁탁 소리", chk: "등속조인트(드라이브샤프트) 부츠 찢어짐 및 베어링 마모, 추진축 십자베어링 유격" }
         ];
 
-        // --- 2. State & Initialize ---
         let db = JSON.parse(JSON.stringify(defaultMaintenanceDB));
         let vehicles = []; 
         let schedules = []; 
@@ -851,10 +852,8 @@
         let currentDate = new Date(); 
 
         function mapVehicleType(name) {
-            // 특정 불필요 장비 영구 제외 (null 반환)
             if (name.includes("30kw") || name.includes("발전기")) return null;
             
-            // K-시리즈 명칭 변경 (표준차량)
             if (/K-?511/.test(name)) return "2.5톤 표준차량";
             if (/K-?311|1 1\/4톤|1¼/.test(name)) return "1¼ 표준차량";
             if (/K-?711/.test(name)) return "5톤 표준차량";
@@ -883,7 +882,6 @@
                 vehicles = JSON.parse(lsVehicles);
                 schedules = JSON.parse(lsSchedules);
             } else {
-                // 내장된 CSV 문자열을 파싱하여 스케줄러 세팅
                 const lines = csvRawData.split('\n');
                 lines.forEach((line, i) => {
                     if (i === 0 || !line.trim()) return;
@@ -891,7 +889,7 @@
                     const vName = cols[0].trim();
                     const vType = mapVehicleType(vName);
                     
-                    if (vType) { // null이 아닌 경우(제외 대상이 아닌 경우)만 등록
+                    if (vType) { 
                         const cycle = cols[3].includes("반기") ? "반년" : (cols[3].includes("월간") ? "월간" : "일일");
                         const vId = Date.now() + i;
                         vehicles.push({ id: vId, plate: cols[1].trim(), name: vName, type: vType });
@@ -955,7 +953,6 @@
             icon.style.transform = content.classList.contains('open') ? 'rotate(180deg)' : 'rotate(0deg)';
         }
 
-        // --- 4. Dashboard & Calendar (당월 분산 로직) ---
         function isHolidayOrWeekend(dateStr) {
             const parts = dateStr.split('-');
             const d = new Date(parts[0], parts[1] - 1, parts[2]);
@@ -974,7 +971,6 @@
                 
                 let targetStr = null;
 
-                // 1순위: 이전 7일 이내에 완전히 빈 날짜 찾기 (달을 넘기지 않음)
                 let dt = new Date(origDate);
                 for(let i=0; i<7; i++) {
                     if (dt.getMonth() !== origMonth) break; 
@@ -985,7 +981,6 @@
                     dt.setDate(dt.getDate() - 1);
                 }
 
-                // 2순위: 미래 7일 이내에 완전히 빈 날짜 찾기 (달을 넘기지 않음)
                 if(!targetStr) {
                     dt = new Date(origDate);
                     for(let i=0; i<7; i++) {
@@ -998,7 +993,6 @@
                     }
                 }
 
-                // 3순위: 그래도 없으면 당월 내에서 1대만 있는 날짜(결국 2대가 됨) 찾기
                 if(!targetStr) {
                     dt = new Date(origDate);
                     for(let i=0; i<15; i++) {
@@ -1012,7 +1006,6 @@
                     }
                 }
 
-                // 최후의 보루: 그냥 그 달 안의 평일에 강제 배정 (주말 방지)
                 if(!targetStr) {
                     let fallback = new Date(origDate);
                     let fallbackStr = `${fallback.getFullYear()}-${String(fallback.getMonth() + 1).padStart(2, '0')}-${String(fallback.getDate()).padStart(2, '0')}`;
@@ -1049,24 +1042,37 @@
             renderCalendar();
         }
 
+        // 월~금 5일치만 보여주도록 개선된 달력 렌더링 함수
         function renderCalendar() {
             const y = currentDate.getFullYear();
             const m = currentDate.getMonth();
             document.getElementById('cal-title').innerText = `${y}년 ${m+1}월`;
             document.getElementById('btn-report-title').innerText = `${m+1}월 예정 복사`;
 
-            const firstDay = new Date(y, m, 1).getDay();
             const daysInMonth = new Date(y, m+1, 0).getDate();
             const calBody = document.getElementById('cal-body');
-            calBody.innerHTML = '';
-
+            
+            let calBodyHtml = '';
             let monthCount = 0;
 
-            for(let i=0; i<firstDay; i++) calBody.innerHTML += `<div></div>`;
-
             for(let d=1; d<=daysInMonth; d++) {
+                let dateObj = new Date(y, m, d);
+                let dayOfWeek = dateObj.getDay();
+                
+                // 주말은 달력 UI에서 완전히 제외
+                if (dayOfWeek === 0 || dayOfWeek === 6) continue;
+
                 const dateStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-                const isHol = isHolidayOrWeekend(dateStr);
+                
+                // 첫 주차 평일 시작 전 빈 칸(패딩) 생성
+                if (calBodyHtml === '') {
+                    // 월=1, 화=2... 금=5 -> dayOfWeek - 1 만큼 빈 칸
+                    for (let i = 0; i < dayOfWeek - 1; i++) {
+                        calBodyHtml += `<div></div>`;
+                    }
+                }
+
+                const isHol = holidays.includes(dateStr);
                 
                 const dayScheds = schedules.filter(s => s.assignedDate === dateStr);
                 monthCount += dayScheds.length;
@@ -1080,13 +1086,16 @@
                     badges += `<div class="${color} text-white sched-badge" onclick="event.stopPropagation(); goToMaint(${v.id}, '${s.cycle}', '${s.originalDate}', '${s.assignedDate}')">${avoidTag}${v.plate}</div>`;
                 });
 
-                calBody.innerHTML += `
+                calBodyHtml += `
                     <div class="cal-day ${isHol ? 'holiday' : ''}" onclick="toggleHoliday('${dateStr}')">
                         <div class="cal-date-num">${d}</div>
-                        <div class="flex-1 flex flex-col gap-1 overflow-hidden">${badges}</div>
+                        <!-- 배지가 많아도 숨겨지지 않고 스크롤 되도록 변경 -->
+                        <div class="flex-1 flex flex-col gap-1 overflow-y-auto">${badges}</div>
                     </div>
                 `;
             }
+            
+            calBody.innerHTML = calBodyHtml;
             document.getElementById('dash-month-count').innerHTML = `${monthCount}<span class="text-sm font-medium text-gray-500 ml-1">대</span>`;
         }
 
@@ -1111,7 +1120,6 @@
             }
         }
 
-        // --- Report Gen (현재 달력의 월 기준, 항목 고정) ---
         function generateMonthlyReport() {
             const y = currentDate.getFullYear();
             const m = currentDate.getMonth();
@@ -1132,7 +1140,6 @@
                 const v = vehicles.find(x => x.id === s.vId);
                 const list = getCascadingItems(s.type, s.cycle);
                 
-                // 누를 때마다 바뀌지 않도록 차량 ID 값을 활용하여 고정된 항목 추출
                 const offset = v.id % Math.max(1, list.length);
                 const picked = [];
                 for(let i=0; i<3 && i<list.length; i++) {
@@ -1152,12 +1159,10 @@
             showModal(report.trim());
         }
 
-        // --- 5. Registry (SheetJS 중복제거 추가) ---
         function renderRegistry() {
             const list = document.getElementById('vehicle-list');
             list.innerHTML = '';
             
-            // 날짜 포맷팅 함수 (YYYY년 MM월 DD일)
             const formatDate = (dateStr) => {
                 const [y, m, d] = dateStr.split('-');
                 return `${y}년 ${parseInt(m)}월 ${parseInt(d)}일`;
@@ -1195,7 +1200,7 @@
                             const name = String(r[0]).trim();
                             const vType = mapVehicleType(name);
                             
-                            if(!vType) continue; // 제외 대상이면 패스
+                            if(!vType) continue; 
                             
                             const origDate = r[2] || new Date().toISOString().split('T')[0];
                             let cycleStr = String(r[3] || '');
@@ -1207,7 +1212,6 @@
                                 vehicles.push(v);
                             }
 
-                            // 중복 체크 로직 (같은 차량, 같은 원래계획일, 같은 주기)
                             const isDup = schedules.some(x => x.vId === v.id && x.originalDate === origDate && x.cycle === cycle);
                             
                             if(!isDup) {
@@ -1226,7 +1230,6 @@
             reader.readAsArrayBuffer(file);
         }
 
-        // --- 6. Maintenance ---
         function renderMaintenanceOptions() {
             const sel = document.getElementById('maint-vehicle');
             sel.innerHTML = '<option value="">대상 차량 (호수) 선택</option>';
@@ -1327,7 +1330,6 @@
             closeModal();
         }
 
-        // --- 7. Settings (Logs & Editor) ---
         function renderLogs() {
             const q = document.getElementById('log-search').value.toLowerCase();
             const list = document.getElementById('log-list');
