@@ -12,162 +12,41 @@
     <script>
         tailwind.config = {
             darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        darkbg: '#121212',
-                        darkcard: '#1e1e1e',
-                        darkborder: '#2d3748',
-                        primary: '#3b82f6',
-                        holiday: '#ef4444'
-                    }
-                }
-            }
+            theme: { extend: { colors: { darkbg: '#121212', darkcard: '#1e1e1e', darkborder: '#2d3748', primary: '#3b82f6', holiday: '#ef4444' } } }
         }
     </script>
     <style>
-        /* 화면 스크롤 완전 분리 및 Safe Area 완벽 대응 (하단 여백 눈부심 방지) */
-        body { 
-            font-family: 'Pretendard', 'Malgun Gothic', sans-serif; 
-            background-color: #121212; 
-            color: #f3f4f6; 
-            margin: 0;
-            padding: 0;
-            height: 100dvh; 
-            display: flex;
-            flex-direction: column;
-            overflow: hidden; 
-            -webkit-tap-highlight-color: transparent;
-            touch-action: manipulation;
-        }
-        
+        /* 화면 스크롤 완전 분리 및 하단 여백 눈부심 방지 */
+        body { font-family: 'Pretendard', 'Malgun Gothic', sans-serif; background-color: #121212; color: #f3f4f6; margin: 0; padding: 0; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
         ::-webkit-scrollbar { display: none; } 
-
         header { flex-shrink: 0; z-index: 40; }
+        #app-container { flex-grow: 1; overflow-y: auto; padding: 1rem; padding-bottom: 2rem; width: 100%; max-width: 56rem; margin: 0 auto; }
+        nav { flex-shrink: 0; z-index: 40; padding-bottom: constant(safe-area-inset-bottom); padding-bottom: env(safe-area-inset-bottom); background-color: #1e1e1e; }
         
-        #app-container {
-            flex-grow: 1;
-            overflow-y: auto; 
-            padding: 1rem;
-            padding-bottom: 2rem;
-            width: 100%;
-            max-width: 56rem;
-            margin: 0 auto;
-        }
-
-        /* 하단 네비게이션바 Safe Area 설정 */
-        nav { 
-            flex-shrink: 0; 
-            z-index: 40; 
-            padding-bottom: constant(safe-area-inset-bottom);
-            padding-bottom: env(safe-area-inset-bottom);
-            background-color: #1e1e1e;
-        }
-
         .touch-target { min-height: 64px; display: flex; align-items: center; }
-        .touch-btn { 
-            min-height: 64px; 
-            padding: 0 16px; 
-            font-size: 1.125rem; 
-            border-radius: 0.75rem; 
-            transition: all 0.2s ease; 
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            font-weight: bold;
-            cursor: pointer;
-        }
+        .touch-btn { min-height: 64px; padding: 0 16px; font-size: 1.125rem; border-radius: 0.75rem; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; gap: 0.5rem; font-weight: bold; cursor: pointer; }
         .touch-btn:active { transform: scale(0.97); }
-        
-        .touch-input { 
-            min-height: 64px; 
-            font-size: 1.125rem; 
-            padding: 0 16px; 
-            border-radius: 0.75rem; 
-            background-color: #2d3748; 
-            color: white; 
-            border: 1px solid #4a5568; 
-            width: 100%; 
-            appearance: none;
-        }
+        .touch-input { min-height: 64px; font-size: 1.125rem; padding: 0 16px; border-radius: 0.75rem; background-color: #2d3748; color: white; border: 1px solid #4a5568; width: 100%; appearance: none; }
         .touch-input:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5); }
-
-        .glove-checkbox { 
-            appearance: none; 
-            width: 54px; 
-            height: 54px; 
-            border: 3px solid #718096; 
-            border-radius: 0.75rem; 
-            background-color: #2d3748; 
-            position: relative; 
-            cursor: pointer; 
-            flex-shrink: 0; 
-            transition: all 0.2s;
-        }
+        
+        .glove-checkbox { appearance: none; width: 54px; height: 54px; border: 3px solid #718096; border-radius: 0.75rem; background-color: #2d3748; position: relative; cursor: pointer; flex-shrink: 0; transition: all 0.2s; }
         .glove-checkbox:checked { background-color: #3b82f6; border-color: #3b82f6; }
-        .glove-checkbox:checked::after { 
-            content: '\f00c'; 
-            font-family: 'Font Awesome 6 Free'; 
-            font-weight: 900;
-            position: absolute; 
-            color: white; 
-            font-size: 32px; 
-            top: 50%; left: 50%; 
-            transform: translate(-50%, -50%); 
-        }
-
+        .glove-checkbox:checked::after { content: '\f00c'; font-family: 'Font Awesome 6 Free'; font-weight: 900; position: absolute; color: white; font-size: 32px; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+        
         .accordion-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-in-out; }
         .accordion-content.open { max-height: 1200px; }
-
-        .exam-highlight { 
-            color: #fbbf24; 
-            font-weight: 900; 
-            background-color: rgba(251, 191, 36, 0.2); 
-            padding: 2px 6px; 
-            border-radius: 4px; 
-            border-bottom: 2px solid #fbbf24;
-        }
-
-        /* 가변형 달력 그리드 (일정 없으면 납작, 글자 많으면 늘어남) */
-        .cal-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); grid-auto-rows: minmax(40px, auto); gap: 4px; }
+        .exam-highlight { color: #fbbf24; font-weight: 900; background-color: rgba(251, 191, 36, 0.2); padding: 2px 6px; border-radius: 4px; border-bottom: 2px solid #fbbf24; }
         
+        /* 가변형 달력 그리드 */
+        .cal-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); grid-auto-rows: minmax(40px, auto); gap: 4px; }
         .cal-day { padding: 4px; border-radius: 0.5rem; background: #1e1e1e; border: 1px solid #2d3748; display: flex; flex-direction: column; cursor: pointer; }
         .cal-day.holiday { background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3); }
         .cal-date-num { font-size: 0.875rem; font-weight: bold; margin-bottom: 4px; }
         .cal-day.holiday .cal-date-num { color: #ef4444; }
         
         /* 뱃지 글자 줄바꿈 (짤림 방지) */
-        .sched-badge { 
-            font-size: 0.75rem; 
-            padding: 4px; 
-            border-radius: 4px; 
-            margin-bottom: 3px; 
-            white-space: normal; 
-            word-break: break-all; 
-            text-align: center;
-            line-height: 1.2;
-            font-weight: bold; 
-            width: 100%; 
-            box-sizing: border-box; 
-        }
+        .sched-badge { font-size: 0.75rem; padding: 4px; border-radius: 4px; margin-bottom: 3px; white-space: normal; word-break: break-all; text-align: center; line-height: 1.2; font-weight: bold; width: 100%; box-sizing: border-box; }
     </style>
-
-    <script>
-        const manifest = {
-            "name": "차량 예방정비 관리",
-            "short_name": "예방정비",
-            "start_url": ".",
-            "display": "standalone",
-            "background_color": "#121212",
-            "theme_color": "#1e1e1e",
-            "icons": [{
-                "src": "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233b82f6'%3E%3Cpath d='M19 8h-1V6a3 3 0 00-3-3H9a3 3 0 00-3 3v2H5a3 3 0 00-3 3v8a1 1 0 001 1h18a1 1 0 001-1v-8a3 3 0 00-3-3zM8 6a1 1 0 011-1h6a1 1 0 011 1v2H8V6zm4 11a2 2 0 110-4 2 2 0 010 4z'/%3E%3C/svg%3E",
-                "sizes": "192x192", "type": "image/svg+xml"
-            }]
-        };
-        document.write(`<link rel="manifest" href="${URL.createObjectURL(new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' }))}">`);
-    </script>
 </head>
 <body>
 
@@ -181,7 +60,7 @@
     </header>
 
     <main id="app-container">
-        
+        <!-- 대시보드 탭 -->
         <section id="sec-dashboard" class="space-y-6">
             <h2 class="text-2xl font-bold border-l-4 border-blue-500 pl-3">스마트 스케줄러</h2>
             
@@ -223,6 +102,7 @@
             </div>
         </section>
 
+        <!-- 정비수행 탭 -->
         <section id="sec-maintenance" class="hidden space-y-6">
             <h2 class="text-2xl font-bold border-l-4 border-green-500 pl-3">예방정비 수행</h2>
             
@@ -245,17 +125,19 @@
             </div>
 
             <div id="btn-submit-maint-container" class="hidden pt-2 pb-6">
-                <button onclick="submitMaintenance()" class="touch-btn bg-green-600 hover:bg-green-500 text-white w-full shadow-lg text-2xl py-6 rounded-2xl border border-green-400">
+                <button onclick="submitMaintenance()" class="touch-btn bg-green-600 hover:bg-green-500 text-white w-full shadow-[0_10px_20px_rgba(22,163,74,0.4)] text-2xl py-6 rounded-2xl border border-green-400">
                     <i class="fa-solid fa-check-double mr-2 text-3xl"></i> 정비 일지 등록
                 </button>
             </div>
         </section>
 
+        <!-- 고장진단 탭 -->
         <section id="sec-trouble" class="hidden space-y-6">
             <h2 class="text-2xl font-bold border-l-4 border-yellow-500 pl-3">고장 진단 가이드</h2>
             <div id="trouble-list" class="space-y-4"></div>
         </section>
 
+        <!-- 정비일지 탭 -->
         <section id="sec-logs" class="hidden space-y-6">
             <h2 class="text-2xl font-bold border-l-4 border-orange-500 pl-3">정비일지 이력 조회</h2>
             
@@ -273,9 +155,11 @@
             </div>
         </section>
 
+        <!-- 설정 탭 -->
         <section id="sec-settings" class="hidden space-y-6">
             <h2 class="text-2xl font-bold border-l-4 border-purple-500 pl-3">설정 및 차량대장</h2>
             
+            <!-- 1. 체크리스트 편집 -->
             <div class="bg-darkcard p-5 rounded-2xl border border-darkborder shadow-md space-y-4">
                 <h3 class="font-bold text-lg text-white mb-2">체크리스트 (DB) 편집</h3>
                 <select id="edit-type" class="touch-input" onchange="renderEditor()"><option value="">차종 선택</option></select>
@@ -286,6 +170,13 @@
                 <button onclick="addDbItem()" class="touch-btn bg-purple-600 hover:bg-purple-500 text-white w-full mt-4"><i class="fa-solid fa-plus"></i> 항목 추가</button>
             </div>
 
+            <!-- 2. 공장 초기화 (위치 변경) -->
+            <div class="bg-darkcard p-5 rounded-2xl border border-darkborder shadow-md space-y-4">
+                <h3 class="font-bold text-lg text-red-400 mb-2">시스템 데이터 리셋</h3>
+                <button onclick="factoryReset()" class="touch-btn bg-red-900/40 text-red-400 border border-red-800 w-full"><i class="fa-solid fa-triangle-exclamation mr-2"></i> 공장 초기화 (캐시/데이터 전체 삭제)</button>
+            </div>
+
+            <!-- 3. 엑셀 스케줄 업로드 -->
             <div class="bg-darkcard p-5 rounded-2xl border border-darkborder shadow-md space-y-5">
                 <div class="flex justify-between items-center mb-2">
                     <div>
@@ -299,6 +190,7 @@
                 </div>
             </div>
 
+            <!-- 4. 현재 등록된 차량 목록 (차량대장) -->
             <div class="bg-darkcard p-5 rounded-2xl border border-darkborder shadow-md space-y-4">
                 <div class="flex justify-between items-center mb-2">
                     <h3 class="font-bold text-lg text-white">차량 대장 현황</h3>
@@ -309,13 +201,12 @@
                 </div>
                 <div class="space-y-3" id="vehicle-list"></div>
             </div>
-
-            <button onclick="factoryReset()" class="touch-btn bg-red-900/40 text-red-400 border border-red-800 w-full mt-2"><i class="fa-solid fa-triangle-exclamation"></i> 공장 초기화 (캐시/데이터 전체 삭제)</button>
         </section>
 
     </main>
 
-    <nav class="border-t border-darkborder w-full flex justify-around items-center h-[80px] shadow-[0_-5px_20px_rgba(0,0,0,0.5)] relative">
+    <!-- 하단 네비게이션바 -->
+    <nav class="border-t border-darkborder w-full flex justify-around items-center h-[80px] shadow-[0_-5px_20px_rgba(0,0,0,0.5)]">
         <button onclick="switchTab('dashboard')" class="flex-1 flex flex-col items-center justify-center h-full text-blue-500" id="tab-dashboard">
             <i class="fa-solid fa-calendar-check text-2xl mb-1"></i><span class="text-[11px] font-extrabold">대시보드</span>
         </button>
@@ -333,6 +224,7 @@
         </button>
     </nav>
 
+    <!-- 복사 모달 -->
     <div id="modal-result" class="fixed inset-0 bg-black/90 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
         <div class="bg-darkcard w-full max-w-lg rounded-2xl border border-darkborder shadow-2xl overflow-hidden flex flex-col">
             <div class="bg-blue-600 p-5 flex justify-between items-center touch-target">
@@ -351,7 +243,7 @@
     </div>
 
     <script>
-        // --- 1. 원본 유지보수 DB (추후 파일 구하실 때까지 기존 내용 롤백) ---
+        // --- 1. 규정값이 추가된 오리지널 유지보수 DB (롤백) ---
         const defaultMaintenanceDB = {
           "상용트럭(1~5톤)": {
             "일일": [
@@ -903,21 +795,17 @@
         let logs = []; 
         let currentDate = new Date(); 
 
-        // [블랙리스트 기능] 관할 외 발전기 트레일러 제외
+        // 1. 관할 외 발전기 트레일러 영구 블랙리스트
         const blackList = ["188-1", "190-1", "191-1"];
 
-        // [공휴일 오프라인 데이터 (2026~2028)] 
-        // 2026년 추석 수정 및 대체공휴일 로직 완벽 반영 완료
+        // 2. 2026~2028 오프라인 평일 공휴일 자동 탑재 (대체휴일 포함)
         const systemHolidays = [
             "2026-01-01", "2026-02-16", "2026-02-17", "2026-02-18", "2026-03-02", "2026-05-05", "2026-05-25", "2026-08-17", "2026-09-24", "2026-09-25", "2026-10-05", "2026-10-09", "2026-12-25",
             "2027-01-01", "2027-02-05", "2027-02-08", "2027-03-01", "2027-05-05", "2027-05-13", "2027-08-16", "2027-09-14", "2027-09-15", "2027-09-16", "2027-10-04", "2027-10-11", "2027-12-27",
             "2028-01-25", "2028-01-26", "2028-01-27", "2028-03-01", "2028-05-02", "2028-05-05", "2028-06-06", "2028-08-15", "2028-10-02", "2028-10-03", "2028-10-04", "2028-10-05", "2028-10-09", "2028-12-25"
         ];
 
-        function isSystemHoliday(dateStr) {
-            return systemHolidays.includes(dateStr);
-        }
-
+        function isSystemHoliday(dateStr) { return systemHolidays.includes(dateStr); }
         function isHolidayOrWeekend(dateStr) {
             const parts = dateStr.split('-');
             const d = new Date(parts[0], parts[1] - 1, parts[2]);
@@ -939,18 +827,13 @@
             return "상용트럭(1~5톤)";
         }
 
-        // [데이터 정화 및 통합 로직]
         function cleanUpData() {
-            // 3139- 텍스트 제거 마스킹
             vehicles.forEach(v => { v.plate = v.plate.replace('3139-', ''); });
-            
-            // 블랙리스트 차단 및 차량 중복 통합 (오름차순 정렬)
             const uniqueMap = new Map();
             const idMap = {}; 
             
             vehicles.forEach(v => {
                 if(blackList.includes(v.plate)) return; // 발전기 트레일러 원천 차단
-                
                 if(!uniqueMap.has(v.plate)) {
                     uniqueMap.set(v.plate, v);
                     idMap[v.id] = v.id;
@@ -962,15 +845,9 @@
             vehicles = Array.from(uniqueMap.values());
             vehicles.sort((a,b) => a.plate.localeCompare(b.plate, undefined, {numeric: true}));
             
-            // 스케줄 미아 방지 및 블랙리스트 일정 삭제
-            schedules = schedules.filter(s => {
-                const targetV = vehicles.find(v => v.id === idMap[s.vId]);
-                return targetV; // 살아남은 차량의 스케줄만 통과
-            });
-
+            schedules = schedules.filter(s => { return vehicles.find(v => v.id === idMap[s.vId]); });
             schedules.forEach(s => { if(idMap[s.vId]) { s.vId = idMap[s.vId]; } });
             
-            // 스케줄 중복 제거
             const uniqueSchedules = [];
             schedules.forEach(s => {
                 if(!uniqueSchedules.some(u => u.vId === s.vId && u.originalDate === s.originalDate && u.cycle === s.cycle)) {
@@ -983,7 +860,6 @@
         function init() {
             const lsCustomDB = localStorage.getItem('vms_custom_db');
             if(lsCustomDB) db = JSON.parse(lsCustomDB);
-            
             const lsHolidays = localStorage.getItem('vms_holidays');
             if(lsHolidays) holidays = JSON.parse(lsHolidays);
 
@@ -994,7 +870,6 @@
             if(lsVehicles && JSON.parse(lsVehicles).length > 0) {
                 vehicles = JSON.parse(lsVehicles);
                 schedules = JSON.parse(lsSchedules);
-                
                 cleanUpData();
                 recalcAllSchedules();
                 saveData();
@@ -1005,16 +880,13 @@
                     const cols = line.split(',');
                     const cleanPlate = cols[1].trim().replace('3139-', '');
                     
-                    // CSV 파싱 중에도 블랙리스트 차단
-                    if(blackList.includes(cleanPlate)) return;
+                    if(blackList.includes(cleanPlate)) return; // 파싱 중 블랙리스트 원천 차단
 
                     const vName = cols[0].trim();
                     const vType = mapVehicleType(vName);
-                    
                     if (vType) { 
                         const cycle = cols[3].includes("반기") ? "반년" : (cols[3].includes("월간") ? "월간" : "일일");
                         const vId = Date.now() + i;
-                        
                         vehicles.push({ id: vId, plate: cleanPlate, name: vName, type: vType });
                         schedules.push({ vId: vId, type: vType, cycle: cycle, originalDate: cols[2].trim(), assignedDate: cols[2].trim() });
                     }
@@ -1026,9 +898,7 @@
             if(lsLogs) logs = JSON.parse(lsLogs);
 
             const typeSelect = document.getElementById('edit-type');
-            Object.keys(db).forEach(t => {
-                typeSelect.innerHTML += `<option value="${t}">${t}</option>`;
-            });
+            Object.keys(db).forEach(t => { typeSelect.innerHTML += `<option value="${t}">${t}</option>`; });
 
             const tList = document.getElementById('trouble-list');
             troubleshootingDB.forEach((item, i) => {
@@ -1066,7 +936,6 @@
                 document.getElementById(`tab-${t}`).classList.add('text-gray-500');
             });
             document.getElementById(`sec-${tabId}`).classList.remove('hidden');
-            
             const colors = { 'dashboard':'text-blue-500', 'maintenance':'text-green-500', 'trouble':'text-yellow-400', 'logs':'text-orange-400', 'settings':'text-purple-500' };
             document.getElementById(`tab-${tabId}`).classList.remove('text-gray-500');
             document.getElementById(`tab-${tabId}`).classList.add(colors[tabId].split(' ')[0]);
@@ -1074,7 +943,6 @@
             if(tabId === 'dashboard') { renderCalendar(); }
             if(tabId === 'maintenance') { renderMaintenanceOptions(); }
             if(tabId === 'logs') { renderLogs(); }
-            // 탭 순서가 바뀐 설정 탭 렌더링
             if(tabId === 'settings') { renderEditor(); renderRegistry(); }
             
             document.getElementById('app-container').scrollTop = 0;
@@ -1087,7 +955,6 @@
             icon.style.transform = content.classList.contains('open') ? 'rotate(180deg)' : 'rotate(0deg)';
         }
 
-        // 스케줄 재계산 로직 (과거로만 당기기)
         function recalcAllSchedules() {
             const assignedCount = {};
             schedules.sort((a,b) => a.originalDate.localeCompare(b.originalDate));
@@ -1095,64 +962,46 @@
             schedules.forEach(s => {
                 const parts = s.originalDate.split('-');
                 const origDate = new Date(parts[0], parts[1] - 1, parts[2]);
-                
                 let targetStr = null;
                 let dt = new Date(origDate);
 
                 for(let i=0; i<=7; i++) {
                     let str = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
-                    if(!isHolidayOrWeekend(str) && (!assignedCount[str] || assignedCount[str] === 0)) {
-                        targetStr = str; break;
-                    }
+                    if(!isHolidayOrWeekend(str) && (!assignedCount[str] || assignedCount[str] === 0)) { targetStr = str; break; }
                     dt.setDate(dt.getDate() - 1); 
                 }
-
                 if(!targetStr) {
                     dt = new Date(origDate);
                     for(let i=0; i<=7; i++) {
                         let str = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
-                        if(!isHolidayOrWeekend(str) && assignedCount[str] === 1) {
-                            targetStr = str; break;
-                        }
+                        if(!isHolidayOrWeekend(str) && assignedCount[str] === 1) { targetStr = str; break; }
                         dt.setDate(dt.getDate() - 1);
                     }
                 }
-
                 if(!targetStr) {
                     dt = new Date(origDate);
                     while(true) {
                         let str = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
-                        if(!isHolidayOrWeekend(str) && (!assignedCount[str] || assignedCount[str] < 2)) {
-                            targetStr = str; break;
-                        }
+                        if(!isHolidayOrWeekend(str) && (!assignedCount[str] || assignedCount[str] < 2)) { targetStr = str; break; }
                         dt.setDate(dt.getDate() - 1);
                     }
                 }
-
                 s.assignedDate = targetStr;
                 assignedCount[targetStr] = (assignedCount[targetStr] || 0) + 1;
             });
         }
 
         function toggleHoliday(dateStr) {
-            // 법정 공휴일은 수동 토글 불가
             if(isSystemHoliday(dateStr)) {
                 alert("해당일은 법정 공휴일이므로 해제할 수 없습니다.");
                 return;
             }
-
             const isAlreadyHoliday = holidays.includes(dateStr);
             const msg = isAlreadyHoliday ? "해당 날짜의 수동 휴무 지정을 해제하시겠습니까?" : "선택한 날짜를 휴무로 바꾸시겠습니까?";
-            
             if(confirm(msg)) {
-                if(isAlreadyHoliday) {
-                    holidays.splice(holidays.indexOf(dateStr), 1);
-                } else {
-                    holidays.push(dateStr);
-                }
-                recalcAllSchedules();
-                saveData();
-                renderCalendar();
+                if(isAlreadyHoliday) { holidays.splice(holidays.indexOf(dateStr), 1); } 
+                else { holidays.push(dateStr); }
+                recalcAllSchedules(); saveData(); renderCalendar();
             }
         }
 
@@ -1169,10 +1018,8 @@
 
             const daysInMonth = new Date(y, m+1, 0).getDate();
             const calBody = document.getElementById('cal-body');
-            
             let calBodyHtml = '';
             
-            // 프로그레스 바 연동
             const monthPrefix = `${y}-${String(m+1).padStart(2,'0')}`;
             const pendingMonthScheds = schedules.filter(s => s.assignedDate.startsWith(monthPrefix));
             const completedCount = logs.filter(l => l.date.startsWith(monthPrefix)).length;
@@ -1185,15 +1032,11 @@
             for(let d=1; d<=daysInMonth; d++) {
                 let dateObj = new Date(y, m, d);
                 let dayOfWeek = dateObj.getDay();
-                
                 if (dayOfWeek === 0 || dayOfWeek === 6) continue;
 
                 const dateStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-                
                 if (calBodyHtml === '') {
-                    for (let i = 0; i < dayOfWeek - 1; i++) {
-                        calBodyHtml += `<div></div>`;
-                    }
+                    for (let i = 0; i < dayOfWeek - 1; i++) { calBodyHtml += `<div></div>`; }
                 }
 
                 const isHol = isSystemHoliday(dateStr) || holidays.includes(dateStr);
@@ -1205,40 +1048,32 @@
                     if(!v) return;
                     const color = s.cycle === '반년' ? 'bg-red-600' : (s.cycle === '월간' ? 'bg-amber-600' : 'bg-blue-600');
                     const avoidTag = s.assignedDate !== s.originalDate ? `<i class="fa-solid fa-arrow-left text-yellow-300"></i> ` : '';
-                    
                     badges += `<div class="${color} text-white sched-badge" onclick="event.stopPropagation(); goToMaint(${v.id}, '${s.cycle}', '${s.originalDate}', '${s.assignedDate}', '${v.plate}', '${v.type}')">${avoidTag}${v.plate}</div>`;
                 });
 
                 calBodyHtml += `
                     <div class="cal-day ${isHol ? 'holiday' : ''}" onclick="toggleHoliday('${dateStr}')">
-                        <div class="cal-date-num">${d}</div>
-                        ${badges}
-                    </div>
-                `;
+                        <div class="cal-date-num">${d}</div>${badges}
+                    </div>`;
             }
-            
             calBody.innerHTML = calBodyHtml;
         }
 
-        // 달력 클릭 시 자동 선택
         function goToMaint(vId, cycle, origDate, assignDate, plate, type) {
             let msg = `${plate}호 ${type}의 ${cycle} 예방정비를 수행하시겠습니까?`;
-            
             if (origDate && assignDate && origDate !== assignDate) {
                 const d1 = new Date(origDate.split('-')[0], origDate.split('-')[1] - 1, origDate.split('-')[2]);
                 const d2 = new Date(assignDate.split('-')[0], assignDate.split('-')[1] - 1, assignDate.split('-')[2]);
                 const diff = Math.round((d1 - d2) / (1000 * 60 * 60 * 24));
-                
                 msg = `원래 계획일(${origDate})에서 [ ${diff}일 ] 앞당겨진\n${plate}호 ${type}의 ${cycle} 예방정비를 수행하시겠습니까?`;
             }
-            
             if(confirm(msg)) {
-                switchTab('maintenance'); 
+                switchTab('maintenance');
                 setTimeout(() => {
                     document.getElementById('maint-vehicle').value = String(vId); 
                     document.getElementById('maint-type').value = cycle;
                     loadChecklist(); 
-                }, 100); 
+                }, 100);
             }
         }
 
@@ -1262,23 +1097,15 @@
                 const v = vehicles.find(x => x.id === s.vId);
                 if(!v) return;
                 const list = getCascadingItems(s.type, s.cycle);
-                
                 const offset = v.id % Math.max(1, list.length);
                 const picked = [];
-                for(let i=0; i<3 && i<list.length; i++) {
-                    picked.push(list[(offset + i) % list.length].항목);
-                }
-                
+                for(let i=0; i<3 && i<list.length; i++) { picked.push(list[(offset + i) % list.length].항목); }
                 const shortName = v.name.split(' ')[0];
                 const dObj = new Date(s.assignedDate);
                 const mmdd = (dObj.getMonth()+1) + '/' + dObj.getDate();
-                
                 report += `• ${shortName} ${v.plate}호 ${s.cycle}정비\n`;
-                if(picked.length > 0) {
-                    report += `- ${picked.join(', ')} 등 점검 예정 (${mmdd})\n\n`;
-                }
+                if(picked.length > 0) { report += `- ${picked.join(', ')} 등 점검 예정 (${mmdd})\n\n`; }
             });
-
             showModal(report.trim());
         }
 
@@ -1293,7 +1120,6 @@
             };
 
             const filtered = vehicles.filter(v => v.plate.toLowerCase().includes(q) || v.type.toLowerCase().includes(q));
-
             filtered.forEach(v => {
                 const sMonth = schedules.find(x => x.vId === v.id && x.cycle === '월간');
                 const sHalf = schedules.find(x => x.vId === v.id && x.cycle === '반년');
@@ -1324,8 +1150,7 @@
                         if(r.length >= 4 && r[1]) {
                             const rawPlate = String(r[1]).trim();
                             const cleanPlate = rawPlate.replace('3139-', '');
-                            
-                            if(blackList.includes(cleanPlate)) continue; // 블랙리스트 차단
+                            if(blackList.includes(cleanPlate)) continue;
 
                             const name = String(r[0]).trim();
                             const vType = mapVehicleType(name);
@@ -1343,9 +1168,7 @@
                                 v = { id: Date.now() + i, plate: cleanPlate, name: name, type: vType };
                                 vehicles.push(v);
                             }
-
                             const isDup = schedules.some(x => x.vId === v.id && x.originalDate === origDate && x.cycle === cycle);
-                            
                             if(!isDup) {
                                 schedules.push({ vId: v.id, type: vType, cycle, originalDate: origDate, assignedDate: origDate });
                                 count++;
@@ -1356,7 +1179,7 @@
                     recalcAllSchedules();
                     saveData();
                     renderRegistry();
-                    alert(`✅ ${count}건 신규 업로드 완료 (블랙리스트 제외/중복 필터링 적용)`);
+                    alert(`✅ ${count}건 신규 업로드 완료 (블랙리스트 제외 및 중복 필터링 적용)`);
                 } catch(err) { alert("엑셀 읽기 오류. 형식을 확인해주세요."); }
                 event.target.value = '';
             };
@@ -1394,20 +1217,15 @@
 
             if(!vId) { 
                 container.innerHTML = `<div class="text-center text-gray-500 py-20 bg-darkcard rounded-2xl border border-darkborder"><i class="fa-solid fa-clipboard-check text-6xl mb-4 opacity-30"></i><br><span class="font-bold text-lg">차량과 정비 주기를 선택해 주세요.</span></div>`;
-                submitBtnCon.classList.add('hidden'); 
-                return; 
+                submitBtnCon.classList.add('hidden'); return; 
             }
-
             const v = vehicles.find(x => String(x.id) === String(vId));
             if(!v) return;
-
             const items = getCascadingItems(v.type, freq);
-
             if(items.length === 0) {
                 container.innerHTML = `<div class="text-center py-10 font-bold">해당 차량의 정비 기준이 없습니다.</div>`;
                 submitBtnCon.classList.add('hidden'); return;
             }
-
             container.innerHTML = '';
             items.forEach((item, idx) => {
                 const desc = highlightExamText(item.정비방법);
@@ -1421,14 +1239,11 @@
                             </div>
                         </label>
                         <div class="border-t border-darkborder">
-                            <button onclick="toggleAccordion('chk-acc-${idx}')" class="w-full px-4 py-3 text-left flex justify-between items-center text-blue-400 bg-gray-800 touch-target font-extrabold">
-                                <span><i class="fa-solid fa-circle-info mr-2"></i>상세 정비방법 보기</span><i class="fa-solid fa-chevron-down" id="icon-chk-acc-${idx}"></i>
-                            </button>
+                            <button onclick="toggleAccordion('chk-acc-${idx}')" class="w-full px-4 py-3 text-left flex justify-between items-center text-blue-400 bg-gray-800 touch-target font-extrabold"><span><i class="fa-solid fa-circle-info mr-2"></i>상세 정비방법 보기</span><i class="fa-solid fa-chevron-down" id="icon-chk-acc-${idx}"></i></button>
                             <div id="chk-acc-${idx}" class="accordion-content bg-[#121212] px-4"><p class="py-4 text-gray-300 font-bold text-base whitespace-pre-line">${desc}</p></div>
                         </div>
                     </div>`;
             });
-            
             submitBtnCon.classList.remove('hidden');
         }
 
@@ -1436,60 +1251,31 @@
             const chks = document.querySelectorAll('.chk-item');
             const checked = Array.from(chks).filter(c => c.checked).map(c => c.value);
             if(checked.length === 0) { alert("완료된 점검 항목을 1개 이상 체크해 주세요."); return; }
-            
             const vId = document.getElementById('maint-vehicle').value;
             const v = vehicles.find(x => String(x.id) === String(vId));
             const freq = document.getElementById('maint-type').value;
-            
             const now = new Date();
             const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-
             const rephrased = checked.map(item => `${item} 상태 점검 완료`);
             const report = `[${v.plate} ${v.name} ${freq} 예방정비 결과]\n- 중점 정비사항: ${rephrased.join(', ')}\n- 결과: 이상 없음 (특이사항 없음)`;
 
             logs.unshift({ id: Date.now(), date: dateStr, plate: v.plate, type: v.type, cycle: freq, summary: report });
-            
             schedules = schedules.filter(s => !(s.vId == v.id && s.cycle == freq && s.assignedDate <= dateStr));
-            
-            saveData();
-            showModal(report);
-            chks.forEach(c => c.checked = false);
-            
+            saveData(); showModal(report); chks.forEach(c => c.checked = false);
             document.getElementById('maint-vehicle').value = "";
-            loadChecklist();
+            renderMaintenanceOptions();
             document.getElementById('app-container').scrollTop = 0;
         }
 
-        function showModal(text) {
-            document.getElementById('modal-text').value = text;
-            document.getElementById('modal-result').classList.remove('hidden');
-            document.getElementById('modal-result').classList.add('flex');
-        }
-        function closeModal() {
-            document.getElementById('modal-result').classList.add('hidden');
-            document.getElementById('modal-result').classList.remove('flex');
-        }
-        function copyModalText() {
-            const t = document.getElementById('modal-text');
-            t.select(); document.execCommand('copy');
-            alert("✅ 복사되었습니다. 일지에 붙여넣기 하세요.");
-            closeModal();
-        }
-
+        function showModal(text) { document.getElementById('modal-text').value = text; document.getElementById('modal-result').classList.remove('hidden'); document.getElementById('modal-result').classList.add('flex'); }
+        function closeModal() { document.getElementById('modal-result').classList.add('hidden'); document.getElementById('modal-result').classList.remove('flex'); }
+        function copyModalText() { const t = document.getElementById('modal-text'); t.select(); document.execCommand('copy'); alert("✅ 복사되었습니다."); closeModal(); }
+        
         function renderLogs() {
             const q = document.getElementById('log-search').value.toLowerCase();
-            const list = document.getElementById('log-list');
-            list.innerHTML = '';
-            const f = logs.filter(l => l.plate.toLowerCase().includes(q) || l.type.toLowerCase().includes(q));
-            f.forEach(l => {
-                list.innerHTML += `
-                    <div class="bg-gray-800 border border-darkborder p-4 rounded-xl shadow mb-3">
-                        <div class="flex justify-between items-center mb-2 border-b border-darkborder pb-2">
-                            <div><span class="font-extrabold text-white text-lg">${l.plate}</span> <span class="text-xs text-gray-400">${l.type}</span></div>
-                            <div class="text-right"><span class="bg-orange-600 text-white text-[10px] px-2 py-0.5 rounded font-bold">${l.cycle}</span> <span class="text-[10px] text-gray-500">${l.date}</span></div>
-                        </div>
-                        <p class="text-xs text-gray-300 font-mono whitespace-pre-wrap">${l.summary}</p>
-                    </div>`;
+            const list = document.getElementById('log-list'); list.innerHTML = '';
+            logs.filter(l => l.plate.toLowerCase().includes(q) || l.type.toLowerCase().includes(q)).forEach(l => {
+                list.innerHTML += `<div class="bg-gray-800 border border-darkborder p-4 rounded-xl shadow mb-3"><div class="flex justify-between items-center mb-2 border-b border-darkborder pb-2"><div><span class="font-extrabold text-white text-lg">${l.plate}</span> <span class="text-xs text-gray-400">${l.type}</span></div><div class="text-right"><span class="bg-orange-600 text-white text-[10px] px-2 py-0.5 rounded font-bold">${l.cycle}</span> <span class="text-[10px] text-gray-500">${l.date}</span></div></div><p class="text-xs text-gray-300 font-mono whitespace-pre-wrap">${l.summary}</p></div>`;
             });
         }
 
@@ -1497,10 +1283,7 @@
             if(logs.length===0) return alert("저장된 데이터가 없습니다.");
             let csv = '\uFEFF일자,차량번호,차종,주기,내용\n';
             logs.forEach(l => csv += `"${l.date}","${l.plate}","${l.type}","${l.cycle}","${l.summary.replace(/"/g, '""').replace(/\n/g, ' ')}"\n`);
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
-            link.download = `정비일지_${new Date().toISOString().split('T')[0]}.csv`;
-            link.click();
+            const link = document.createElement("a"); link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' })); link.download = `정비일지_${new Date().toISOString().split('T')[0]}.csv`; link.click();
         }
 
         function renderEditor() {
