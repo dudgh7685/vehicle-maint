@@ -26,16 +26,17 @@
         }
     </script>
     <style>
-        /* 화면 뼈대 재설계: 하단 가려짐 원천 차단 */
+        /* 화면 전체 스크롤 고정, 메인 콘텐츠 영역 분리 (하단 가려짐 원천 차단) */
         body { 
             font-family: 'Pretendard', 'Malgun Gothic', sans-serif; 
             background-color: #121212; 
             color: #f3f4f6; 
             margin: 0;
-            height: 100dvh; /* 모바일 하단바를 고려한 동적 높이 */
+            padding: 0;
+            height: 100dvh; 
             display: flex;
             flex-direction: column;
-            overflow: hidden; /* 바디 전체 스크롤 금지 */
+            overflow: hidden; 
             -webkit-tap-highlight-color: transparent;
             touch-action: manipulation;
         }
@@ -44,17 +45,18 @@
 
         header { flex-shrink: 0; z-index: 40; }
         
-        /* 메인 콘텐츠 영역: 이 안에서만 스크롤 됨 */
+        /* 앱 본문 (독립적 스크롤) */
         #app-container {
             flex-grow: 1;
             overflow-y: auto; 
             padding: 1rem;
-            padding-bottom: 2rem; /* 밑바닥 여유 공간 */
+            padding-bottom: 2rem;
             width: 100%;
             max-width: 56rem;
             margin: 0 auto;
         }
 
+        /* 하단 네비게이션바 */
         nav { flex-shrink: 0; z-index: 40; padding-bottom: env(safe-area-inset-bottom); }
 
         .touch-target { min-height: 64px; display: flex; align-items: center; }
@@ -69,6 +71,7 @@
             justify-content: center;
             gap: 0.5rem;
             font-weight: bold;
+            cursor: pointer;
         }
         .touch-btn:active { transform: scale(0.97); }
         
@@ -121,16 +124,31 @@
             border-bottom: 2px solid #fbbf24;
         }
 
-        /* 달력 그리드 */
-        .cal-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
-        .cal-day { min-height: 110px; max-height: 140px; padding: 4px; border-radius: 0.5rem; background: #1e1e1e; border: 1px solid #2d3748; display: flex; flex-direction: column; cursor: pointer; overflow-y: auto; }
+        /* 달력 그리드 (주차별 가변 높이, 빈 칸 압축 적용) */
+        .cal-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); grid-auto-rows: minmax(40px, max-content); gap: 4px; }
+        
+        .cal-day { padding: 4px; border-radius: 0.5rem; background: #1e1e1e; border: 1px solid #2d3748; display: flex; flex-direction: column; cursor: pointer; }
         .cal-day.holiday { background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3); }
-        .cal-date-num { font-size: 0.875rem; font-weight: bold; margin-bottom: 4px; position: sticky; top: 0; background: #1e1e1e; z-index: 10; }
-        .cal-day.holiday .cal-date-num { color: #ef4444; background: transparent; }
-        .sched-badge { font-size: 0.75rem; padding: 4px; border-radius: 4px; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: bold; display: block; width: 100%; box-sizing: border-box; }
+        .cal-date-num { font-size: 0.875rem; font-weight: bold; margin-bottom: 4px; }
+        .cal-day.holiday .cal-date-num { color: #ef4444; }
+        
+        /* 뱃지: 두 줄 바꿈(word-break), 텍스트 잘림 완전 차단 */
+        .sched-badge { 
+            font-size: 0.75rem; 
+            padding: 4px; 
+            border-radius: 4px; 
+            margin-bottom: 3px; 
+            white-space: normal; 
+            word-break: break-all; 
+            text-align: center;
+            line-height: 1.2;
+            font-weight: bold; 
+            width: 100%; 
+            box-sizing: border-box; 
+        }
 
-        /* 플로팅 등록 버튼 (정비수행 탭) */
-        .floating-btn-container { position: absolute; bottom: 20px; left: 1rem; right: 1rem; z-index: 50; }
+        /* 플로팅 등록 버튼 */
+        .floating-btn-container { position: fixed; bottom: 95px; left: 1rem; right: 1rem; z-index: 50; max-width: 54rem; margin: 0 auto; }
     </style>
 
     <script>
@@ -162,19 +180,24 @@
 
     <main id="app-container">
         
-        <!-- 1. 대시보드 탭 -->
         <section id="sec-dashboard" class="space-y-6">
             <h2 class="text-2xl font-bold border-l-4 border-blue-500 pl-3">스마트 스케줄러</h2>
             
+            <div class="bg-darkcard p-4 rounded-xl border border-darkborder shadow-md">
+                <div class="flex justify-between items-end mb-2">
+                    <span class="text-sm font-bold text-gray-400">월간 예방정비 달성률</span>
+                    <span class="text-lg font-extrabold text-blue-400" id="progress-text">0 / 0 대 (0%)</span>
+                </div>
+                <div class="w-full bg-gray-700 rounded-full h-3.5 overflow-hidden">
+                    <div class="bg-blue-500 h-full rounded-full transition-all duration-700" id="progress-bar" style="width: 0%"></div>
+                </div>
+            </div>
+
             <div class="flex gap-3">
                 <button onclick="generateMonthlyReport()" class="flex-1 touch-btn bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg flex-col !items-start p-4 h-auto py-5">
                     <span class="text-sm font-normal text-indigo-200"><i class="fa-solid fa-calendar-check mr-1"></i>현재 달력 기준</span>
                     <span class="text-2xl font-extrabold mt-1" id="btn-report-title">월간 예정 복사</span>
                 </button>
-                <div class="bg-darkcard p-3 rounded-xl border border-darkborder shadow-md flex flex-col justify-center items-center text-center w-1/3">
-                    <p class="text-gray-400 text-sm font-bold mb-1">배정 대수</p>
-                    <p class="text-4xl font-extrabold text-white" id="dash-month-count">0<span class="text-sm font-medium text-gray-500 ml-1">대</span></p>
-                </div>
             </div>
 
             <div class="bg-darkcard rounded-2xl border border-darkborder shadow-md overflow-hidden mt-4">
@@ -184,7 +207,6 @@
                     <button onclick="changeMonth(1)" class="px-5 py-2 text-2xl"><i class="fa-solid fa-chevron-right"></i></button>
                 </div>
                 
-                <!-- 범례를 달력 요일 표시 바로 위로 이동 (가려짐 방지) -->
                 <div class="p-3 bg-gray-900 border-b border-darkborder text-sm text-gray-300 flex justify-around shadow-inner">
                     <span><i class="fa-solid fa-square text-red-500/50 mr-2"></i>사용자 휴무</span>
                     <span><i class="fa-solid fa-arrow-left text-yellow-500 mr-2"></i>당겨진 일정</span>
@@ -199,7 +221,6 @@
             </div>
         </section>
 
-        <!-- 2. 정비수행 탭 -->
         <section id="sec-maintenance" class="hidden space-y-6 relative min-h-[80vh]">
             <h2 class="text-2xl font-bold border-l-4 border-green-500 pl-3">예방정비 수행</h2>
             
@@ -221,7 +242,6 @@
                 </div>
             </div>
 
-            <!-- 하단에 플로팅 버튼 고정 (스크롤 시에도 따라다님) -->
             <div id="btn-submit-maint-container" class="floating-btn-container hidden">
                 <button onclick="submitMaintenance()" class="touch-btn bg-green-600 hover:bg-green-500 text-white w-full shadow-[0_10px_20px_rgba(22,163,74,0.4)] text-2xl py-6 rounded-2xl border border-green-400">
                     <i class="fa-solid fa-check-double mr-2 text-3xl"></i> 정비 일지 등록
@@ -229,13 +249,11 @@
             </div>
         </section>
 
-        <!-- 3. 고장진단 탭 -->
         <section id="sec-trouble" class="hidden space-y-6">
             <h2 class="text-2xl font-bold border-l-4 border-yellow-500 pl-3">고장 진단 가이드</h2>
             <div id="trouble-list" class="space-y-4"></div>
         </section>
 
-        <!-- 4. 정비일지 탭 -->
         <section id="sec-logs" class="hidden space-y-6">
             <h2 class="text-2xl font-bold border-l-4 border-orange-500 pl-3">정비일지 이력 조회</h2>
             
@@ -253,7 +271,6 @@
             </div>
         </section>
 
-        <!-- 5. 설정 탭 -->
         <section id="sec-settings" class="hidden space-y-6">
             <h2 class="text-2xl font-bold border-l-4 border-purple-500 pl-3">설정 및 차량대장</h2>
             
@@ -270,6 +287,10 @@
                 </div>
                 
                 <h3 class="font-bold text-lg text-white mb-2 pt-2">현재 등록된 차량 목록</h3>
+                <div class="relative mb-3">
+                    <i class="fa-solid fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 text-lg"></i>
+                    <input type="text" id="veh-search" class="touch-input pl-12 h-12 min-h-0 text-base" placeholder="차량번호 또는 차종 검색" onkeyup="renderRegistry()">
+                </div>
                 <div class="space-y-3" id="vehicle-list"></div>
             </div>
 
@@ -282,32 +303,30 @@
                 <div id="edit-container" class="space-y-3 mt-4"></div>
                 <button onclick="addDbItem()" class="touch-btn bg-purple-600 hover:bg-purple-500 text-white w-full mt-4"><i class="fa-solid fa-plus"></i> 항목 추가</button>
                 <hr class="border-darkborder my-4">
-                <button onclick="factoryReset()" class="touch-btn bg-red-900/40 text-red-400 border border-red-800 w-full mt-2"><i class="fa-solid fa-triangle-exclamation"></i> 공장 초기화 (캐시 삭제)</button>
+                <button onclick="factoryReset()" class="touch-btn bg-red-900/40 text-red-400 border border-red-800 w-full mt-2"><i class="fa-solid fa-triangle-exclamation"></i> 공장 초기화 (캐시/스케줄 삭제)</button>
             </div>
         </section>
 
     </main>
 
-    <!-- 하단 네비게이션바 (Fixed) -->
-    <nav class="bg-darkcard border-t border-darkborder w-full flex justify-around items-center h-[80px] pb-safe shadow-[0_-5px_20px_rgba(0,0,0,0.5)]">
+    <nav class="bg-darkcard border-t border-darkborder w-full flex justify-around items-center h-[80px] shadow-[0_-5px_20px_rgba(0,0,0,0.5)] relative">
         <button onclick="switchTab('dashboard')" class="flex-1 flex flex-col items-center justify-center h-full text-blue-500" id="tab-dashboard">
-            <i class="fa-solid fa-calendar-check text-2xl mb-1"></i><span class="text-xs font-extrabold">대시보드</span>
+            <i class="fa-solid fa-calendar-check text-2xl mb-1"></i><span class="text-[11px] font-extrabold">대시보드</span>
         </button>
         <button onclick="switchTab('maintenance')" class="flex-1 flex flex-col items-center justify-center h-full text-gray-500 hover:text-green-500" id="tab-maintenance">
-            <i class="fa-solid fa-wrench text-2xl mb-1"></i><span class="text-xs font-extrabold">정비수행</span>
+            <i class="fa-solid fa-wrench text-2xl mb-1"></i><span class="text-[11px] font-extrabold">정비수행</span>
         </button>
         <button onclick="switchTab('trouble')" class="flex-1 flex flex-col items-center justify-center h-full text-gray-500 hover:text-yellow-400" id="tab-trouble">
-            <i class="fa-solid fa-stethoscope text-2xl mb-1"></i><span class="text-xs font-extrabold">고장진단</span>
+            <i class="fa-solid fa-stethoscope text-2xl mb-1"></i><span class="text-[11px] font-extrabold">고장진단</span>
         </button>
         <button onclick="switchTab('logs')" class="flex-1 flex flex-col items-center justify-center h-full text-gray-500 hover:text-orange-400" id="tab-logs">
-            <i class="fa-solid fa-book text-2xl mb-1"></i><span class="text-xs font-extrabold">정비일지</span>
+            <i class="fa-solid fa-book text-2xl mb-1"></i><span class="text-[11px] font-extrabold">정비일지</span>
         </button>
         <button onclick="switchTab('settings')" class="flex-1 flex flex-col items-center justify-center h-full text-gray-500 hover:text-purple-400" id="tab-settings">
-            <i class="fa-solid fa-gear text-2xl mb-1"></i><span class="text-xs font-extrabold">설정</span>
+            <i class="fa-solid fa-gear text-2xl mb-1"></i><span class="text-[11px] font-extrabold">설정</span>
         </button>
     </nav>
 
-    <!-- 모달 -->
     <div id="modal-result" class="fixed inset-0 bg-black/90 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
         <div class="bg-darkcard w-full max-w-lg rounded-2xl border border-darkborder shadow-2xl overflow-hidden flex flex-col">
             <div class="bg-blue-600 p-5 flex justify-between items-center touch-target">
@@ -326,12 +345,12 @@
     </div>
 
     <script>
-        // --- 하드코딩된 원본 데이터 ---
+        // --- 1. 표준 규정값이 추가된 마법의 데이터베이스 ---
         const defaultMaintenanceDB = {
           "상용트럭(1~5톤)": {
             "일일": [
               {"항목": "엔진오일 수준", "정비방법": "계심봉을 빼내어 오일 수준 및 점도 점검"},
-              {"항목": "클러치 페달", "정비방법": "클러치 페달 유격 점검"},
+              {"항목": "클러치 페달", "정비방법": "클러치 페달 유격 점검 (기능사 표준: 20~30mm)"},
               {"항목": "클러치 및 제동기 오일저장통", "정비방법": "오일수준 점검"},
               {"항목": "클러치 주 실린더", "정비방법": "호스 장착부의 변형 및 호스의 균열여부 점검"},
               {"항목": "연료탱크", "정비방법": "연료탱크의 파손 및 굴곡여부 점검"},
@@ -342,10 +361,10 @@
               {"항목": "경음기", "정비방법": "작동상태 점검"},
               {"항목": "계기판 및 계기류", "정비방법": "계기판 및 계기류 정상 작동여부 점검"},
               {"항목": "각종등", "정비방법": "점등여부 점검"},
-              {"항목": "구동벨트", "정비방법": "균열, 마모 및 파손 여부 및 장력 점검"},
+              {"항목": "구동벨트", "정비방법": "균열, 마모 및 파손 여부 및 장력 점검 (표준: 10~15mm 처짐)"},
               {"항목": "추진축 및 자재이음", "정비방법": "볼트 풀림, 마모 및 결합볼트의 이완 점검"},
-              {"항목": "제동기 페달", "정비방법": "제동기 페달 유격 점검"},
-              {"항목": "휠 및 타이어", "정비방법": "비정상 마모나 손상 점검 및 휠너트 조임 점검"},
+              {"항목": "제동기 페달", "정비방법": "제동기 페달 유격 점검 (표준: 10~15mm)"},
+              {"항목": "휠 및 타이어", "정비방법": "비정상 마모나 손상 점검 및 휠너트 조임 점검 (마모한계 1.6mm)"},
               {"항목": "조향장치", "정비방법": "조향 휠 유격 점검"},
               {"항목": "변속기", "정비방법": "잡음, 진동등 이상소음 점검"},
               {"항목": "냉난방장치", "정비방법": "작동상태 및 벨트 손상여부 점검"},
@@ -360,7 +379,7 @@
               {"항목": "제동장치", "정비방법": "제동기 페달 및 주차 제동기 점검 및 조정"},
               {"항목": "냉각장치", "정비방법": "부동액 농도 점검 및 보충"},
               {"항목": "클러치 조정", "정비방법": "클러치 페달유격 점검 및 조정 / 클러치 저장통 오일 수준 점검"},
-              {"항목": "축전지", "정비방법": "축전지 및 단자 고정상태 점검 / 공업용 와셀린 도포"},
+              {"항목": "축전지", "정비방법": "축전지 및 단자 고정상태 점검 (표준 비중 1.280, 극판 위 10~13mm)"},
               {"항목": "하부 윤활", "정비방법": "드래그 링크, 너클 베어링, 스프링 핀, 조향장치 하부 구리스 주유"}
             ],
             "반년": [
@@ -373,7 +392,7 @@
           "1¼ 표준차량": {
             "일일": [
               {"항목": "엔진오일 수준", "정비방법": "계심봉을 빼내어 오일 수준 및 점도 점검"},
-              {"항목": "클러치 페달", "정비방법": "클러치 페달 유격을 점검"},
+              {"항목": "클러치 페달", "정비방법": "클러치 페달 유격을 점검 (기능사 표준: 20~30mm)"},
               {"항목": "클러치 및 제동기 오일 리저브 탱크", "정비방법": "오일수준 점검"},
               {"항목": "클러치 주 실린더", "정비방법": "호스 장착부의 변형, 호스의 균열여부 점검"},
               {"항목": "연료탱크", "정비방법": "연료탱크의 파손 및 불순물유무 점검"},
@@ -384,10 +403,10 @@
               {"항목": "경음기", "정비방법": "작동상태 점검"},
               {"항목": "계기판 및 게이지", "정비방법": "게이지 및 계기 정상 작동여부 점검"},
               {"항목": "각종등", "정비방법": "점등여부 점검"},
-              {"항목": "구동벨트", "정비방법": "균열, 마모 및 파손 여부 및 장력 점검"},
+              {"항목": "구동벨트", "정비방법": "균열, 마모 및 파손 여부 및 장력 점검 (표준: 10~15mm 처짐)"},
               {"항목": "추진축/자재이음", "정비방법": "볼트 풀림, 마모 및 결합볼트의 이완 점검"},
-              {"항목": "제동기 페달", "정비방법": "제동기 페달 행정 점검"},
-              {"항목": "휠 및 타이어", "정비방법": "비정상 마모나 손상 점검/휠너트 조임 점검"},
+              {"항목": "제동기 페달", "정비방법": "제동기 페달 행정 점검 (표준: 10~15mm)"},
+              {"항목": "휠 및 타이어", "정비방법": "비정상 마모나 손상 점검/휠너트 조임 점검 (마모한계 1.6mm)"},
               {"항목": "조향장치", "정비방법": "조향 휠 유격 점검"},
               {"항목": "변속기", "정비방법": "잡음, 진동 기어의 미끌림 점검"},
               {"항목": "중간 변속기", "정비방법": "변속/작용의 원활여부 점검"},
@@ -400,7 +419,7 @@
               {"항목": "연료장치", "정비방법": "연료탱크 수분 배출 / 연료 여과기 점검 및 손질"},
               {"항목": "제동장치", "정비방법": "제동유 점검 및 보충 / 제동기 페달 유격 점검 및 조정 / 주차 제동기 점검 및 조정"},
               {"항목": "클러치", "정비방법": "클러치 페달유격 점검 및 조정"},
-              {"항목": "축전지", "정비방법": "축전지 점검 및 전해액 비중 측정"},
+              {"항목": "축전지", "정비방법": "축전지 점검 및 전해액 비중 측정 (표준 비중 1.280)"},
               {"항목": "그리스 주유", "정비방법": "각 니플부위 그리스 주유 (조향/현가 31개소)"},
               {"항목": "제동기 라이닝", "정비방법": "라이닝 간극 점검 및 조정"},
               {"항목": "엔진 시동 점검", "정비방법": "각종 등/계기 점검, 와이퍼 및 경음기 점검"}
@@ -417,7 +436,7 @@
           "2.5톤 표준차량": {
             "일일": [
               {"항목": "엔진오일", "정비방법": "엔진 오일 수준 및 점도 점검"},
-              {"항목": "클러치 페달", "정비방법": "클러치 페달 유격을 점검"},
+              {"항목": "클러치 페달", "정비방법": "클러치 페달 유격을 점검 (기능사 표준: 20~30mm)"},
               {"항목": "클러치 및 제동기 오일저장통", "정비방법": "저장통의 청결 및 오일수준 점검"},
               {"항목": "연료탱크", "정비방법": "연료탱크의 파손 및 불순물유무 점검"},
               {"항목": "연료여과기 및 물 분리기", "정비방법": "손상 또는 누유여부 점검"},
@@ -427,10 +446,10 @@
               {"항목": "경음기", "정비방법": "작동상태 점검"},
               {"항목": "계기판 및 계기류", "정비방법": "계기판 및 계기류 정상 작동여부 점검"},
               {"항목": "각종 등", "정비방법": "점등여부 점검"},
-              {"항목": "구동벨트", "정비방법": "균열, 마모 및 파손 여부 및 장력 점검"},
+              {"항목": "구동벨트", "정비방법": "균열, 마모 및 파손 여부 및 장력 점검 (표준: 10~15mm 처짐)"},
               {"항목": "추진축 및 자재이음", "정비방법": "볼트 풀림, 마모 및 결합볼트의 이완 점검"},
-              {"항목": "제동기 페달", "정비방법": "제동기 페달 유격 점검"},
-              {"항목": "휠 및 타이어", "정비방법": "비정상 마모나 손상 점검 및 휠너트 조임 점검"},
+              {"항목": "제동기 페달", "정비방법": "제동기 페달 유격 점검 (표준: 10~15mm)"},
+              {"항목": "휠 및 타이어", "정비방법": "비정상 마모나 손상 점검 및 휠너트 조임 점검 (마모한계 1.6mm)"},
               {"항목": "조향장치", "정비방법": "조향 휠 유격 점검"},
               {"항목": "변속기", "정비방법": "잡음, 진동 기어의 미끌림 점검"},
               {"항목": "중간 변속기", "정비방법": "변속 및 작용의 원활여부 점검"},
@@ -463,7 +482,7 @@
           "5톤 표준차량": {
             "일일": [
               {"항목": "엔진오일", "정비방법": "엔진 오일 수준 및 점도 점검"},
-              {"항목": "클러치 페달", "정비방법": "클러치 페달 유격을 점검"},
+              {"항목": "클러치 페달", "정비방법": "클러치 페달 유격을 점검 (기능사 표준: 20~30mm)"},
               {"항목": "클러치 및 제동기 오일저장통", "정비방법": "저장통의 청결 및 오일수준 점검"},
               {"항목": "연료탱크", "정비방법": "연료탱크의 파손 및 불순물유무 점검"},
               {"항목": "연료여과기 및 물 분리기", "정비방법": "손상 또는 누유여부 점검"},
@@ -473,10 +492,10 @@
               {"항목": "경음기", "정비방법": "작동상태 점검"},
               {"항목": "계기판 및 계기류", "정비방법": "계기판 및 계기류 정상 작동여부 점검"},
               {"항목": "각종 등", "정비방법": "점등여부 점검"},
-              {"항목": "구동벨트", "정비방법": "균열, 마모 및 파손 여부 및 장력 점검"},
+              {"항목": "구동벨트", "정비방법": "균열, 마모 및 파손 여부 및 장력 점검 (표준: 10~15mm 처짐)"},
               {"항목": "추진축 및 자재이음", "정비방법": "볼트 풀림, 마모 및 결합볼트의 이완 점검"},
-              {"항목": "제동기 페달", "정비방법": "제동기 페달 유격 점검"},
-              {"항목": "휠 및 타이어", "정비방법": "비정상 마모나 손상 점검 및 휠너트 조임 점검"},
+              {"항목": "제동기 페달", "정비방법": "제동기 페달 유격 점검 (표준: 10~15mm)"},
+              {"항목": "휠 및 타이어", "정비방법": "비정상 마모나 손상 점검 및 휠너트 조임 점검 (마모한계 1.6mm)"},
               {"항목": "조향장치", "정비방법": "조향 휠 유격 점검"},
               {"항목": "변속기", "정비방법": "잡음, 진동 기어의 미끌림 점검"},
               {"항목": "중간 변속기", "정비방법": "변속 및 작용의 원활여부 점검"},
@@ -511,11 +530,11 @@
               {"항목": "엔진오일 수준", "정비방법": "계심봉을 빼내어 오일 수준 및 점도 점검"},
               {"항목": "냉각수", "정비방법": "냉각수 수준 점검"},
               {"항목": "방열기", "정비방법": "냉각수 수준 점검 및 호스, 조임쇠 결합상태 점검"},
-              {"항목": "구동벨트", "정비방법": "균열, 마모 및 파손 여부 및 장력 점검"},
+              {"항목": "구동벨트", "정비방법": "균열, 마모 및 파손 여부 및 장력 점검 (표준: 10~15mm 처짐)"},
               {"항목": "응축기(콘덴샤)", "정비방법": "외부파손 및 오일류 누출여부 육안 점검"},
               {"항목": "응축기 휀모터", "정비방법": "휀 유동 및 파손, 고정상태 점검"},
               {"항목": "증발기 휀모터", "정비방법": "휀 유동 및 파손, 고정상태 점검"},
-              {"항목": "배터리", "정비방법": "단자고정 상태 및 전해액 수준 점검"},
+              {"항목": "배터리", "정비방법": "단자고정 상태 및 전해액 수준 점검 (표준 비중 1.280)"},
               {"항목": "연료펌프", "정비방법": "연료펌프의 손상 및 불순물유무 점검"},
               {"항목": "연료탱크", "정비방법": "연료탱크의 파손 및 불순물유무 점검"},
               {"항목": "콘트롤박스", "정비방법": "외부파손 및 계기 정상 작동여부 점검"}
@@ -541,7 +560,7 @@
           "승합차": {
             "일일": [
               {"항목": "엔진오일", "정비방법": "계심봉을 빼내어 오일 수준 및 점도 점검"},
-              {"항목": "클러치 페달", "정비방법": "클러치 페달 유격 점검"},
+              {"항목": "클러치 페달", "정비방법": "클러치 페달 유격 점검 (기능사 표준: 20~30mm)"},
               {"항목": "클러치 및 제동기 오일저장통", "정비방법": "오일수준 점검"},
               {"항목": "클러치 주 실린더", "정비방법": "호스 장착부의 변형 및 호스의 균열여부 점검"},
               {"항목": "연료탱크", "정비방법": "연료탱크의 파손 및 굴곡여부 점검"},
@@ -552,10 +571,10 @@
               {"항목": "경음기", "정비방법": "작동상태 점검"},
               {"항목": "계기판 및 계기류", "정비방법": "계기판 및 계기류 정상 작동여부 점검"},
               {"항목": "각종등", "정비방법": "점등여부 점검"},
-              {"항목": "구동벨트", "정비방법": "균열, 마모 및 파손 여부 및 장력 점검"},
+              {"항목": "구동벨트", "정비방법": "균열, 마모 및 파손 여부 및 장력 점검 (표준: 10~15mm 처짐)"},
               {"항목": "추진축 및 자재이음", "정비방법": "볼트 풀림, 마모 및 결합볼트의 이완 점검"},
-              {"항목": "제동기 페달", "정비방법": "제동기 페달 유격 점검"},
-              {"항목": "휠 및 타이어", "정비방법": "비정상 마모나 손상 및 휠너트 조임 점검"},
+              {"항목": "제동기 페달", "정비방법": "제동기 페달 유격 점검 (표준: 10~15mm)"},
+              {"항목": "휠 및 타이어", "정비방법": "비정상 마모나 손상 및 휠너트 조임 점검 (마모한계 1.6mm)"},
               {"항목": "조향장치", "정비방법": "조향 휠 유격 점검"},
               {"항목": "변속기", "정비방법": "잡음, 진동등 이상소음 점검"},
               {"항목": "냉난방장치", "정비방법": "작동상태 및 벨트 손상여부 점검"},
@@ -569,7 +588,7 @@
               {"항목": "제동장치", "정비방법": "제동기 페달 유격 및 주차 제동기 점검 및 조정"},
               {"항목": "냉각장치", "정비방법": "부동액 농도 점검 및 보충"},
               {"항목": "클러치", "정비방법": "클러치 페달유격 점검 및 조정 / 클러치오일 저장통 오일 수준 점검"},
-              {"항목": "축전지", "정비방법": "축전지 점검 및 단자 고정상태 점검"},
+              {"항목": "축전지", "정비방법": "축전지 점검 및 단자 고정상태 점검 (표준 비중 1.280)"},
               {"항목": "타이어", "정비방법": "타이어 및 휠 너트 점검"},
               {"항목": "구동벨트", "정비방법": "구동벨트 장력 점검 및 조정"}
             ],
@@ -582,7 +601,7 @@
           "승용차계열": {
             "일일": [
               {"항목": "엔진오일 수준", "정비방법": "계심봉을 빼내어 오일 수준 및 점도 점검"},
-              {"항목": "클러치 페달", "정비방법": "클러치 페달 유격 점검"},
+              {"항목": "클러치 페달", "정비방법": "클러치 페달 유격 점검 (기능사 표준: 20~30mm)"},
               {"항목": "오일 리저브 탱크", "정비방법": "수동변속기 오일수준 점검"},
               {"항목": "클러치 주 실린더", "정비방법": "호스 장착부의 변형, 호스의 균열여부 점검"},
               {"항목": "연료탱크", "정비방법": "연료탱크의 파손 및 균열/굴곡여부 점검"},
@@ -593,9 +612,9 @@
               {"항목": "경음기", "정비방법": "작동상태 점검"},
               {"항목": "계기판 및 게이지", "정비방법": "정상 작동 여부 점검"},
               {"항목": "각종등", "정비방법": "점등여부 점검"},
-              {"항목": "구동벨트", "정비방법": "균열, 마모 및 파손 여부 및 장력 점검"},
-              {"항목": "제동기 페달", "정비방법": "제동기 페달 유격 점검"},
-              {"항목": "휠 및 타이어", "정비방법": "비정상 마모 및 휠너트 조임 점검"},
+              {"항목": "구동벨트", "정비방법": "균열, 마모 및 파손 여부 및 장력 점검 (표준: 10~15mm 처짐)"},
+              {"항목": "제동기 페달", "정비방법": "제동기 페달 유격 점검 (표준: 10~15mm)"},
+              {"항목": "휠 및 타이어", "정비방법": "비정상 마모 및 휠너트 조임 점검 (마모한계 1.6mm)"},
               {"항목": "조향장치", "정비방법": "조향 휠 유격 점검"},
               {"항목": "변속기", "정비방법": "잡음, 진동등 이상소음 점검"},
               {"항목": "냉난방장치", "정비방법": "작동상태 및 벨트 손상여부 점검"},
@@ -631,15 +650,15 @@
               {"항목": "에어 크리너", "정비방법": "에어크리너 점검 및 손질"},
               {"항목": "방열기 및 냉각수", "정비방법": "방열기 점검 및 냉각수 용량 점검"},
               {"항목": "연료 계통", "정비방법": "연료탱크/연료라인/연료휠타 점검"},
-              {"항목": "구동 벨트", "정비방법": "구동벨트 마모/균열/장력 점검"},
-              {"항목": "클러치", "정비방법": "클러치페달유격/작동상태/클러치오일 점검"},
-              {"항목": "제동장치", "정비방법": "제동기페달유격/작동상태/주차제동기 점검"},
+              {"항목": "구동 벨트", "정비방법": "구동벨트 마모/균열/장력 점검 (표준: 10~15mm 처짐)"},
+              {"항목": "클러치", "정비방법": "클러치페달유격/작동상태/클러치오일 점검 (표준: 20~30mm)"},
+              {"항목": "제동장치", "정비방법": "제동기페달유격/작동상태/주차제동기 점검 (표준: 10~15mm)"},
               {"항목": "조향장치", "정비방법": "조향휠 작동상태 및 오일량 점검"},
               {"항목": "변속기", "정비방법": "기어변속상태 점검 및 변속기오일수준 점검"},
               {"항목": "추진축 및 자재이음", "정비방법": "볼트풀림/베어링유동여부/그리스주유 점검"},
               {"항목": "현가장치", "정비방법": "판스프링균열/철손/U볼트조임상태 점검"},
-              {"항목": "휠 타이어", "정비방법": "휠너트 조임상태 및 타이어공기압 점검"},
-              {"항목": "축전지", "정비방법": "축전지단자유동상태/전해액 수준 점검"},
+              {"항목": "휠 타이어", "정비방법": "휠너트 조임상태 및 타이어공기압 점검 (마모한계 1.6mm)"},
+              {"항목": "축전지", "정비방법": "축전지단자유동상태/전해액 수준 점검 (표준 비중 1.280)"},
               {"항목": "스위치 및 와이퍼", "정비방법": "복합스위치작동/와이퍼작동/경음기 점검"},
               {"항목": "계기판 및 냉난방 장치", "정비방법": "계기판 작동여부 점검. 에어컨 및 히터 작동상태 점검"},
               {"항목": "캡 틸트", "정비방법": "캡 상승 및 하강 작동상태 점검"},
@@ -880,11 +899,9 @@
 
         function mapVehicleType(name) {
             if (name.includes("30kw") || name.includes("발전기")) return null;
-            
             if (/K-?511/.test(name)) return "2.5톤 표준차량";
             if (/K-?311|1 1\/4톤|1¼/.test(name)) return "1¼ 표준차량";
             if (/K-?711/.test(name)) return "5톤 표준차량";
-            
             if (/덤프|유조차|트랙터|11\.5톤|15톤|탱크형/.test(name)) return "대형트럭/유조차";
             if (/마이티|5톤|화물용|화물차|픽업형|봉고|2\.5톤/.test(name)) return "상용트럭(1~5톤)";
             if (/스타렉스|승합|버스|12인승/.test(name)) return "승합차";
@@ -894,7 +911,7 @@
             return "상용트럭(1~5톤)";
         }
 
-        // 숫자 오름차순 정렬 (Natural Sort)
+        // 차량 번호 자연수 오름차순 정렬
         function sortVehicles() {
             vehicles.sort((a, b) => a.plate.localeCompare(b.plate, undefined, {numeric: true, sensitivity: 'base'}));
         }
@@ -911,7 +928,7 @@
             const lsLogs = localStorage.getItem('vms_logs');
 
             if(lsVehicles && JSON.parse(lsVehicles).length > 0) {
-                // 이전 캐시에 남아있는 3139- 번호 강제 마스킹 정화 처리
+                // 이전 캐시에 남아있는 3139- 번호 정화
                 vehicles = JSON.parse(lsVehicles).map(v => ({ ...v, plate: v.plate.replace('3139-', '') }));
                 
                 let rawSchedules = JSON.parse(lsSchedules);
@@ -936,7 +953,6 @@
                     if (vType) { 
                         const cycle = cols[3].includes("반기") ? "반년" : (cols[3].includes("월간") ? "월간" : "일일");
                         const vId = Date.now() + i;
-                        // 3139- 마스킹
                         const cleanPlate = cols[1].trim().replace('3139-', '');
                         
                         vehicles.push({ id: vId, plate: cleanPlate, name: vName, type: vType });
@@ -976,7 +992,7 @@
             localStorage.setItem('vms_logs', JSON.stringify(logs));
         }
 
-        // 공장 초기화 로직 (캐시 완전 박멸)
+        // 공장 초기화 (캐시 완전 삭제)
         function factoryReset() {
             if(confirm("모든 데이터를 초기화하고 엑셀 원본 상태로 되돌리시겠습니까?\n(등록된 정비 일지와 업로드한 스케줄이 모두 삭제됩니다!)")) {
                 localStorage.clear();
@@ -1001,7 +1017,6 @@
             if(tabId === 'logs') { renderLogs(); }
             if(tabId === 'settings') { renderRegistry(); renderEditor(); }
             
-            // 메인 영역 맨 위로 스크롤 초기화
             document.getElementById('app-container').scrollTop = 0;
         }
 
@@ -1090,7 +1105,7 @@
             renderCalendar();
         }
 
-        // 월~금 5일치 달력 렌더링
+        // 월~금 5일치 달력 렌더링 + 월간 프로그레스 바 연동 + 빈 주차 압축 로직
         function renderCalendar() {
             const y = currentDate.getFullYear();
             const m = currentDate.getMonth();
@@ -1102,6 +1117,16 @@
             
             let calBodyHtml = '';
             let monthCount = 0;
+
+            // 프로그레스 바 연동 로직
+            const monthPrefix = `${y}-${String(m+1).padStart(2,'0')}`;
+            const pendingMonthScheds = schedules.filter(s => s.assignedDate.startsWith(monthPrefix));
+            const completedCount = logs.filter(l => l.date.startsWith(monthPrefix)).length;
+            const totalThisMonth = pendingMonthScheds.length + completedCount;
+            const pct = totalThisMonth === 0 ? 0 : Math.round((completedCount / totalThisMonth) * 100);
+            
+            document.getElementById('progress-text').innerText = `${completedCount} / ${totalThisMonth} 대 (${pct}%)`;
+            document.getElementById('progress-bar').style.width = `${pct}%`;
 
             for(let d=1; d<=daysInMonth; d++) {
                 let dateObj = new Date(y, m, d);
@@ -1130,7 +1155,8 @@
                     const color = s.cycle === '반년' ? 'bg-red-600' : (s.cycle === '월간' ? 'bg-amber-600' : 'bg-blue-600');
                     const avoidTag = s.assignedDate !== s.originalDate ? `<i class="fa-solid fa-arrow-left text-yellow-300"></i> ` : '';
                     
-                    badges += `<div class="${color} text-white sched-badge" onclick="event.stopPropagation(); goToMaint(${v.id}, '${s.cycle}', '${s.originalDate}', '${s.assignedDate}')">${avoidTag}${v.plate}</div>`;
+                    // 클릭 시 차량 정보를 명확히 넘겨줌 (plate, type 포함)
+                    badges += `<div class="${color} text-white sched-badge" onclick="event.stopPropagation(); goToMaint(${v.id}, '${s.cycle}', '${s.originalDate}', '${s.assignedDate}', '${v.plate}', '${v.type}')">${avoidTag}${v.plate}</div>`;
                 });
 
                 calBodyHtml += `
@@ -1142,18 +1168,19 @@
             }
             
             calBody.innerHTML = calBodyHtml;
-            document.getElementById('dash-month-count').innerHTML = `${monthCount}<span class="text-sm font-medium text-gray-500 ml-1">대</span>`;
+            document.getElementById('dash-month-count').innerHTML = `${pendingMonthScheds.length}<span class="text-sm font-medium text-gray-500 ml-1">대</span>`;
         }
 
-        function goToMaint(vId, cycle, origDate, assignDate) {
-            let msg = "해당 차량의 예방정비를 수행하시겠습니까?";
+        // 상세 알림창 (실제 번호 표시)
+        function goToMaint(vId, cycle, origDate, assignDate, plate, type) {
+            let msg = `${plate}호 ${type}의 ${cycle} 예방정비를 수행하시겠습니까?`;
             
             if (origDate && assignDate && origDate !== assignDate) {
                 const d1 = new Date(origDate.split('-')[0], origDate.split('-')[1] - 1, origDate.split('-')[2]);
                 const d2 = new Date(assignDate.split('-')[0], assignDate.split('-')[1] - 1, assignDate.split('-')[2]);
                 const diff = Math.round((d1 - d2) / (1000 * 60 * 60 * 24));
                 
-                msg = `원래 계획일(${origDate})에서 [ ${diff}일 ] 앞당겨진 일정입니다.\n\n정비를 수행하시겠습니까?`;
+                msg = `원래 계획일(${origDate})에서 [ ${diff}일 ] 앞당겨진\n${plate}호 ${type}의 ${cycle} 예방정비를 수행하시겠습니까?`;
             }
             
             if(confirm(msg)) {
@@ -1178,7 +1205,7 @@
             let targetScheds = schedules.filter(s => s.assignedDate >= tStart && s.assignedDate <= tEnd);
             targetScheds.sort((a,b) => a.assignedDate.localeCompare(b.assignedDate));
 
-            if(targetScheds.length === 0) { alert(`${m+1}월에 계획된 예방정비 일정이 없습니다.`); return; }
+            if(targetScheds.length === 0) { alert(`${m+1}월에 배정된 예방정비 일정이 없습니다.`); return; }
 
             let report = `[${y}년 ${m+1}월 예방정비 예정사항]\n\n`;
             
@@ -1206,8 +1233,10 @@
             showModal(report.trim());
         }
 
+        // 차량대장 검색 및 렌더링
         function renderRegistry() {
             const list = document.getElementById('vehicle-list');
+            const q = document.getElementById('veh-search').value.toLowerCase();
             list.innerHTML = '';
             
             const formatDate = (dateStr) => {
@@ -1215,7 +1244,9 @@
                 return `${y}년 ${parseInt(m)}월 ${parseInt(d)}일`;
             };
 
-            vehicles.forEach(v => {
+            const filtered = vehicles.filter(v => v.plate.toLowerCase().includes(q) || v.type.toLowerCase().includes(q));
+
+            filtered.forEach(v => {
                 const sMonth = schedules.find(x => x.vId === v.id && x.cycle === '월간');
                 const sHalf = schedules.find(x => x.vId === v.id && x.cycle === '반년');
                 list.innerHTML += `
@@ -1250,7 +1281,6 @@
                             
                             if(!vType) continue; 
                             
-                            // 마스킹 처리
                             const plate = rawPlate.replace('3139-', '');
 
                             let dateStr = String(r[2] || '').trim();
@@ -1348,7 +1378,6 @@
                         </div>
                     </div>`;
             });
-            // 하단 플로팅 등록 버튼 보이기
             submitBtnCon.classList.remove('hidden');
         }
 
@@ -1361,7 +1390,6 @@
             const v = vehicles.find(x => x.id == vId);
             const freq = document.getElementById('maint-type').value;
             
-            // 등록일을 한국 시간(KST) 문자열로 정확히 맞춤
             const now = new Date();
             const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
 
@@ -1376,7 +1404,6 @@
             showModal(report);
             chks.forEach(c => c.checked = false);
             
-            // 완료 후 항목 초기화 및 스크롤 올리기
             document.getElementById('maint-vehicle').value = "";
             loadChecklist();
             document.getElementById('app-container').scrollTop = 0;
