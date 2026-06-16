@@ -2,7 +2,7 @@
 <html lang="ko" class="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>차량 예방정비 관리시스템</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -26,7 +26,7 @@
         }
     </script>
     <style>
-        /* 화면 스크롤 구조 완전 분리 (하단 메뉴 가려짐 원천 차단) */
+        /* 화면 스크롤 완전 분리 및 Safe Area 완벽 대응 (하단 여백 눈부심 방지) */
         body { 
             font-family: 'Pretendard', 'Malgun Gothic', sans-serif; 
             background-color: #121212; 
@@ -45,7 +45,6 @@
 
         header { flex-shrink: 0; z-index: 40; }
         
-        /* 메인 콘텐츠 영역 (이 안에서만 독립 스크롤) */
         #app-container {
             flex-grow: 1;
             overflow-y: auto; 
@@ -56,8 +55,14 @@
             margin: 0 auto;
         }
 
-        /* 하단 네비게이션바 (바닥에 딱 고정) */
-        nav { flex-shrink: 0; z-index: 40; padding-bottom: env(safe-area-inset-bottom); }
+        /* 하단 네비게이션바 Safe Area 설정 */
+        nav { 
+            flex-shrink: 0; 
+            z-index: 40; 
+            padding-bottom: constant(safe-area-inset-bottom);
+            padding-bottom: env(safe-area-inset-bottom);
+            background-color: #1e1e1e;
+        }
 
         .touch-target { min-height: 64px; display: flex; align-items: center; }
         .touch-btn { 
@@ -124,7 +129,7 @@
             border-bottom: 2px solid #fbbf24;
         }
 
-        /* 가변형 달력 그리드 (일정 없으면 최소 40px, 많으면 내용에 맞춰 늘어남) */
+        /* 가변형 달력 그리드 (일정 없으면 납작, 글자 많으면 늘어남) */
         .cal-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); grid-auto-rows: minmax(40px, auto); gap: 4px; }
         
         .cal-day { padding: 4px; border-radius: 0.5rem; background: #1e1e1e; border: 1px solid #2d3748; display: flex; flex-direction: column; cursor: pointer; }
@@ -205,7 +210,7 @@
                 </div>
                 
                 <div class="p-3 bg-gray-900 border-b border-darkborder text-sm text-gray-300 flex justify-around shadow-inner">
-                    <span><i class="fa-solid fa-square text-red-500/50 mr-2"></i>사용자 휴무</span>
+                    <span><i class="fa-solid fa-square text-red-500/50 mr-2"></i>법정/사용자 휴무</span>
                     <span><i class="fa-solid fa-arrow-left text-yellow-500 mr-2"></i>당겨진 일정</span>
                 </div>
 
@@ -310,7 +315,7 @@
 
     </main>
 
-    <nav class="bg-darkcard border-t border-darkborder w-full flex justify-around items-center h-[80px] shadow-[0_-5px_20px_rgba(0,0,0,0.5)] relative">
+    <nav class="border-t border-darkborder w-full flex justify-around items-center h-[80px] shadow-[0_-5px_20px_rgba(0,0,0,0.5)] relative">
         <button onclick="switchTab('dashboard')" class="flex-1 flex flex-col items-center justify-center h-full text-blue-500" id="tab-dashboard">
             <i class="fa-solid fa-calendar-check text-2xl mb-1"></i><span class="text-[11px] font-extrabold">대시보드</span>
         </button>
@@ -346,6 +351,7 @@
     </div>
 
     <script>
+        // --- 1. 원본 유지보수 DB (추후 파일 구하실 때까지 기존 내용 롤백) ---
         const defaultMaintenanceDB = {
           "상용트럭(1~5톤)": {
             "일일": [
@@ -897,6 +903,28 @@
         let logs = []; 
         let currentDate = new Date(); 
 
+        // [블랙리스트 기능] 관할 외 발전기 트레일러 제외
+        const blackList = ["188-1", "190-1", "191-1"];
+
+        // [공휴일 오프라인 데이터 (2026~2028)] 
+        // 2026년 추석 수정 및 대체공휴일 로직 완벽 반영 완료
+        const systemHolidays = [
+            "2026-01-01", "2026-02-16", "2026-02-17", "2026-02-18", "2026-03-02", "2026-05-05", "2026-05-25", "2026-08-17", "2026-09-24", "2026-09-25", "2026-10-05", "2026-10-09", "2026-12-25",
+            "2027-01-01", "2027-02-05", "2027-02-08", "2027-03-01", "2027-05-05", "2027-05-13", "2027-08-16", "2027-09-14", "2027-09-15", "2027-09-16", "2027-10-04", "2027-10-11", "2027-12-27",
+            "2028-01-25", "2028-01-26", "2028-01-27", "2028-03-01", "2028-05-02", "2028-05-05", "2028-06-06", "2028-08-15", "2028-10-02", "2028-10-03", "2028-10-04", "2028-10-05", "2028-10-09", "2028-12-25"
+        ];
+
+        function isSystemHoliday(dateStr) {
+            return systemHolidays.includes(dateStr);
+        }
+
+        function isHolidayOrWeekend(dateStr) {
+            const parts = dateStr.split('-');
+            const d = new Date(parts[0], parts[1] - 1, parts[2]);
+            const day = d.getDay();
+            return day === 0 || day === 6 || systemHolidays.includes(dateStr) || holidays.includes(dateStr);
+        }
+
         function mapVehicleType(name) {
             if (name.includes("30kw") || name.includes("발전기")) return null;
             if (/K-?511/.test(name)) return "2.5톤 표준차량";
@@ -911,34 +939,38 @@
             return "상용트럭(1~5톤)";
         }
 
-        // [핵심 정화 로직] 차량 목록의 3139- 찌꺼기 제거 및 중복 통합, 스케줄 연결 재설정
+        // [데이터 정화 및 통합 로직]
         function cleanUpData() {
-            // 1. 차량 번호에서 3139- 강제 제거
+            // 3139- 텍스트 제거 마스킹
             vehicles.forEach(v => { v.plate = v.plate.replace('3139-', ''); });
             
-            // 2. 차량 중복 제거 (쌍둥이 차량을 하나로 합치기)
+            // 블랙리스트 차단 및 차량 중복 통합 (오름차순 정렬)
             const uniqueMap = new Map();
-            const idMap = {}; // 예전 ID가 어떤 새 ID로 합쳐졌는지 기록하는 지도
+            const idMap = {}; 
             
             vehicles.forEach(v => {
+                if(blackList.includes(v.plate)) return; // 발전기 트레일러 원천 차단
+                
                 if(!uniqueMap.has(v.plate)) {
                     uniqueMap.set(v.plate, v);
                     idMap[v.id] = v.id;
                 } else {
-                    idMap[v.id] = uniqueMap.get(v.plate).id; // 중복 차량의 ID를 진짜(유일한) 차량 ID로 연결
+                    idMap[v.id] = uniqueMap.get(v.plate).id; 
                 }
             });
             
-            // 차량 목록을 유일한 차량들로 덮어쓰고 오름차순 정렬
             vehicles = Array.from(uniqueMap.values());
             vehicles.sort((a,b) => a.plate.localeCompare(b.plate, undefined, {numeric: true}));
             
-            // 3. 스케줄 복구 (미아 방지): 합쳐진 ID 지도를 보고 스케줄의 대상을 진짜 차량으로 바꿔줌
-            schedules.forEach(s => {
-                if(idMap[s.vId]) { s.vId = idMap[s.vId]; }
+            // 스케줄 미아 방지 및 블랙리스트 일정 삭제
+            schedules = schedules.filter(s => {
+                const targetV = vehicles.find(v => v.id === idMap[s.vId]);
+                return targetV; // 살아남은 차량의 스케줄만 통과
             });
+
+            schedules.forEach(s => { if(idMap[s.vId]) { s.vId = idMap[s.vId]; } });
             
-            // 4. 스케줄 자체 중복 제거 (같은 날, 같은 차량, 같은 주기 일정이 여러 개 들어간 경우)
+            // 스케줄 중복 제거
             const uniqueSchedules = [];
             schedules.forEach(s => {
                 if(!uniqueSchedules.some(u => u.vId === s.vId && u.originalDate === s.originalDate && u.cycle === s.cycle)) {
@@ -963,7 +995,7 @@
                 vehicles = JSON.parse(lsVehicles);
                 schedules = JSON.parse(lsSchedules);
                 
-                cleanUpData(); // 로컬 캐시 정화
+                cleanUpData();
                 recalcAllSchedules();
                 saveData();
             } else {
@@ -971,19 +1003,23 @@
                 lines.forEach((line, i) => {
                     if (i === 0 || !line.trim()) return;
                     const cols = line.split(',');
+                    const cleanPlate = cols[1].trim().replace('3139-', '');
+                    
+                    // CSV 파싱 중에도 블랙리스트 차단
+                    if(blackList.includes(cleanPlate)) return;
+
                     const vName = cols[0].trim();
                     const vType = mapVehicleType(vName);
                     
                     if (vType) { 
                         const cycle = cols[3].includes("반기") ? "반년" : (cols[3].includes("월간") ? "월간" : "일일");
                         const vId = Date.now() + i;
-                        const cleanPlate = cols[1].trim().replace('3139-', '');
                         
                         vehicles.push({ id: vId, plate: cleanPlate, name: vName, type: vType });
                         schedules.push({ vId: vId, type: vType, cycle: cycle, originalDate: cols[2].trim(), assignedDate: cols[2].trim() });
                     }
                 });
-                cleanUpData(); // 원본 데이터 로드 시에도 정화
+                cleanUpData();
                 recalcAllSchedules(); 
                 saveData();
             }
@@ -1038,9 +1074,9 @@
             if(tabId === 'dashboard') { renderCalendar(); }
             if(tabId === 'maintenance') { renderMaintenanceOptions(); }
             if(tabId === 'logs') { renderLogs(); }
-            if(tabId === 'settings') { renderRegistry(); renderEditor(); }
+            // 탭 순서가 바뀐 설정 탭 렌더링
+            if(tabId === 'settings') { renderEditor(); renderRegistry(); }
             
-            // 탭 전환 시 화면 최상단으로 스크롤 이동
             document.getElementById('app-container').scrollTop = 0;
         }
 
@@ -1051,14 +1087,7 @@
             icon.style.transform = content.classList.contains('open') ? 'rotate(180deg)' : 'rotate(0deg)';
         }
 
-        function isHolidayOrWeekend(dateStr) {
-            const parts = dateStr.split('-');
-            const d = new Date(parts[0], parts[1] - 1, parts[2]);
-            const day = d.getDay();
-            return day === 0 || day === 6 || holidays.includes(dateStr);
-        }
-
-        // 스케줄 계산: 무조건 원래 날짜 기준 과거(이전)로만
+        // 스케줄 재계산 로직 (과거로만 당기기)
         function recalcAllSchedules() {
             const assignedCount = {};
             schedules.sort((a,b) => a.originalDate.localeCompare(b.originalDate));
@@ -1106,8 +1135,14 @@
         }
 
         function toggleHoliday(dateStr) {
+            // 법정 공휴일은 수동 토글 불가
+            if(isSystemHoliday(dateStr)) {
+                alert("해당일은 법정 공휴일이므로 해제할 수 없습니다.");
+                return;
+            }
+
             const isAlreadyHoliday = holidays.includes(dateStr);
-            const msg = isAlreadyHoliday ? "해당 날짜의 휴무 지정을 해제하시겠습니까?" : "선택한 날짜를 휴무로 바꾸시겠습니까?";
+            const msg = isAlreadyHoliday ? "해당 날짜의 수동 휴무 지정을 해제하시겠습니까?" : "선택한 날짜를 휴무로 바꾸시겠습니까?";
             
             if(confirm(msg)) {
                 if(isAlreadyHoliday) {
@@ -1137,7 +1172,7 @@
             
             let calBodyHtml = '';
             
-            // 프로그레스 바 데이터 연동
+            // 프로그레스 바 연동
             const monthPrefix = `${y}-${String(m+1).padStart(2,'0')}`;
             const pendingMonthScheds = schedules.filter(s => s.assignedDate.startsWith(monthPrefix));
             const completedCount = logs.filter(l => l.date.startsWith(monthPrefix)).length;
@@ -1161,7 +1196,7 @@
                     }
                 }
 
-                const isHol = holidays.includes(dateStr);
+                const isHol = isSystemHoliday(dateStr) || holidays.includes(dateStr);
                 const dayScheds = schedules.filter(s => s.assignedDate === dateStr);
 
                 let badges = '';
@@ -1185,7 +1220,7 @@
             calBody.innerHTML = calBodyHtml;
         }
 
-        // [오류 수정] 알림창 확인 후 자동 차량 선택 및 버튼 노출 연결 오류 수정
+        // 달력 클릭 시 자동 선택
         function goToMaint(vId, cycle, origDate, assignDate, plate, type) {
             let msg = `${plate}호 ${type}의 ${cycle} 예방정비를 수행하시겠습니까?`;
             
@@ -1198,13 +1233,12 @@
             }
             
             if(confirm(msg)) {
-                switchTab('maintenance'); // 탭 먼저 이동
+                switchTab('maintenance'); 
                 setTimeout(() => {
-                    // ID가 일치해야 정확히 옵션이 선택됨
                     document.getElementById('maint-vehicle').value = String(vId); 
                     document.getElementById('maint-type').value = cycle;
-                    loadChecklist(); // 체크리스트 로드하며 등록 버튼 띄움
-                }, 100); // 탭 전환 대기 0.1초 후 실행
+                    loadChecklist(); 
+                }, 100); 
             }
         }
 
@@ -1289,12 +1323,13 @@
                         const r = json[i];
                         if(r.length >= 4 && r[1]) {
                             const rawPlate = String(r[1]).trim();
+                            const cleanPlate = rawPlate.replace('3139-', '');
+                            
+                            if(blackList.includes(cleanPlate)) continue; // 블랙리스트 차단
+
                             const name = String(r[0]).trim();
                             const vType = mapVehicleType(name);
-                            
                             if(!vType) continue; 
-                            
-                            const plate = rawPlate.replace('3139-', '');
 
                             let dateStr = String(r[2] || '').trim();
                             const dMatch = dateStr.match(/(\d{4})[-./년\s]+(\d{1,2})[-./월\s]+(\d{1,2})/);
@@ -1303,9 +1338,9 @@
                             let cycleStr = String(r[3] || '');
                             const cycle = cycleStr.includes("반기") ? "반년" : (cycleStr.includes("월간") ? "월간" : "일일");
                             
-                            let v = vehicles.find(x => x.plate === plate);
+                            let v = vehicles.find(x => x.plate === cleanPlate);
                             if(!v) {
-                                v = { id: Date.now() + i, plate: plate, name: name, type: vType };
+                                v = { id: Date.now() + i, plate: cleanPlate, name: name, type: vType };
                                 vehicles.push(v);
                             }
 
@@ -1317,11 +1352,11 @@
                             }
                         }
                     }
-                    cleanUpData(); // 업로드 후 다시 정화
+                    cleanUpData();
                     recalcAllSchedules();
                     saveData();
                     renderRegistry();
-                    alert(`✅ ${count}건 신규 업로드 완료 (중복 필터링 적용)`);
+                    alert(`✅ ${count}건 신규 업로드 완료 (블랙리스트 제외/중복 필터링 적용)`);
                 } catch(err) { alert("엑셀 읽기 오류. 형식을 확인해주세요."); }
                 event.target.value = '';
             };
@@ -1333,8 +1368,6 @@
             sel.innerHTML = '<option value="">대상 차량 (호수) 선택</option>';
             vehicles.forEach(v => { sel.innerHTML += `<option value="${v.id}">${v.plate} (${v.type})</option>`; });
             document.getElementById('checklist-container').innerHTML = '';
-            
-            // 탭 초기화 시 버튼 숨김
             document.getElementById('btn-submit-maint-container').classList.add('hidden');
         }
 
@@ -1396,7 +1429,6 @@
                     </div>`;
             });
             
-            // 체크리스트가 성공적으로 그려지면 숨겨놨던 등록 버튼 노출
             submitBtnCon.classList.remove('hidden');
         }
 
