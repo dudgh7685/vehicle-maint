@@ -34,7 +34,7 @@
             -webkit-tap-highlight-color: transparent;
             touch-action: manipulation;
         }
-        ::-webkit-scrollbar { display: none; } /* 스크롤바 숨김 (디자인용) */
+        ::-webkit-scrollbar { display: none; } 
 
         .touch-target { min-height: 64px; display: flex; align-items: center; }
         .touch-btn { 
@@ -100,16 +100,15 @@
             border-bottom: 2px solid #fbbf24;
         }
 
-        .main-content { padding-bottom: 120px; }
+        /* 하단 탭바 가림 방지를 위해 여백을 160px로 대폭 늘림 */
+        .main-content { padding-bottom: 160px; min-height: 100vh; }
 
-        /* 월~금 5일치만 보여주는 달력 그리드 */
         .cal-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
         .cal-day { min-height: 100px; padding: 4px; border-radius: 0.5rem; background: #1e1e1e; border: 1px solid #2d3748; display: flex; flex-direction: column; cursor: pointer; }
         .cal-day.holiday { background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3); }
         .cal-date-num { font-size: 0.875rem; font-weight: bold; margin-bottom: 4px; }
         .cal-day.holiday .cal-date-num { color: #ef4444; }
         
-        /* 뱃지가 숨겨지지 않도록 수정 */
         .sched-badge { font-size: 0.75rem; padding: 4px; border-radius: 4px; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: bold; display: block; width: 100%; box-sizing: border-box; }
     </style>
 
@@ -155,7 +154,6 @@
             <h2 class="text-2xl font-bold border-l-4 border-blue-500 pl-3">스마트 스케줄러</h2>
             
             <div class="flex gap-3">
-                <!-- 월간 예정사항 단일 버튼으로 통합 -->
                 <button onclick="generateMonthlyReport()" class="flex-1 touch-btn bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg flex-col !items-start p-4 h-auto py-5">
                     <span class="text-sm font-normal text-indigo-200"><i class="fa-solid fa-calendar-check mr-1"></i>현재 표시된 달력 기준</span>
                     <span class="text-2xl font-extrabold mt-1" id="btn-report-title">월간 예정 복사</span>
@@ -178,9 +176,9 @@
                     </div>
                     <div id="cal-body" class="cal-grid"></div>
                 </div>
-                <div class="p-3 bg-gray-800 text-xs text-gray-400 flex justify-around">
-                    <span><i class="fa-solid fa-square text-red-500/50 mr-1"></i>사용자 지정 휴무</span>
-                    <span><i class="fa-solid fa-arrow-left text-yellow-500 mr-1"></i>당겨진 일정</span>
+                <div class="p-4 bg-gray-800 text-sm text-gray-300 flex justify-around border-t border-darkborder">
+                    <span><i class="fa-solid fa-square text-red-500/50 mr-2"></i>지정 휴무</span>
+                    <span><i class="fa-solid fa-arrow-left text-yellow-500 mr-2"></i>당겨진 일정</span>
                 </div>
             </div>
         </section>
@@ -874,13 +872,23 @@
             const lsHolidays = localStorage.getItem('vms_holidays');
             if(lsHolidays) holidays = JSON.parse(lsHolidays);
 
-            const lsVehicles = localStorage.getItem('vms_vehicles');
-            const lsSchedules = localStorage.getItem('vms_schedules');
+            let lsVehicles = localStorage.getItem('vms_vehicles');
+            let lsSchedules = localStorage.getItem('vms_schedules');
             const lsLogs = localStorage.getItem('vms_logs');
 
+            // 중복 스케줄 제거 (과거 버전의 찌꺼기 로컬스토리지 완전 정화 로직)
             if(lsVehicles && JSON.parse(lsVehicles).length > 0) {
                 vehicles = JSON.parse(lsVehicles);
-                schedules = JSON.parse(lsSchedules);
+                let rawSchedules = JSON.parse(lsSchedules);
+                const uniqueSchedules = [];
+                rawSchedules.forEach(s => {
+                    if(!uniqueSchedules.some(u => u.vId === s.vId && u.originalDate === s.originalDate && u.cycle === s.cycle)) {
+                        uniqueSchedules.push(s);
+                    }
+                });
+                schedules = uniqueSchedules;
+                recalcAllSchedules();
+                saveData();
             } else {
                 const lines = csvRawData.split('\n');
                 lines.forEach((line, i) => {
@@ -1042,7 +1050,6 @@
             renderCalendar();
         }
 
-        // 월~금 5일치만 보여주도록 개선된 달력 렌더링 함수
         function renderCalendar() {
             const y = currentDate.getFullYear();
             const m = currentDate.getMonth();
@@ -1059,14 +1066,11 @@
                 let dateObj = new Date(y, m, d);
                 let dayOfWeek = dateObj.getDay();
                 
-                // 주말은 달력 UI에서 완전히 제외
                 if (dayOfWeek === 0 || dayOfWeek === 6) continue;
 
                 const dateStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
                 
-                // 첫 주차 평일 시작 전 빈 칸(패딩) 생성
                 if (calBodyHtml === '') {
-                    // 월=1, 화=2... 금=5 -> dayOfWeek - 1 만큼 빈 칸
                     for (let i = 0; i < dayOfWeek - 1; i++) {
                         calBodyHtml += `<div></div>`;
                     }
@@ -1089,7 +1093,6 @@
                 calBodyHtml += `
                     <div class="cal-day ${isHol ? 'holiday' : ''}" onclick="toggleHoliday('${dateStr}')">
                         <div class="cal-date-num">${d}</div>
-                        <!-- 배지가 많아도 숨겨지지 않고 스크롤 되도록 변경 -->
                         <div class="flex-1 flex flex-col gap-1 overflow-y-auto">${badges}</div>
                     </div>
                 `;
@@ -1190,7 +1193,9 @@
                 try {
                     const data = new Uint8Array(e.target.result);
                     const workbook = XLSX.read(data, {type: 'array'});
-                    const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], {header: 1});
+                    
+                    // 엑셀 날짜 인식을 위해 raw 옵션을 끄고 강제 문자열 파싱
+                    const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], {header: 1, raw: false});
                     
                     let count = 0;
                     for(let i=1; i<json.length; i++) {
@@ -1202,7 +1207,11 @@
                             
                             if(!vType) continue; 
                             
-                            const origDate = r[2] || new Date().toISOString().split('T')[0];
+                            // 날짜 정규식 추출로 YYYY-MM-DD 맞춤
+                            let dateStr = String(r[2] || '').trim();
+                            const dMatch = dateStr.match(/(\d{4})[-./년\s]+(\d{1,2})[-./월\s]+(\d{1,2})/);
+                            const origDate = dMatch ? `${dMatch[1]}-${dMatch[2].padStart(2,'0')}-${dMatch[3].padStart(2,'0')}` : new Date().toISOString().split('T')[0];
+                            
                             let cycleStr = String(r[3] || '');
                             const cycle = cycleStr.includes("반기") ? "반년" : (cycleStr.includes("월간") ? "월간" : "일일");
                             
