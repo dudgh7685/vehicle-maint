@@ -55,12 +55,19 @@
                     <div class="bg-blue-500 h-full rounded-full transition-all duration-700" id="progress-bar" style="width: 0%"></div>
                 </div>
             </div>
+            
+            <!-- 복사 버튼 영역 2개로 분할 -->
             <div class="flex gap-3">
+                <button onclick="generateDailyReport()" class="flex-1 touch-btn bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg flex-col !items-start p-4 h-auto py-5">
+                    <span class="text-sm font-normal text-emerald-200"><i class="fa-solid fa-clock mr-1"></i>오늘/내일 기준</span>
+                    <span class="text-xl md:text-2xl font-extrabold mt-1">일일 예정 복사</span>
+                </button>
                 <button onclick="generateMonthlyReport()" class="flex-1 touch-btn bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg flex-col !items-start p-4 h-auto py-5">
                     <span class="text-sm font-normal text-indigo-200"><i class="fa-solid fa-calendar-check mr-1"></i>현재 달력 기준</span>
-                    <span class="text-2xl font-extrabold mt-1" id="btn-report-title">월간 예정 복사</span>
+                    <span class="text-xl md:text-2xl font-extrabold mt-1" id="btn-report-title">월간 예정 복사</span>
                 </button>
             </div>
+
             <div class="bg-darkcard rounded-2xl border border-darkborder shadow-md overflow-hidden mt-4">
                 <div class="p-4 border-b border-darkborder flex justify-between items-center touch-target bg-gray-800">
                     <button onclick="changeMonth(-1)" class="px-5 py-2 text-2xl"><i class="fa-solid fa-chevron-left"></i></button>
@@ -401,6 +408,7 @@
             return day === 0 || day === 6 || systemHolidays.includes(dateStr) || holidays.includes(dateStr);
         }
 
+        // K-311 완벽 분류 로직
         function mapVehicleType(name) {
             if (name.includes("30kw") || name.includes("발전기")) return null;
             if (/K-?311|1 1\/4톤|1¼/.test(name)) return "1¼ 표준차량";
@@ -625,6 +633,43 @@
             }
         }
 
+        // --- 새로 추가된 오늘/내일 복사 기능 ---
+        function generateDailyReport() {
+            const realToday = new Date();
+            const y1 = realToday.getFullYear(); const m1 = String(realToday.getMonth()+1).padStart(2,'0'); const d1 = String(realToday.getDate()).padStart(2,'0');
+            const t1 = `${y1}-${m1}-${d1}`;
+            
+            const realTom = new Date(realToday); realTom.setDate(realTom.getDate() + 1);
+            const y2 = realTom.getFullYear(); const m2 = String(realTom.getMonth()+1).padStart(2,'0'); const d2 = String(realTom.getDate()).padStart(2,'0');
+            const t2 = `${y2}-${m2}-${d2}`;
+
+            let targetScheds = schedules.filter(s => s.assignedDate === t1 || s.assignedDate === t2);
+            targetScheds.sort((a,b) => a.assignedDate.localeCompare(b.assignedDate));
+
+            if(targetScheds.length === 0) { alert(`오늘(${m1}/${d1})과 내일(${m2}/${d2}) 배정된 예방정비 일정이 없습니다.`); return; }
+
+            let report = `[오늘/내일 예방정비 예정사항]\n\n`;
+            targetScheds.forEach(s => {
+                const v = vehicles.find(x => x.id === s.vId);
+                if(!v) return;
+                const list = getCascadingItems(s.type, s.cycle);
+                const offset = v.id % Math.max(1, list.length);
+                const picked = [];
+                for(let i=0; i<6 && i<list.length; i++) { picked.push(list[(offset + i) % list.length].항목); }
+                
+                const dObj = new Date(s.assignedDate);
+                const mmdd = (dObj.getMonth()+1) + '월 ' + dObj.getDate() + '일';
+                const dayLabel = s.assignedDate === t1 ? '(오늘)' : '(내일)';
+                
+                report += `• [${v.plate}호] ${v.type} (${s.cycle} 정비) - ${mmdd} ${dayLabel}\n`;
+                report += `  └ ${picked.slice(0,3).join(', ')} 등 점검\n`;
+                if(picked.length > 3) report += `  └ ${picked.slice(3).join(', ')} 등 점검\n`;
+                report += '\n';
+            });
+            showModal(report.trim());
+        }
+
+        // --- 수정된 월간 복사 기능 (보고용 멘트 삭제 및 2줄 출력) ---
         function generateMonthlyReport() {
             const y = currentDate.getFullYear();
             const m = currentDate.getMonth();
@@ -639,7 +684,6 @@
             if(targetScheds.length === 0) { alert(`${m+1}월에 배정된 예방정비 일정이 없습니다.`); return; }
 
             let report = `[${y}년 ${m+1}월 예방정비 예정사항]\n\n`;
-            
             targetScheds.forEach(s => {
                 const v = vehicles.find(x => x.id === s.vId);
                 if(!v) return;
@@ -647,15 +691,15 @@
                 const list = getCascadingItems(s.type, s.cycle);
                 const offset = v.id % Math.max(1, list.length);
                 const picked = [];
-                for(let i=0; i<4 && i<list.length; i++) { 
-                    picked.push(list[(offset + i) % list.length].항목); 
-                }
+                for(let i=0; i<6 && i<list.length; i++) { picked.push(list[(offset + i) % list.length].항목); }
                 
                 const dObj = new Date(s.assignedDate);
                 const mmdd = (dObj.getMonth()+1) + '월 ' + dObj.getDate() + '일';
                 
                 report += `• [${v.plate}호] ${v.type} (${s.cycle} 정비) - ${mmdd} 예정\n`;
-                report += `  └ 세부 점검내용: ${picked.join(', ')} 등 점검. 정비지침서에 의거하여 정밀 점검을 실시하고, 주요 부품의 유격 및 장력 등 규정 수치를 철저히 확인하여 결함을 사전 예방함.\n\n`;
+                report += `  └ ${picked.slice(0,3).join(', ')} 등 점검\n`;
+                if(picked.length > 3) report += `  └ ${picked.slice(3).join(', ')} 등 점검\n`;
+                report += '\n';
             });
             showModal(report.trim());
         }
