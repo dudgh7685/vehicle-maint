@@ -4,16 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>차량 예방정비 관리시스템</title>
-
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
     <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: { extend: { colors: { darkbg: '#121212', darkcard: '#1e1e1e', darkborder: '#2d3748', primary: '#3b82f6', holiday: '#ef4444' } } }
-        }
+        tailwind.config = { darkMode: 'class', theme: { extend: { colors: { darkbg: '#121212', darkcard: '#1e1e1e', darkborder: '#2d3748', primary: '#3b82f6', holiday: '#ef4444' } } } }
     </script>
     <style>
         body { font-family: 'Pretendard', 'Malgun Gothic', sans-serif; background-color: #121212; color: #f3f4f6; margin: 0; padding: 0; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
@@ -21,37 +16,29 @@
         header { flex-shrink: 0; z-index: 40; }
         #app-container { flex-grow: 1; overflow-y: auto; padding: 1rem; padding-bottom: 2rem; width: 100%; max-width: 56rem; margin: 0 auto; }
         nav { flex-shrink: 0; z-index: 40; padding-bottom: constant(safe-area-inset-bottom); padding-bottom: env(safe-area-inset-bottom); background-color: #1e1e1e; }
-        
         .touch-target { min-height: 64px; display: flex; align-items: center; }
         .touch-btn { min-height: 64px; padding: 0 16px; font-size: 1.125rem; border-radius: 0.75rem; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; gap: 0.5rem; font-weight: bold; cursor: pointer; }
         .touch-btn:active { transform: scale(0.97); }
         .touch-input { min-height: 64px; font-size: 1.125rem; padding: 0 16px; border-radius: 0.75rem; background-color: #2d3748; color: white; border: 1px solid #4a5568; width: 100%; appearance: none; }
         .touch-input:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5); }
-        
         .glove-checkbox { appearance: none; width: 54px; height: 54px; border: 3px solid #718096; border-radius: 0.75rem; background-color: #2d3748; position: relative; cursor: pointer; flex-shrink: 0; transition: all 0.2s; }
         .glove-checkbox:checked { background-color: #3b82f6; border-color: #3b82f6; }
         .glove-checkbox:checked::after { content: '\f00c'; font-family: 'Font Awesome 6 Free'; font-weight: 900; position: absolute; color: white; font-size: 32px; top: 50%; left: 50%; transform: translate(-50%, -50%); }
-        
         .accordion-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-in-out; }
         .accordion-content.open { max-height: 1200px; }
         .exam-highlight { color: #fbbf24; font-weight: 900; background-color: rgba(251, 191, 36, 0.2); padding: 2px 6px; border-radius: 4px; border-bottom: 2px solid #fbbf24; }
-        
         .cal-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); grid-auto-rows: minmax(40px, auto); gap: 4px; }
         .cal-day { padding: 4px; border-radius: 0.5rem; background: #1e1e1e; border: 1px solid #2d3748; display: flex; flex-direction: column; cursor: pointer; }
         .cal-day.holiday { background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3); }
         .cal-date-num { font-size: 0.875rem; font-weight: bold; margin-bottom: 4px; }
         .cal-day.holiday .cal-date-num { color: #ef4444; }
-        
         .sched-badge { font-size: 0.75rem; padding: 4px; border-radius: 4px; margin-bottom: 3px; white-space: normal; word-break: break-all; text-align: center; line-height: 1.2; font-weight: bold; width: 100%; box-sizing: border-box; }
     </style>
 </head>
 <body>
-
     <header class="bg-darkcard border-b border-darkborder shadow-lg touch-target px-5 justify-between">
         <div class="flex items-center gap-3">
-            <div class="bg-blue-600 w-12 h-12 flex items-center justify-center rounded-xl shadow-md">
-                <i class="fa-solid fa-truck-wrench text-white text-2xl"></i>
-            </div>
+            <div class="bg-blue-600 w-12 h-12 flex items-center justify-center rounded-xl shadow-md"><i class="fa-solid fa-truck-wrench text-white text-2xl"></i></div>
             <h1 class="text-2xl font-bold tracking-tight text-white">예방정비 관리</h1>
         </div>
     </header>
@@ -59,7 +46,6 @@
     <main id="app-container">
         <section id="sec-dashboard" class="space-y-6">
             <h2 class="text-2xl font-bold border-l-4 border-blue-500 pl-3">스마트 스케줄러</h2>
-            
             <div class="bg-darkcard p-4 rounded-xl border border-darkborder shadow-md">
                 <div class="flex justify-between items-end mb-2">
                     <span class="text-sm font-bold text-gray-400">월간 예방정비 달성률</span>
@@ -69,30 +55,24 @@
                     <div class="bg-blue-500 h-full rounded-full transition-all duration-700" id="progress-bar" style="width: 0%"></div>
                 </div>
             </div>
-
             <div class="flex gap-3">
                 <button onclick="generateMonthlyReport()" class="flex-1 touch-btn bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg flex-col !items-start p-4 h-auto py-5">
                     <span class="text-sm font-normal text-indigo-200"><i class="fa-solid fa-calendar-check mr-1"></i>현재 달력 기준</span>
                     <span class="text-2xl font-extrabold mt-1" id="btn-report-title">월간 예정 복사</span>
                 </button>
             </div>
-
             <div class="bg-darkcard rounded-2xl border border-darkborder shadow-md overflow-hidden mt-4">
                 <div class="p-4 border-b border-darkborder flex justify-between items-center touch-target bg-gray-800">
                     <button onclick="changeMonth(-1)" class="px-5 py-2 text-2xl"><i class="fa-solid fa-chevron-left"></i></button>
                     <h3 class="font-extrabold text-2xl text-white tracking-widest" id="cal-title"></h3>
                     <button onclick="changeMonth(1)" class="px-5 py-2 text-2xl"><i class="fa-solid fa-chevron-right"></i></button>
                 </div>
-                
                 <div class="p-3 bg-gray-900 border-b border-darkborder text-sm text-gray-300 flex justify-around shadow-inner">
                     <span><i class="fa-solid fa-square text-red-500/50 mr-2"></i>법정/사용자 휴무</span>
                     <span><i class="fa-solid fa-arrow-left text-yellow-500 mr-2"></i>당겨진 일정</span>
                 </div>
-
                 <div class="p-2">
-                    <div class="cal-grid mb-2 text-center text-sm font-bold text-gray-300 pt-2">
-                        <div>월</div><div>화</div><div>수</div><div>목</div><div>금</div>
-                    </div>
+                    <div class="cal-grid mb-2 text-center text-sm font-bold text-gray-300 pt-2"><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div></div>
                     <div id="cal-body" class="cal-grid"></div>
                 </div>
             </div>
@@ -100,25 +80,19 @@
 
         <section id="sec-maintenance" class="hidden space-y-6">
             <h2 class="text-2xl font-bold border-l-4 border-green-500 pl-3">예방정비 수행</h2>
-            
             <div class="bg-darkcard p-5 rounded-2xl border border-darkborder shadow-md space-y-5">
-                <select id="maint-vehicle" class="touch-input font-bold text-white" onchange="loadChecklist()">
-                    <option value="">대상 차량 (호수) 선택</option>
-                </select>
+                <select id="maint-vehicle" class="touch-input font-bold text-white" onchange="loadChecklist()"><option value="">대상 차량 (호수) 선택</option></select>
                 <select id="maint-type" class="touch-input font-bold text-green-300" onchange="loadChecklist()">
                     <option value="일일">일일 예방정비 (일일)</option>
                     <option value="월간">월간 예방정비 (일일+월간 누적)</option>
                     <option value="반년">반년 예방정비 (일일+월간+반년 누적)</option>
                 </select>
             </div>
-
             <div id="checklist-container" class="space-y-4">
                 <div class="text-center text-gray-500 py-20 bg-darkcard rounded-2xl border border-darkborder">
-                    <i class="fa-solid fa-clipboard-check text-6xl mb-4 opacity-30"></i><br>
-                    <span class="font-bold text-lg">차량과 정비 주기를 선택해 주세요.</span>
+                    <i class="fa-solid fa-clipboard-check text-6xl mb-4 opacity-30"></i><br><span class="font-bold text-lg">차량과 정비 주기를 선택해 주세요.</span>
                 </div>
             </div>
-
             <div id="btn-submit-maint-container" class="hidden pt-2 pb-6">
                 <button onclick="submitMaintenance()" class="touch-btn bg-green-600 hover:bg-green-500 text-white w-full shadow-[0_10px_20px_rgba(22,163,74,0.4)] text-2xl py-6 rounded-2xl border border-green-400">
                     <i class="fa-solid fa-check-double mr-2 text-3xl"></i> 정비 일지 등록
@@ -133,16 +107,13 @@
 
         <section id="sec-logs" class="hidden space-y-6">
             <h2 class="text-2xl font-bold border-l-4 border-orange-500 pl-3">정비일지 이력 조회</h2>
-            
             <div class="bg-darkcard p-5 rounded-2xl border border-darkborder shadow-md space-y-4">
                 <div class="flex gap-3">
                     <div class="relative flex-1">
                         <i class="fa-solid fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 text-xl"></i>
                         <input type="text" id="log-search" class="touch-input pl-14" placeholder="차량번호 검색" onkeyup="renderLogs()">
                     </div>
-                    <button onclick="downloadCSV()" class="touch-btn bg-gray-700 hover:bg-gray-600 text-white w-32">
-                        <i class="fa-solid fa-download"></i> CSV
-                    </button>
+                    <button onclick="downloadCSV()" class="touch-btn bg-gray-700 hover:bg-gray-600 text-white w-32"><i class="fa-solid fa-download"></i> CSV</button>
                 </div>
                 <div id="log-list" class="space-y-4 mt-4"></div>
             </div>
@@ -150,22 +121,17 @@
 
         <section id="sec-settings" class="hidden space-y-6">
             <h2 class="text-2xl font-bold border-l-4 border-purple-500 pl-3">설정 및 차량대장</h2>
-            
             <div class="bg-darkcard p-5 rounded-2xl border border-darkborder shadow-md space-y-4">
                 <h3 class="font-bold text-lg text-white mb-2">체크리스트 (DB) 편집</h3>
                 <select id="edit-type" class="touch-input" onchange="renderEditor()"><option value="">차종 선택</option></select>
-                <select id="edit-cycle" class="touch-input" onchange="renderEditor()">
-                    <option value="일일">일일</option><option value="월간">월간</option><option value="반년">반년</option>
-                </select>
+                <select id="edit-cycle" class="touch-input" onchange="renderEditor()"><option value="일일">일일</option><option value="월간">월간</option><option value="반년">반년</option></select>
                 <div id="edit-container" class="space-y-3 mt-4"></div>
                 <button onclick="addDbItem()" class="touch-btn bg-purple-600 hover:bg-purple-500 text-white w-full mt-4"><i class="fa-solid fa-plus"></i> 항목 추가</button>
             </div>
-
             <div class="bg-darkcard p-5 rounded-2xl border border-darkborder shadow-md space-y-4">
                 <h3 class="font-bold text-lg text-red-400 mb-2">시스템 데이터 리셋</h3>
                 <button onclick="factoryReset()" class="touch-btn bg-red-900/40 text-red-400 border border-red-800 w-full"><i class="fa-solid fa-triangle-exclamation mr-2"></i> 공장 초기화 (캐시/데이터 전체 삭제)</button>
             </div>
-
             <div class="bg-darkcard p-5 rounded-2xl border border-darkborder shadow-md space-y-5">
                 <div class="flex justify-between items-center mb-2">
                     <div>
@@ -173,16 +139,12 @@
                         <p class="text-xs text-gray-400 mt-1">기존 데이터와 중복 시 자동 필터링 됨</p>
                     </div>
                     <label class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-3 rounded-xl cursor-pointer flex items-center text-base font-bold shadow-lg">
-                        <i class="fa-solid fa-file-excel mr-2 text-xl"></i>업로드
-                        <input type="file" id="excel-upload" accept=".xlsx, .xls" class="hidden" onchange="handleExcelUpload(event)">
+                        <i class="fa-solid fa-file-excel mr-2 text-xl"></i>업로드<input type="file" id="excel-upload" accept=".xlsx, .xls" class="hidden" onchange="handleExcelUpload(event)">
                     </label>
                 </div>
             </div>
-
             <div class="bg-darkcard p-5 rounded-2xl border border-darkborder shadow-md space-y-4">
-                <div class="flex justify-between items-center mb-2">
-                    <h3 class="font-bold text-lg text-white">차량 대장 현황</h3>
-                </div>
+                <div class="flex justify-between items-center mb-2"><h3 class="font-bold text-lg text-white">차량 대장 현황</h3></div>
                 <div class="relative mb-3">
                     <i class="fa-solid fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 text-lg"></i>
                     <input type="text" id="veh-search" class="touch-input pl-12 h-12 min-h-0 text-base" placeholder="차량번호 검색" onkeyup="renderRegistry()">
@@ -190,25 +152,14 @@
                 <div class="space-y-3" id="vehicle-list"></div>
             </div>
         </section>
-
     </main>
 
     <nav class="border-t border-darkborder w-full flex justify-around items-center h-[80px] shadow-[0_-5px_20px_rgba(0,0,0,0.5)]">
-        <button onclick="switchTab('dashboard')" class="flex-1 flex flex-col items-center justify-center h-full text-blue-500" id="tab-dashboard">
-            <i class="fa-solid fa-calendar-check text-2xl mb-1"></i><span class="text-[11px] font-extrabold">대시보드</span>
-        </button>
-        <button onclick="switchTab('maintenance')" class="flex-1 flex flex-col items-center justify-center h-full text-gray-500 hover:text-green-500" id="tab-maintenance">
-            <i class="fa-solid fa-wrench text-2xl mb-1"></i><span class="text-[11px] font-extrabold">정비수행</span>
-        </button>
-        <button onclick="switchTab('trouble')" class="flex-1 flex flex-col items-center justify-center h-full text-gray-500 hover:text-yellow-400" id="tab-trouble">
-            <i class="fa-solid fa-stethoscope text-2xl mb-1"></i><span class="text-[11px] font-extrabold">고장진단</span>
-        </button>
-        <button onclick="switchTab('logs')" class="flex-1 flex flex-col items-center justify-center h-full text-gray-500 hover:text-orange-400" id="tab-logs">
-            <i class="fa-solid fa-book text-2xl mb-1"></i><span class="text-[11px] font-extrabold">정비일지</span>
-        </button>
-        <button onclick="switchTab('settings')" class="flex-1 flex flex-col items-center justify-center h-full text-gray-500 hover:text-purple-400" id="tab-settings">
-            <i class="fa-solid fa-gear text-2xl mb-1"></i><span class="text-[11px] font-extrabold">설정</span>
-        </button>
+        <button onclick="switchTab('dashboard')" class="flex-1 flex flex-col items-center justify-center h-full text-blue-500" id="tab-dashboard"><i class="fa-solid fa-calendar-check text-2xl mb-1"></i><span class="text-[11px] font-extrabold">대시보드</span></button>
+        <button onclick="switchTab('maintenance')" class="flex-1 flex flex-col items-center justify-center h-full text-gray-500 hover:text-green-500" id="tab-maintenance"><i class="fa-solid fa-wrench text-2xl mb-1"></i><span class="text-[11px] font-extrabold">정비수행</span></button>
+        <button onclick="switchTab('trouble')" class="flex-1 flex flex-col items-center justify-center h-full text-gray-500 hover:text-yellow-400" id="tab-trouble"><i class="fa-solid fa-stethoscope text-2xl mb-1"></i><span class="text-[11px] font-extrabold">고장진단</span></button>
+        <button onclick="switchTab('logs')" class="flex-1 flex flex-col items-center justify-center h-full text-gray-500 hover:text-orange-400" id="tab-logs"><i class="fa-solid fa-book text-2xl mb-1"></i><span class="text-[11px] font-extrabold">정비일지</span></button>
+        <button onclick="switchTab('settings')" class="flex-1 flex flex-col items-center justify-center h-full text-gray-500 hover:text-purple-400" id="tab-settings"><i class="fa-solid fa-gear text-2xl mb-1"></i><span class="text-[11px] font-extrabold">설정</span></button>
     </nav>
 
     <div id="modal-result" class="fixed inset-0 bg-black/90 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
@@ -217,21 +168,14 @@
                 <h3 class="font-bold text-white text-xl"><i class="fa-solid fa-file-lines mr-2"></i>자동생성 텍스트</h3>
                 <button onclick="closeModal()" class="text-white text-4xl px-4 h-full">&times;</button>
             </div>
-            <div class="p-6">
-                <textarea id="modal-text" class="w-full bg-[#121212] text-gray-100 border border-darkborder rounded-xl p-5 min-h-[300px] font-mono text-base leading-relaxed focus:outline-none focus:border-blue-500 resize-none" readonly></textarea>
-            </div>
-            <div class="p-5 border-t border-darkborder bg-gray-800">
-                <button onclick="copyModalText()" class="touch-btn bg-blue-600 hover:bg-blue-500 text-white w-full shadow-lg text-xl">
-                    <i class="fa-solid fa-copy text-2xl"></i> 클립보드 복사
-                </button>
-            </div>
+            <div class="p-6"><textarea id="modal-text" class="w-full bg-[#121212] text-gray-100 border border-darkborder rounded-xl p-5 min-h-[300px] font-mono text-base leading-relaxed focus:outline-none focus:border-blue-500 resize-none" readonly></textarea></div>
+            <div class="p-5 border-t border-darkborder bg-gray-800"><button onclick="copyModalText()" class="touch-btn bg-blue-600 hover:bg-blue-500 text-white w-full shadow-lg text-xl"><i class="fa-solid fa-copy text-2xl"></i> 클립보드 복사</button></div>
         </div>
     </div>
 
     <script>
-        // --- 1. 규정값이 추가된 오리지널 유지보수 DB ---
         const defaultMaintenanceDB = {
-          "상용트럭(1~5톤)": {"일일":[{"항목":"엔진오일 수준","정비방법":"1) 평탄한 곳 주차 후 5분 대기.\n2) 딥스틱 뽑아 F-L 사이 수위 및 점도 점검."},{"항목":"클러치 페달","정비방법":"기능사 표준 유격 20~30mm 정상 작동 확인."},{"항목":"클러치/제동 오일 저장통","정비방법":"리저버 탱크 MAX-MIN 수위 점검 및 누유 탐색."},{"항목":"구동벨트 장력","정비방법":"벨트 중앙을 눌러 10~15mm 처짐량 점검."},{"항목":"제동기 페달 유격","정비방법":"표준 수치 10~15mm 정상 여부 확인."},{"항목":"타이어 상태","정비방법":"마모 한계선 1.6mm 및 공기압, 휠너트 체결 점검."}],"월간":[{"항목":"공기 청정기","정비방법":"엘리먼트 오염도 확인 후 에어건 청소."},{"항목":"축전지 상태","정비방법":"터미널 백화현상 점검 및 전해액 비중 1.280 확인."}],"반년":[{"항목":"오일 및 필터 교환","정비방법":"1만Km 또는 12개월 교환. 폐유 배출 및 필터/신유 교환."}]},
+          "상용트럭(1~5톤)": {"일일":[{"항목":"엔진오일 수준","정비방법":"계심봉을 빼내어 오일 수준 및 점도 점검."},{"항목":"클러치 페달","정비방법":"기능사 표준 유격 20~30mm 정상 작동 확인."},{"항목":"클러치/제동 오일 저장통","정비방법":"리저버 탱크 MAX-MIN 수위 점검 및 누유 탐색."},{"항목":"구동벨트 장력","정비방법":"벨트 중앙을 눌러 10~15mm 처짐량 점검."},{"항목":"제동기 페달 유격","정비방법":"표준 수치 10~15mm 정상 여부 확인."},{"항목":"타이어 상태","정비방법":"마모 한계선 1.6mm 및 공기압, 휠너트 체결 점검."}],"월간":[{"항목":"공기 청정기","정비방법":"엘리먼트 오염도 확인 후 에어건 청소."},{"항목":"축전지 상태","정비방법":"터미널 백화현상 점검 및 전해액 비중 1.280 확인."}],"반년":[{"항목":"오일 및 필터 교환","정비방법":"1만Km 또는 12개월 교환. 폐유 배출 및 필터/신유 교환."}]},
           "1¼ 표준차량": {"일일":[{"항목":"엔진오일 수준","정비방법":"계심봉을 빼내어 오일 수준 및 점도 점검."},{"항목":"클러치 페달","정비방법":"유격 20~30mm 정상 작동 확인."},{"항목":"구동벨트 장력","정비방법":"벨트 눌러 10~15mm 처짐량 점검."},{"항목":"타이어 상태","정비방법":"마모 한계선 1.6mm 및 사이드월 파손 점검."}],"월간":[{"항목":"하부 그리스 주유","정비방법":"조향 및 현가 31개소 니플 세척 후 신품 그리스 주입."},{"항목":"축전지 점검","정비방법":"표준 비중 1.280 확인 및 단자 결속 점검."}],"반년":[{"항목":"허브작업","정비방법":"허브베어링 탈거, 구형 그리스 세척 및 신품 주입 후 조립."},{"항목":"연료 여과기","정비방법":"여과기 교환 및 연료 계통 공기 빼기."}]},
           "2.5톤 표준차량": {"일일":[{"항목":"엔진오일 점검","정비방법":"오일 수위 및 점도 점검."},{"항목":"클러치 유격","정비방법":"표준 20~30mm 확인."},{"항목":"벨트 장력","정비방법":"벨트 중앙 10~15mm 처짐 확인."}],"월간":[{"항목":"그리스 주유","정비방법":"니플 41개소 오염물 닦고 그리스 주입."},{"항목":"팬벨트 점검","정비방법":"장력 측정 및 조정."}],"반년":[{"항목":"허브작업","정비방법":"8개소 베어링 탈거 및 구리스 재주유."},{"항목":"엔진오일 교환","정비방법":"오일 및 여과기 신품 교환."}]},
           "5톤 표준차량": {"일일":[{"항목":"엔진오일 점검","정비방법":"수위 및 점도 점검."},{"항목":"클러치 유격","정비방법":"20~30mm 유격 점검."},{"항목":"구동벨트","정비방법":"10~15mm 장력 점검."}],"월간":[{"항목":"그리스 주유","정비방법":"41개소 니플 그리스 주입."},{"항목":"제동기 점검","정비방법":"라이닝 간극 점검 및 조정."}],"반년":[{"항목":"허브작업","정비방법":"8개소 베어링 탈거 및 구리스 재주유."},{"항목":"에어카트리지","정비방법":"공기건조기 카트리지 교환."}]},
@@ -443,7 +387,6 @@
         let currentDate = new Date(); 
 
         const blackList = ["188-1", "190-1", "191-1"];
-
         const systemHolidays = [
             "2026-01-01", "2026-02-16", "2026-02-17", "2026-02-18", "2026-03-02", "2026-05-05", "2026-05-25", "2026-08-17", "2026-09-24", "2026-09-25", "2026-10-05", "2026-10-09", "2026-12-25",
             "2027-01-01", "2027-02-05", "2027-02-08", "2027-03-01", "2027-05-05", "2027-05-13", "2027-08-16", "2027-09-14", "2027-09-15", "2027-09-16", "2027-10-04", "2027-10-11", "2027-12-27",
@@ -458,7 +401,6 @@
             return day === 0 || day === 6 || systemHolidays.includes(dateStr) || holidays.includes(dateStr);
         }
 
-        // [수정: 군용차 1순위 분류 로직 적용] 112호가 1 1/4톤으로 완벽 분류됨.
         function mapVehicleType(name) {
             if (name.includes("30kw") || name.includes("발전기")) return null;
             if (/K-?311|1 1\/4톤|1¼/.test(name)) return "1¼ 표준차량";
@@ -477,23 +419,15 @@
             vehicles.forEach(v => { v.plate = v.plate.replace('3139-', ''); });
             const uniqueMap = new Map();
             const idMap = {}; 
-            
             vehicles.forEach(v => {
                 if(blackList.includes(v.plate)) return;
-                if(!uniqueMap.has(v.plate)) {
-                    uniqueMap.set(v.plate, v);
-                    idMap[v.id] = v.id;
-                } else {
-                    idMap[v.id] = uniqueMap.get(v.plate).id; 
-                }
+                if(!uniqueMap.has(v.plate)) { uniqueMap.set(v.plate, v); idMap[v.id] = v.id; } 
+                else { idMap[v.id] = uniqueMap.get(v.plate).id; }
             });
-            
             vehicles = Array.from(uniqueMap.values());
             vehicles.sort((a,b) => a.plate.localeCompare(b.plate, undefined, {numeric: true}));
-            
             schedules = schedules.filter(s => { return vehicles.find(v => v.id === idMap[s.vId]); });
             schedules.forEach(s => { if(idMap[s.vId]) { s.vId = idMap[s.vId]; } });
-            
             const uniqueSchedules = [];
             schedules.forEach(s => {
                 if(!uniqueSchedules.some(u => u.vId === s.vId && u.originalDate === s.originalDate && u.cycle === s.cycle)) {
@@ -516,18 +450,14 @@
             if(lsVehicles && JSON.parse(lsVehicles).length > 0) {
                 vehicles = JSON.parse(lsVehicles);
                 schedules = JSON.parse(lsSchedules);
-                cleanUpData();
-                recalcAllSchedules();
-                saveData();
+                cleanUpData(); recalcAllSchedules(); saveData();
             } else {
                 const lines = csvRawData.split('\n');
                 lines.forEach((line, i) => {
                     if (i === 0 || !line.trim()) return;
                     const cols = line.split(',');
                     const cleanPlate = cols[1].trim().replace('3139-', '');
-                    
                     if(blackList.includes(cleanPlate)) return;
-
                     const vName = cols[0].trim();
                     const vType = mapVehicleType(vName);
                     if (vType) { 
@@ -537,9 +467,7 @@
                         schedules.push({ vId: vId, type: vType, cycle: cycle, originalDate: cols[2].trim(), assignedDate: cols[2].trim() });
                     }
                 });
-                cleanUpData();
-                recalcAllSchedules(); 
-                saveData();
+                cleanUpData(); recalcAllSchedules(); saveData();
             }
             if(lsLogs) logs = JSON.parse(lsLogs);
 
@@ -556,7 +484,6 @@
                         <div id="trb-${i}" class="accordion-content bg-[#121212] px-5"><p class="py-5 text-gray-300 font-bold leading-relaxed text-base whitespace-pre-line"><i class="fa-solid fa-wrench mr-2 text-blue-500"></i>점검포인트:\n${item.chk}</p></div>
                     </div>`;
             });
-
             switchTab('dashboard');
         }
 
@@ -570,8 +497,7 @@
 
         function factoryReset() {
             if(confirm("모든 데이터를 초기화하고 엑셀 원본 상태로 되돌리시겠습니까?\n(등록된 정비 일지와 업로드한 스케줄이 모두 삭제됩니다!)")) {
-                localStorage.clear();
-                location.reload();
+                localStorage.clear(); location.reload();
             }
         }
 
@@ -585,12 +511,10 @@
             const colors = { 'dashboard':'text-blue-500', 'maintenance':'text-green-500', 'trouble':'text-yellow-400', 'logs':'text-orange-400', 'settings':'text-purple-500' };
             document.getElementById(`tab-${tabId}`).classList.remove('text-gray-500');
             document.getElementById(`tab-${tabId}`).classList.add(colors[tabId].split(' ')[0]);
-
             if(tabId === 'dashboard') { renderCalendar(); }
             if(tabId === 'maintenance') { renderMaintenanceOptions(); }
             if(tabId === 'logs') { renderLogs(); }
             if(tabId === 'settings') { renderEditor(); renderRegistry(); }
-            
             document.getElementById('app-container').scrollTop = 0;
         }
 
@@ -604,13 +528,11 @@
         function recalcAllSchedules() {
             const assignedCount = {};
             schedules.sort((a,b) => a.originalDate.localeCompare(b.originalDate));
-
             schedules.forEach(s => {
                 const parts = s.originalDate.split('-');
                 const origDate = new Date(parts[0], parts[1] - 1, parts[2]);
                 let targetStr = null;
                 let dt = new Date(origDate);
-
                 for(let i=0; i<=7; i++) {
                     let str = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
                     if(!isHolidayOrWeekend(str) && (!assignedCount[str] || assignedCount[str] === 0)) { targetStr = str; break; }
@@ -638,23 +560,16 @@
         }
 
         function toggleHoliday(dateStr) {
-            if(isSystemHoliday(dateStr)) {
-                alert("해당일은 법정 공휴일이므로 해제할 수 없습니다.");
-                return;
-            }
+            if(isSystemHoliday(dateStr)) { alert("해당일은 법정 공휴일이므로 해제할 수 없습니다."); return; }
             const isAlreadyHoliday = holidays.includes(dateStr);
             const msg = isAlreadyHoliday ? "해당 날짜의 수동 휴무 지정을 해제하시겠습니까?" : "선택한 날짜를 휴무로 바꾸시겠습니까?";
             if(confirm(msg)) {
-                if(isAlreadyHoliday) { holidays.splice(holidays.indexOf(dateStr), 1); } 
-                else { holidays.push(dateStr); }
+                if(isAlreadyHoliday) { holidays.splice(holidays.indexOf(dateStr), 1); } else { holidays.push(dateStr); }
                 recalcAllSchedules(); saveData(); renderCalendar();
             }
         }
 
-        function changeMonth(delta) {
-            currentDate.setMonth(currentDate.getMonth() + delta);
-            renderCalendar();
-        }
+        function changeMonth(delta) { currentDate.setMonth(currentDate.getMonth() + delta); renderCalendar(); }
 
         function renderCalendar() {
             const y = currentDate.getFullYear();
@@ -679,15 +594,10 @@
                 let dateObj = new Date(y, m, d);
                 let dayOfWeek = dateObj.getDay();
                 if (dayOfWeek === 0 || dayOfWeek === 6) continue;
-
                 const dateStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-                if (calBodyHtml === '') {
-                    for (let i = 0; i < dayOfWeek - 1; i++) { calBodyHtml += `<div></div>`; }
-                }
-
+                if (calBodyHtml === '') { for (let i = 0; i < dayOfWeek - 1; i++) { calBodyHtml += `<div></div>`; } }
                 const isHol = isSystemHoliday(dateStr) || holidays.includes(dateStr);
                 const dayScheds = schedules.filter(s => s.assignedDate === dateStr);
-
                 let badges = '';
                 dayScheds.forEach(s => {
                     const v = vehicles.find(x => x.id === s.vId);
@@ -696,11 +606,7 @@
                     const avoidTag = s.assignedDate !== s.originalDate ? `<i class="fa-solid fa-arrow-left text-yellow-300"></i> ` : '';
                     badges += `<div class="${color} text-white sched-badge" onclick="event.stopPropagation(); goToMaint(${v.id}, '${s.cycle}', '${s.originalDate}', '${s.assignedDate}', '${v.plate}', '${v.type}')">${avoidTag}${v.plate}</div>`;
                 });
-
-                calBodyHtml += `
-                    <div class="cal-day ${isHol ? 'holiday' : ''}" onclick="toggleHoliday('${dateStr}')">
-                        <div class="cal-date-num">${d}</div>${badges}
-                    </div>`;
+                calBodyHtml += `<div class="cal-day ${isHol ? 'holiday' : ''}" onclick="toggleHoliday('${dateStr}')"><div class="cal-date-num">${d}</div>${badges}</div>`;
             }
             calBody.innerHTML = calBodyHtml;
         }
@@ -715,21 +621,15 @@
             }
             if(confirm(msg)) {
                 switchTab('maintenance');
-                setTimeout(() => {
-                    document.getElementById('maint-vehicle').value = String(vId); 
-                    document.getElementById('maint-type').value = cycle;
-                    loadChecklist(); 
-                }, 100);
+                setTimeout(() => { document.getElementById('maint-vehicle').value = String(vId); document.getElementById('maint-type').value = cycle; loadChecklist(); }, 100);
             }
         }
 
-        // [수정: 무조건 50~80자 사이의 완벽한 멘트가 나오도록 서술형 조합식 구축]
         function generateMonthlyReport() {
             const y = currentDate.getFullYear();
             const m = currentDate.getMonth();
             const startDate = new Date(y, m, 1);
             const endDate = new Date(y, m + 1, 0);
-
             const tStart = startDate.toISOString().split('T')[0];
             const tEnd = endDate.toISOString().split('T')[0];
 
@@ -747,7 +647,7 @@
                 const list = getCascadingItems(s.type, s.cycle);
                 const offset = v.id % Math.max(1, list.length);
                 const picked = [];
-                for(let i=0; i<3 && i<list.length; i++) { 
+                for(let i=0; i<4 && i<list.length; i++) { 
                     picked.push(list[(offset + i) % list.length].항목); 
                 }
                 
@@ -755,7 +655,7 @@
                 const mmdd = (dObj.getMonth()+1) + '월 ' + dObj.getDate() + '일';
                 
                 report += `• [${v.plate}호] ${v.type} (${s.cycle} 정비) - ${mmdd} 예정\n`;
-                report += `  └ 세부 점검내용: ${picked.join(', ')} 등의 핵심 항목을 지침서에 의거하여 정밀 점검하고, 주요 부품의 유격 및 장력 등 규정 수치를 철저히 확인하여 결함을 사전 예방함.\n\n`;
+                report += `  └ 세부 점검내용: ${picked.join(', ')} 등 점검. 정비지침서에 의거하여 정밀 점검을 실시하고, 주요 부품의 유격 및 장력 등 규정 수치를 철저히 확인하여 결함을 사전 예방함.\n\n`;
             });
             showModal(report.trim());
         }
@@ -764,11 +664,7 @@
             const list = document.getElementById('vehicle-list');
             const q = document.getElementById('veh-search').value.toLowerCase();
             list.innerHTML = '';
-            
-            const formatDate = (dateStr) => {
-                const [y, m, d] = dateStr.split('-');
-                return `${y}년 ${parseInt(m)}월 ${parseInt(d)}일`;
-            };
+            const formatDate = (dateStr) => { const [y, m, d] = dateStr.split('-'); return `${y}년 ${parseInt(m)}월 ${parseInt(d)}일`; };
 
             const filtered = vehicles.filter(v => v.plate.toLowerCase().includes(q) || v.type.toLowerCase().includes(q));
             filtered.forEach(v => {
@@ -794,7 +690,6 @@
                     const data = new Uint8Array(e.target.result);
                     const workbook = XLSX.read(data, {type: 'array'});
                     const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], {header: 1, raw: false});
-                    
                     let count = 0;
                     for(let i=1; i<json.length; i++) {
                         const r = json[i];
@@ -815,22 +710,13 @@
                             const cycle = cycleStr.includes("반기") ? "반년" : (cycleStr.includes("월간") ? "월간" : "일일");
                             
                             let v = vehicles.find(x => x.plate === cleanPlate);
-                            if(!v) {
-                                v = { id: Date.now() + i, plate: cleanPlate, name: name, type: vType };
-                                vehicles.push(v);
-                            }
+                            if(!v) { v = { id: Date.now() + i, plate: cleanPlate, name: name, type: vType }; vehicles.push(v); }
                             const isDup = schedules.some(x => x.vId === v.id && x.originalDate === origDate && x.cycle === cycle);
-                            if(!isDup) {
-                                schedules.push({ vId: v.id, type: vType, cycle, originalDate: origDate, assignedDate: origDate });
-                                count++;
-                            }
+                            if(!isDup) { schedules.push({ vId: v.id, type: vType, cycle, originalDate: origDate, assignedDate: origDate }); count++; }
                         }
                     }
-                    cleanUpData();
-                    recalcAllSchedules();
-                    saveData();
-                    renderRegistry();
-                    alert(`✅ ${count}건 신규 업로드 완료 (블랙리스트 제외 및 중복 필터링 적용)`);
+                    cleanUpData(); recalcAllSchedules(); saveData(); renderRegistry();
+                    alert(`✅ ${count}건 신규 업로드 완료 (블랙리스트 제외/중복 자동필터링 적용)`);
                 } catch(err) { alert("엑셀 읽기 오류. 형식을 확인해주세요."); }
                 event.target.value = '';
             };
@@ -913,14 +799,13 @@
             logs.unshift({ id: Date.now(), date: dateStr, plate: v.plate, type: v.type, cycle: freq, summary: report });
             schedules = schedules.filter(s => !(s.vId == v.id && s.cycle == freq && s.assignedDate <= dateStr));
             saveData(); showModal(report); chks.forEach(c => c.checked = false);
-            document.getElementById('maint-vehicle').value = "";
-            renderMaintenanceOptions();
+            document.getElementById('maint-vehicle').value = ""; renderMaintenanceOptions();
             document.getElementById('app-container').scrollTop = 0;
         }
 
         function showModal(text) { document.getElementById('modal-text').value = text; document.getElementById('modal-result').classList.remove('hidden'); document.getElementById('modal-result').classList.add('flex'); }
         function closeModal() { document.getElementById('modal-result').classList.add('hidden'); document.getElementById('modal-result').classList.remove('flex'); }
-        function copyModalText() { const t = document.getElementById('modal-text'); t.select(); document.execCommand('copy'); alert("✅ 복사되었습니다."); closeModal(); }
+        function copyModalText() { const t = document.getElementById('modal-text'); t.select(); document.execCommand('copy'); alert("✅ 복사되었습니다. 일지에 붙여넣기 하세요."); closeModal(); }
         
         function renderLogs() {
             const q = document.getElementById('log-search').value.toLowerCase();
@@ -943,7 +828,6 @@
             const con = document.getElementById('edit-container');
             con.innerHTML = '';
             if(!t || !db[t] || !db[t][c]) return;
-
             db[t][c].forEach((item, i) => {
                 con.innerHTML += `
                     <div class="flex gap-2 items-center bg-gray-800 p-2 rounded border border-darkborder mb-2">
