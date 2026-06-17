@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>차량 예방정비 관리시스템 V5</title>
+    <title>차량 예방정비 관리시스템 V6 (Excel Hub)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -42,11 +42,12 @@
     <header class="bg-darkcard border-b border-darkborder shadow-lg touch-target px-5 justify-between">
         <div class="flex items-center gap-3">
             <div class="bg-blue-600 w-12 h-12 flex items-center justify-center rounded-xl shadow-md"><i class="fa-solid fa-truck-wrench text-white text-2xl"></i></div>
-            <h1 class="text-2xl font-bold tracking-tight text-white">예방정비 관리 V5</h1>
+            <h1 class="text-2xl font-bold tracking-tight text-white">예방정비 관리</h1>
         </div>
     </header>
 
     <main id="app-container">
+        <!-- 대시보드 탭 -->
         <section id="sec-dashboard" class="space-y-6">
             <h2 class="text-2xl font-bold border-l-4 border-blue-500 pl-3">스마트 스케줄러</h2>
             <div class="bg-darkcard p-4 rounded-xl border border-darkborder shadow-md">
@@ -87,6 +88,7 @@
             </div>
         </section>
 
+        <!-- 정비수행 탭 -->
         <section id="sec-maintenance" class="hidden space-y-6">
             <h2 class="text-2xl font-bold border-l-4 border-green-500 pl-3">예방정비 수행</h2>
             <div class="bg-darkcard p-5 rounded-2xl border border-darkborder shadow-md space-y-5">
@@ -108,11 +110,13 @@
             </div>
         </section>
 
+        <!-- 고장진단 탭 -->
         <section id="sec-trouble" class="hidden space-y-6">
             <h2 class="text-2xl font-bold border-l-4 border-yellow-500 pl-3">고장 진단 가이드</h2>
             <div id="trouble-list" class="space-y-4"></div>
         </section>
 
+        <!-- 정비일지 탭 -->
         <section id="sec-logs" class="hidden space-y-6">
             <h2 class="text-2xl font-bold border-l-4 border-orange-500 pl-3">정비일지 이력 조회</h2>
             <div class="bg-darkcard p-5 rounded-2xl border border-darkborder shadow-md space-y-4">
@@ -127,30 +131,42 @@
             </div>
         </section>
 
+        <!-- 설정 탭 -->
         <section id="sec-settings" class="hidden space-y-6">
-            <h2 class="text-2xl font-bold border-l-4 border-purple-500 pl-3">설정 및 차량대장</h2>
+            <h2 class="text-2xl font-bold border-l-4 border-purple-500 pl-3">설정 및 차량대장 관리</h2>
+            
+            <div class="bg-blue-900/30 p-5 rounded-2xl border border-blue-800 shadow-md space-y-3">
+                <div class="flex justify-between items-center mb-2">
+                    <div>
+                        <h3 class="font-bold text-xl text-white"><i class="fa-solid fa-file-excel mr-2 text-green-400"></i>통합 엑셀 업로드</h3>
+                        <p class="text-xs text-gray-300 mt-1">파일 하나로 [대장/DB/계획]을 모두 덮어씁니다.</p>
+                    </div>
+                    <label class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-3 rounded-xl cursor-pointer flex items-center text-base font-bold shadow-lg transition">
+                        <i class="fa-solid fa-upload mr-2"></i>업로드
+                        <input type="file" id="excel-upload" accept=".xlsx, .xls" class="hidden" onchange="handleExcelUpload(event)">
+                    </label>
+                </div>
+                <p class="text-[11px] text-blue-300 bg-blue-950/50 p-3 rounded-lg leading-relaxed">
+                    <b class="text-white">※ 엑셀 작성 규칙 (시트 3개 필수)</b><br>
+                    - 1시트(차량대장): <b>호수</b>, <b>차종</b> 필수<br>
+                    - 2시트(체크리스트): <b>차종</b>, <b>점검주기</b>(일일점검/정기점검), <b>항목</b>, <b>정비방법</b> 필수<br>
+                    - 3시트(정비계획): <b>호수</b>, <b>계획일자</b>(YYYY-MM-DD), <b>점검주기</b>(월간/반기) 필수
+                </p>
+            </div>
+
             <div class="bg-darkcard p-5 rounded-2xl border border-darkborder shadow-md space-y-4">
-                <h3 class="font-bold text-lg text-white mb-2">체크리스트 (DB) 편집</h3>
+                <h3 class="font-bold text-lg text-white mb-2">체크리스트 (DB) 직접 편집</h3>
                 <select id="edit-type" class="touch-input" onchange="renderEditor()"><option value="">차종 선택</option></select>
                 <select id="edit-cycle" class="touch-input" onchange="renderEditor()"><option value="일일점검">일일점검</option><option value="정기점검">정기점검</option></select>
                 <div id="edit-container" class="space-y-3 mt-4"></div>
                 <button onclick="addDbItem()" class="touch-btn bg-purple-600 hover:bg-purple-500 text-white w-full mt-4"><i class="fa-solid fa-plus"></i> 항목 추가</button>
             </div>
+            
             <div class="bg-darkcard p-5 rounded-2xl border border-darkborder shadow-md space-y-4">
                 <h3 class="font-bold text-lg text-red-400 mb-2">시스템 데이터 리셋</h3>
-                <button onclick="factoryReset()" class="touch-btn bg-red-900/40 text-red-400 border border-red-800 w-full"><i class="fa-solid fa-triangle-exclamation mr-2"></i> 공장 초기화 (캐시/데이터 전체 삭제)</button>
+                <button onclick="factoryReset()" class="touch-btn bg-red-900/40 text-red-400 border border-red-800 w-full"><i class="fa-solid fa-trash-can mr-2"></i> 모든 데이터 초기화</button>
             </div>
-            <div class="bg-darkcard p-5 rounded-2xl border border-darkborder shadow-md space-y-5">
-                <div class="flex justify-between items-center mb-2">
-                    <div>
-                        <h3 class="font-bold text-xl text-white">엑셀 스케줄 업로드</h3>
-                        <p class="text-xs text-gray-400 mt-1">기존 데이터와 중복 시 자동 필터링 됨</p>
-                    </div>
-                    <label class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-3 rounded-xl cursor-pointer flex items-center text-base font-bold shadow-lg">
-                        <i class="fa-solid fa-file-excel mr-2 text-xl"></i>업로드<input type="file" id="excel-upload" accept=".xlsx, .xls" class="hidden" onchange="handleExcelUpload(event)">
-                    </label>
-                </div>
-            </div>
+            
             <div class="bg-darkcard p-5 rounded-2xl border border-darkborder shadow-md space-y-4">
                 <div class="flex justify-between items-center mb-2"><h3 class="font-bold text-lg text-white">차량 대장 현황</h3></div>
                 <div class="relative mb-3">
@@ -170,6 +186,7 @@
         <button onclick="switchTab('settings')" class="flex-1 flex flex-col items-center justify-center h-full text-gray-500 hover:text-purple-400" id="tab-settings"><i class="fa-solid fa-gear text-2xl mb-1"></i><span class="text-[11px] font-extrabold">설정</span></button>
     </nav>
 
+    <!-- 모달창 -->
     <div id="modal-result" class="fixed inset-0 bg-black/90 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
         <div class="bg-darkcard w-full max-w-lg rounded-2xl border border-darkborder shadow-2xl overflow-hidden flex flex-col">
             <div class="bg-blue-600 p-5 flex justify-between items-center touch-target">
@@ -182,326 +199,13 @@
     </div>
 
     <script>
-        // --- 1. 월간 항목이 완벽히 병합된 일일점검/정기점검 데이터베이스 ---
-        const defaultMaintenanceDB = {
-          "상용트럭(1~5톤)": {
-            "일일점검": [
-              {"항목":"엔진오일 수준","정비방법":"계심봉을 빼내어 오일 수준 및 점도 점검."},
-              {"항목":"클러치 페달","정비방법":"기능사 표준 유격 20~30mm 정상 작동 확인."},
-              {"항목":"클러치/제동 오일 저장통","정비방법":"리저버 탱크 MAX-MIN 수위 점검 및 누유 탐색."},
-              {"항목":"구동벨트 장력","정비방법":"벨트 중앙을 눌러 10~15mm 처짐량 점검."},
-              {"항목":"제동기 페달 유격","정비방법":"표준 수치 10~15mm 정상 여부 확인."},
-              {"항목":"타이어 상태","정비방법":"마모 한계선 1.6mm 및 공기압, 휠너트 체결 점검."},
-              {"항목":"공기 청정기","정비방법":"엘리먼트 오염도 확인 후 에어건 청소."},
-              {"항목":"축전지 상태","정비방법":"터미널 백화현상 점검 및 전해액 비중 1.280 확인."}
-            ],
-            "정기점검": [
-              {"항목":"오일 및 필터 교환","정비방법":"1만Km 또는 12개월 교환. 폐유 배출 및 필터/신유 교환."}
-            ]
-          },
-          "1¼ 표준차량": {
-            "일일점검": [
-              {"항목":"엔진오일 수준","정비방법":"계심봉을 빼내어 오일 수준 및 점도 점검."},
-              {"항목":"클러치 페달","정비방법":"유격 20~30mm 정상 작동 확인."},
-              {"항목":"구동벨트 장력","정비방법":"벨트 눌러 10~15mm 처짐량 점검."},
-              {"항목":"타이어 상태","정비방법":"마모 한계선 1.6mm 및 사이드월 파손 점검."},
-              {"항목":"하부 그리스 주유","정비방법":"조향 및 현가 31개소 니플 세척 후 신품 그리스 주입."},
-              {"항목":"축전지 점검","정비방법":"표준 비중 1.280 확인 및 단자 결속 점검."}
-            ],
-            "정기점검": [
-              {"항목":"허브작업","정비방법":"허브베어링 탈거, 구형 그리스 세척 및 신품 주입 후 조립."},
-              {"항목":"연료 여과기","정비방법":"여과기 교환 및 연료 계통 공기 빼기."}
-            ]
-          },
-          "대형차량(2.5톤 이상)": {
-            "일일점검": [
-              {"항목":"엔진오일 점검","정비방법":"수위 및 점도 점검."},
-              {"항목":"클러치 유격","정비방법":"표준 20~30mm 확인."},
-              {"항목":"구동벨트 장력","정비방법":"벨트 중앙 10~15mm 처짐 확인."},
-              {"항목":"특장/밸브 작동","정비방법":"P.T.O 구동 소음 및 밸브 누유 점검."},
-              {"항목":"그리스 주유","정비방법":"니플 41개소 오염물 닦고 그리스 주입."},
-              {"항목":"제동기 라이닝","정비방법":"라이닝 간극 점검 및 조정."},
-              {"항목":"요소수 잔량","정비방법":"잔량 점검 및 찌꺼기 청소 후 보충."},
-              {"항목":"냉각수 용량","정비방법":"보조탱크 내부 냉각수 수위가 MAX-MIN 이내인지 점검."},
-              {"항목":"브레이크 에어 압력","정비방법":"시동 후 공기 압력 게이지 규정치 상승 확인."},
-              {"항목":"타이어 공기압","정비방법":"타이어 마모 한계선(1.6mm) 확인 및 규정 압력 점검."},
-              {"항목":"조향 유압오일","정비방법":"파워 스티어링 오일 저장통 잔량 계측 및 누유 진단."},
-              {"항목":"각종 등화장치","정비방법":"전조등, 방향지시등, 제동등 점등 상태 점검."},
-              {"항목":"축전지 배터리 전압","정비방법":"인디케이터 녹색 확인 및 배선 결속 점검."},
-              {"항목":"에어크리너 필터","정비방법":"엘리먼트 오염도 확인 후 에어건 청소."},
-              {"항목":"앞유리 워셔액/와이퍼","정비방법":"모터 펌프 작동 및 고무날 상태 점검."}
-            ],
-            "정기점검": [
-              {"항목":"에어드라이어 카트리지","정비방법":"드레인 밸브 수분 배출 및 공기건조기 카트리지 교환."},
-              {"항목":"허브작업 및 베어링","정비방법":"바퀴 허브 탈거 후 구리스 세척 및 신품 주입 조립."},
-              {"항목":"엔진오일/필터 일제 교환","정비방법":"드레인 코크 개방 폐오일 배출 및 신품 필터/신유 교환."},
-              {"항목":"차축/변속기 기어오일","정비방법":"디퍼런셜 및 미션 오일 규정량 점검 및 보충."},
-              {"항목":"연료 여과기 교환","정비방법":"연료 필터 어셈블리 분해 신품 교체 및 공기 빼기."},
-              {"항목":"판스프링 U볼트","정비방법":"하부 판스프링 고정 볼트 규정 토크 증조 작업."},
-              {"항목":"조향 드래그링크","정비방법":"조향 링크 연결 볼조인트 유격 계측 및 조정."},
-              {"항목":"브레이크 드럼/라이닝","정비방법":"열 변형 균열 육안 검사 및 라이닝 마모 잔량 측정."}
-            ]
-          },
-          "냉동부식차": {
-            "일일점검": [
-              {"항목":"오일/냉각수","정비방법":"게이지 확인 및 수위 점검."},
-              {"항목":"콘덴샤 팬","정비방법":"팬 유동 파손 확인."},
-              {"항목":"냉동엔진 휀모터","정비방법":"모터 작동 및 단자 고정 확인."}
-            ],
-            "정기점검": [
-              {"항목":"단발시동 테스트","정비방법":"단발시동 및 냉장실 온도 하강 점검."}
-            ]
-          },
-          "승합차": {
-            "일일점검": [
-              {"항목":"오일류 점검","정비방법":"엔진, 브레이크 오일 수위 점검."},
-              {"항목":"클러치 유격","정비방법":"20~30mm 점검."},
-              {"항목":"구동벨트","정비방법":"장력 10~15mm 조정."}
-            ],
-            "정기점검": [
-              {"항목":"연료장치","정비방법":"연료필터 응축수 배출 및 공기 빼기."}
-            ]
-          },
-          "소형/승용차": {
-            "일일점검": [
-              {"항목":"엔진오일","정비방법":"수위 Max-Min 점검."},
-              {"항목":"타이어 공기압","정비방법":"마모한계 1.6mm 및 공기압 확인."},
-              {"항목":"파워스티어링","정비방법":"조향 오일량 점검 및 누유 확인."}
-            ],
-            "정기점검": [
-              {"항목":"점화 플러그","정비방법":"플러그 간극 및 고압 케이블 절연 점검."}
-            ]
-          },
-          "트레일러": {
-            "일일점검": [
-              {"항목":"견인장치 결합","정비방법":"킹핀 및 커플러 결합 상태 육안 검사."},
-              {"항목":"타이어/공기압","정비방법":"복륜 사이 돌 제거 및 규정 공기압 확인."},
-              {"항목":"에어챔버 누출","정비방법":"브레이크 작동 상태에서 에어 누출음 점검."}
-            ],
-            "정기점검": [
-              {"항목":"허브 및 베어링","정비방법":"허브 탈거 후 베어링 구형 구리스 세척 및 신품 주입."}
-            ]
-          },
-          "리프트 자동차용": {
-            "일일점검": [
-              {"항목":"리프트 상승/하강","정비방법":"무부하 상태에서 상승 및 하강 스위치 작동 점검."},
-              {"항목":"유압유 누유","정비방법":"실린더 및 유압 호스 연결부 누유 확인."},
-              {"항목":"와이어 로프 장력","정비방법":"로프 장력 밸런스 및 표면 마모/단선 상태 점검."},
-              {"항목":"안전장치 록킹","정비방법":"상승 후 록킹 레버 체결 상태 확인."}
-            ],
-            "정기점검": [
-              {"항목":"유압유 상태","정비방법":"유압유 오염도 및 점도 점검 (필요시 교환)."},
-              {"항목":"롤러 구리스 주유","정비방법":"작동 체인 및 가이드 롤러 구리스 급유."}
-            ]
-          },
-          "차량오일 수거기": {
-            "일일점검": [
-              {"항목":"배출 밸브 잠금","정비방법":"하단 폐유 배출 밸브 완벽 잠금 확인."},
-              {"항목":"호스 누유 균열","정비방법":"흡입 호스 및 배출 호스 균열, 파손 부위 육안 확인."},
-              {"항목":"압력 게이지","정비방법":"에어 주입 시 압력 게이지 정상 작동 확인."},
-              {"항목":"캐스터 유동성","정비방법":"바퀴 베어링 상태 점검 및 이물질 제거."}
-            ],
-            "정기점검": [
-              {"항목":"에어 필터 수분","정비방법":"에어 레귤레이터 필터 수분 배출."},
-              {"항목":"내부 찌꺼기 세척","정비방법":"수거통 내부 슬러지 청소."}
-            ]
-          },
-          "고압 세척기": {
-            "일일점검": [
-              {"항목":"호스 및 연결부","정비방법":"고압 호스 파손 및 연결부 누수 여부 확인."},
-              {"항목":"전원 케이블","정비방법":"피복 손상 및 접지 상태 점검."},
-              {"항목":"건(Gun) 작동","정비방법":"트리거(방아쇠) 작동 및 노즐 상태 점검."},
-              {"항목":"흡입 필터","정비방법":"내부 필터망 분리 후 이물질 세척."}
-            ],
-            "정기점검": [
-              {"항목":"펌프 오일","정비방법":"오일 점검창 수위 확인 및 필요 시 교환."},
-              {"항목":"모터 상태","정비방법":"작동 중 이상 소음 및 진동 점검."}
-            ]
-          }
-        };
-
-        const csvRawData = `품명,호수,예방정비계획일자,점검주기
-코란도 스포츠 상용지프차(영관/위관),103,2026-01-05,부대정비(월간)
-15톤덤프트럭,163,2026-01-06,부대정비(반기)
-섀시 트럭용(5톤 샤시(W/O)),158,2026-01-08,부대정비(월간)
-15톤덤프트럭,167,2026-01-08,부대정비(반기)
-트레일러 탱크형(400가론 KM106A1),81,2026-01-12,부대정비(월간)
-트럭 화물용(5톤 상용트럭),132,2026-01-12,부대정비(반기)
-트레일러 화물용,191-1,2026-01-13,부대정비(월간)
-트럭 화물용(9.5톤 상용트럭),135,2026-01-13,부대정비(월간)
-15톤덤프트럭,166,2026-01-14,부대정비(반기)
-트럭 유조형,182,2026-01-15,부대정비(반기)
-트레일러 화물용,190-1,2026-01-15,부대정비(월간)
-화물트럭(5톤 트럭 K711A1 윈치무),138,2026-01-26,부대정비(월간)
-트레일러 탱크형(400가론 KM106A1),3139-82,2026-01-26,부대정비(반기)
-일반용 상용지프차,2412,2026-01-27,부대정비(반기)
-민수용 짚(국방색),101,2026-01-27,부대정비(반기)
-화물트럭(5톤 트럭 K711A1 윈치무),134,2026-01-29,부대정비(월간)
-섀시 트럭용(K711A1 윈치무),159,2026-01-29,부대정비(반기)
-화물트럭(5톤 트럭 K711A1 윈치무),140,2026-02-09,부대정비(월간)
-냉동 부식차 2.5톤,123,2026-02-09,부대정비(반기)
-11.5톤 화물차 장축,3139-137,2026-02-09,부대정비(반기)
-화물트럭(5톤 트럭 K711A1 윈치무),139,2026-02-10,부대정비(월간)
-1톤 봉고 111 4륜구동,120,2026-02-10,부대정비(월간)
-충전기 전지용,197,2026-02-12,부대정비(반기)
-고압 세척기,199,2026-02-12,부대정비(반기)
-트럭 화물용(2.5톤 상용트럭),128,2026-02-23,부대정비(월간)
-차량오일 수거기,187,2026-02-24,부대정비(반기)
-리프트 자동차용,85,2026-02-26,부대정비(반기)
-트레일러 탱크형(400가론 KM106A1),80,2026-03-03,부대정비(월간)
-1톤 봉고 111 4륜구동,121,2026-03-03,부대정비(반기)
-트레일러 저상형,136-1,2026-03-05,부대정비(월간)
-10톤 트랙터,136,2026-03-05,부대정비(반기)
-트럭 픽업형,2414,2026-03-09,부대정비(반기)
-5톤트럭 유조형급수차,3139-133,2026-03-09,부대정비(월간)
-15톤덤프트럭,164,2026-03-10,부대정비(월간)
-15톤덤프트럭,161,2026-03-10,부대정비(월간)
-15톤덤프트럭,162,2026-03-12,부대정비(반기)
-트레일러 화물용,188-1,2026-03-16,부대정비(월간)
-15톤덤프트럭,160,2026-03-16,부대정비(월간)
-섀시 트럭용(5톤 샤시(W/O)),157,2026-03-17,부대정비(월간)
-민수용 짚,10육2413,2026-03-17,부대정비(반기)
-중형버스 마이크로 25인승(AM807),2417,2026-03-19,부대정비(월간)
-자동차 스테이션 왜곤형(12인승),2416,2026-03-23,부대정비(월간)
-15톤덤프트럭,165,2026-03-23,부대정비(월간)
-화물트럭(1 1/4톤트럭 4X4 K311A1),112,2026-03-24,부대정비(월간)
-트럭 밴형,2418,2026-03-24,부대정비(월간)
-코란도 6인승,2411,2026-03-26,부대정비(반기)
-섀시 트럭용(5톤 샤시(W/O)),158,2026-04-07,부대정비(반기)
-코란도 스포츠 상용지프차(영관/위관),103,2026-04-13,부대정비(반기)
-15톤덤프트럭,166,2026-04-14,부대정비(월간)
-트럭 화물용(5톤 상용트럭),132,2026-04-14,부대정비(월간)
-트레일러 탱크형(400가론 KM106A1),81,2026-04-16,부대정비(반기)
-15톤덤프트럭,163,2026-04-16,부대정비(월간)
-15톤덤프트럭,167,2026-04-16,부대정비(월간)
-트레일러 화물용,191-1,2026-04-20,부대정비(반기)
-트럭 화물용(9.5톤 상용트럭),135,2026-04-20,부대정비(반기)
-트럭 유조형,182,2026-04-21,부대정비(월간)
-화물트럭(5톤 트럭 K711A1 윈치무),134,2026-04-21,부대정비(반기)
-섀시 트럭용(K711A1 윈치무),159,2026-04-22,부대정비(월간)
-트레일러 화물용,190-1,2026-04-23,부대정비(반기)
-일반용 상용지프차,2412,2026-04-27,부대정비(월간)
-민수용 짚(국방색),101,2026-04-27,부대정비(월간)
-화물트럭(5톤 트럭 K711A1 윈치무),138,2026-04-28,부대정비(반기)
-트레일러 탱크형(400가론 KM106A1),3139-82,2026-04-28,부대정비(월간)
-화물트럭(5톤 트럭 K711A1 윈치무),139,2026-04-30,부대정비(반기)
-화물트럭(5톤 트럭 K711A1 윈치무),140,2026-04-30,부대정비(반기)
-충전기 전지용,197,2026-05-04,부대정비(월간)
-1톤 봉고 111 4륜구동,120,2026-05-04,부대정비(반기)
-고압 세척기,199,2026-05-07,부대정비(월간)
-트럭 화물용(2.5톤 상용트럭),128,2026-05-11,부대정비(반기)
-리프트 자동차용,85,2026-05-28,부대정비(월간)
-차량오일 수거기,187,2026-05-28,부대정비(월간)
-11.5톤 화물차 장축,3139-137,2026-05-28,부대정비(월간)
-냉동 부식차 2.5톤,123,2026-06-01,부대정비(월간)
-1톤 봉고 111 4륜구동,121,2026-06-01,부대정비(월간)
-트레일러 탱크형(400가론 KM106A1),80,2026-06-02,부대정비(반기)
-5톤트럭 유조형급수차,3139-133,2026-06-04,부대정비(반기)
-트레일러 저상형,136-1,2026-06-08,부대정비(반기)
-10톤 트랙터,136,2026-06-08,부대정비(월간)
-15톤덤프트럭,164,2026-06-09,부대정비(반기)
-15톤덤프트럭,161,2026-06-09,부대정비(반기)
-15톤덤프트럭,162,2026-06-11,부대정비(월간)
-트럭 픽업형,2414,2026-06-15,부대정비(월간)
-15톤덤프트럭,160,2026-06-15,부대정비(반기)
-중형버스 마이크로 25인승(AM807),2417,2026-06-16,부대정비(반기)
-민수용 짚,10육2413,2026-06-16,부대정비(월간)
-섀시 트럭용(5톤 샤시(W/O)),157,2026-06-18,부대정비(반기)
-자동차 스테이션 왜곤형(12인승),2416,2026-06-22,부대정비(반기)
-트럭 밴형,2418,2026-06-23,부대정비(반기)
-트레일러 화물용,188-1,2026-06-25,부대정비(반기)
-화물트럭(1 1/4톤트럭 4X4 K311A1),112,2026-07-02,부대정비(반기)
-트레일러 화물용,191-1,2026-07-06,부대정비(월간)
-15톤덤프트럭,163,2026-07-06,부대정비(반기)
-섀시 트럭용(5톤 샤시(W/O)),158,2026-07-07,부대정비(월간)
-트럭 유조형,182,2026-07-09,부대정비(반기)
-트레일러 탱크형(400가론 KM106A1),81,2026-07-13,부대정비(월간)
-트럭 화물용(5톤 상용트럭),132,2026-07-13,부대정비(반기)
-트레일러 화물용,190-1,2026-07-14,부대정비(월간)
-15톤덤프트럭,166,2026-07-14,부대정비(반기)
-트럭 화물용(9.5톤 상용트럭),135,2026-07-16,부대정비(월간)
-화물트럭(5톤 트럭 K711A1 윈치무),134,2026-07-24,부대정비(월간)
-섀시 트럭용(K711A1 윈치무),159,2026-07-24,부대정비(반기)
-화물트럭(5톤 트럭 K711A1 윈치무),140,2026-07-27,부대정비(월간)
-민수용 짚(국방색),101,2026-07-27,부대정비(월간)
-화물트럭(5톤 트럭 K711A1 윈치무),138,2026-07-28,부대정비(월간)
-트레일러 탱크형(400가론 KM106A1),3139-82,2026-07-28,부대정비(반기)
-코란도 스포츠 상용지프차(영관/위관),103,2026-07-29,부대정비(월간)
-15톤덤프트럭,165,2026-07-29,부대정비(반기)
-코란도 6인승,2411,2026-07-30,부대정비(월간)
-15톤덤프트럭,167,2026-07-30,부대정비(월간)
-냉동 부식차 2.5톤,123,2026-08-03,부대정비(반기)
-일반용 상용지프차,2412,2026-08-04,부대정비(월간)
-화물트럭(5톤 트럭 K711A1 윈치무),139,2026-08-06,부대정비(월간)
-충전기 전지용,197,2026-08-10,부대정비(반기)
-1톤 봉고 111 4륜구동,120,2026-08-10,부대정비(월간)
-고압 세척기,199,2026-08-11,부대정비(반기)
-트럭 화물용(2.5톤 상용트럭),128,2026-08-11,부대정비(월간)
-트레일러 저상형,136-1,2026-08-18,부대정비(월간)
-10톤 트랙터,136,2026-08-18,부대정비(반기)
-11.5톤 화물차 장축,3139-137,2026-08-20,부대정비(월간)
-15톤덤프트럭,162,2026-08-24,부대정비(반기)
-5톤트럭 유조형급수차,3139-133,2026-08-24,부대정비(월간)
-트레일러 탱크형(400가론 KM106A1),80,2026-08-25,부대정비(월간)
-15톤덤프트럭,164,2026-08-25,부대정비(월간)
-차량오일 수거기,187,2026-08-25,부대정비(반기)
-리프트 자동차용,85,2026-08-27,부대정비(반기)
-15톤덤프트럭,161,2026-08-27,부대정비(월간)
-1톤 봉고 111 4륜구동,121,2026-08-27,부대정비(반기)
-민수용 짚,10육2413,2026-09-07,부대정비(반기)
-중형버스 마이크로 25인승(AM807),2417,2026-09-08,부대정비(월간)
-트레일러 화물용,188-1,2026-09-21,부대정비(월간)
-섀시 트럭용(5톤 샤시(W/O)),157,2026-09-21,부대정비(반기)
-15톤덤프트럭,160,2026-09-21,부대정비(월간)
-트럭 픽업형,2414,2026-09-22,부대정비(반기)
-자동차 스테이션 왜곤형(12인승),2416,2026-09-22,부대정비(월간)
-트럭 밴형,2418,2026-09-22,부대정비(월간)
-화물트럭(1 1/4톤트럭 4X4 K311A1),112,2026-09-28,부대정비(월간)
-코란도 6인승,2411,2026-09-28,부대정비(반기)
-15톤덤프트럭,163,2026-09-28,부대정비(월간)
-섀시 트럭용(5톤 샤시(W/O)),158,2026-09-29,부대정비(반기)
-15톤덤프트럭,165,2026-09-29,부대정비(월간)
-15톤덤프트럭,167,2026-09-29,부대정비(반기)
-코란도 스포츠 상용지프차(영관/위관),103,2026-10-06,부대정비(월간)
-15톤덤프트럭,166,2026-10-06,부대정비(월간)
-트레일러 탱크형(400가론 KM106A1),81,2026-10-08,부대정비(반기)
-트레일러 화물용,190-1,2026-10-12,부대정비(반기)
-트럭 화물용(5톤 상용트럭),132,2026-10-12,부대정비(월간)
-트럭 유조형,182,2026-10-13,부대정비(월간)
-트럭 화물용(9.5톤 상용트럭),135,2026-10-13,부대정비(반기)
-트레일러 화물용,191-1,2026-10-15,부대정비(반기)
-화물트럭(5톤 트럭 K711A1 윈치무),134,2026-10-21,부대정비(반기)
-섀시 트럭용(K711A1 윈치무),159,2026-10-23,부대정비(월간)
-민수용 짚(국방색),101,2026-10-26,부대정비(반기)
-화물트럭(5톤 트럭 K711A1 윈치무),138,2026-10-27,부대정비(반기)
-트레일러 탱크형(400가론 KM106A1),3139-82,2026-10-27,부대정비(월간)
-냉동 부식차 2.5톤,123,2026-11-02,부대정비(월간)
-화물트럭(5톤 트럭 K711A1 윈치무),139,2026-11-03,부대정비(반기)
-화물트럭(5톤 트럭 K711A1 윈치무),140,2026-11-05,부대정비(반기)
-1톤 봉고 111 4륜구동,120,2026-11-09,부대정비(반기)
-일반용 상용지프차,2412,2026-11-10,부대정비(반기)
-고압 세척기,199,2026-11-12,부대정비(월간)
-트럭 화물용(2.5톤 상용트럭),128,2026-11-16,부대정비(반기)
-충전기 전지용,197,2026-11-17,부대정비(월간)
-1톤 봉고 111 4륜구동,121,2026-11-23,부대정비(월간)
-11.5톤 화물차 장축,3139-137,2026-11-23,부대정비(월간)
-트레일러 탱크형(400가론 KM106A1),80,2026-11-24,부대정비(반기)
-차량오일 수거기,187,2026-11-24,부대정비(월간)
-리프트 자동차용,85,2026-11-26,부대정비(월간)
-15톤덤프트럭,162,2026-12-07,부대정비(월간)
-5톤트럭 유조형급수차,3139-133,2026-12-07,부대정비(반기)
-트레일러 저상형,136-1,2026-12-08,부대정비(반기)
-10톤 트랙터,136,2026-12-08,부대정비(월간)
-15톤덤프트럭,164,2026-12-10,부대정비(반기)
-15톤덤프트럭,161,2026-12-10,부대정비(반기)
-트럭 픽업형,2414,2026-12-14,부대정비(월간)
-15톤덤프트럭,160,2026-12-21,부대정비(반기)
-중형버스 마이크로 25인승(AM807),2417,2026-12-22,부대정비(반기)
-섀시 트럭용(5톤 샤시(W/O)),157,2026-12-24,부대정비(월간)
-트럭 밴형,2418,2026-12-24,부대정비(반기)
-트레일러 화물용,188-1,2026-12-28,부대정비(반기)
-민수용 짚,10육2413,2026-12-28,부대정비(월간)
-자동차 스테이션 왜곤형(12인승),2416,2026-12-29,부대정비(반기)`;
+        // 빈 객체로 시작 (사용자가 엑셀로 채우게 됨)
+        let db = {};
+        let vehicles = []; 
+        let schedules = []; 
+        let holidays = []; 
+        let logs = []; 
+        let currentDate = new Date(); 
 
         const troubleshootingDB = [
             { sys: "엔진/시동", sym: "시동 걸 때 틱틱 소리만 남", chk: "시동모터 고장 또는 배터리 방전 의심\n(점프선 연결 후 시동 성공 -> 배터리 방전 / 실패 -> 시동모터 나감)" },
@@ -513,18 +217,11 @@
             { sys: "구동/제동", sym: "가속 시 하부에서 탁탁 소리", chk: "등속조인트(드라이브샤프트) 부츠 찢어짐 및 베어링 마모, 추진축 십자베어링 유격" }
         ];
 
-        let db = JSON.parse(JSON.stringify(defaultMaintenanceDB));
-        let vehicles = []; 
-        let schedules = []; 
-        let holidays = []; 
-        let logs = []; 
-        let currentDate = new Date(); 
-
+        // 197호 블랙리스트 유지
         const blackList = ["188-1", "190-1", "191-1", "197"];
         const systemHolidays = [
             "2026-01-01", "2026-02-16", "2026-02-17", "2026-02-18", "2026-03-02", "2026-05-05", "2026-05-25", "2026-08-17", "2026-09-24", "2026-09-25", "2026-10-05", "2026-10-09", "2026-12-25",
-            "2027-01-01", "2027-02-05", "2027-02-08", "2027-03-01", "2027-05-05", "2027-05-13", "2027-08-16", "2027-09-14", "2027-09-15", "2027-09-16", "2027-10-04", "2027-10-11", "2027-12-27",
-            "2028-01-25", "2028-01-26", "2028-01-27", "2028-03-01", "2028-05-02", "2028-05-05", "2028-06-06", "2028-08-15", "2028-10-02", "2028-10-03", "2028-10-04", "2028-10-05", "2028-10-09", "2028-12-25"
+            "2027-01-01", "2027-02-05", "2027-02-08", "2027-03-01", "2027-05-05", "2027-05-13", "2027-08-16", "2027-09-14", "2027-09-15", "2027-09-16", "2027-10-04", "2027-10-11", "2027-12-27"
         ];
 
         function isSystemHoliday(dateStr) { return systemHolidays.includes(dateStr); }
@@ -535,6 +232,7 @@
             return day === 0 || day === 6 || systemHolidays.includes(dateStr) || holidays.includes(dateStr);
         }
 
+        // 2.5톤 이상 대형차량 통합 매핑 (이름이 불규칙하게 올라와도 DB와 연결하기 위한 안전장치)
         function mapVehicleType(name) {
             if (name.includes("30kw") || name.includes("발전기")) return null;
             if (/K-?311|1 1\/4톤|1¼/.test(name)) return "1¼ 표준차량";
@@ -544,36 +242,15 @@
             if (/덤프|유조차|유조형|트랙터|11\.5톤|15톤|9\.5톤|샤시|5톤|K-?711|K-?511|2\.5톤/.test(name)) return "대형차량(2.5톤 이상)";
             if (/트레일러/.test(name)) return "트레일러";
             if (/냉동|부식/.test(name)) return "냉동부식차";
-            if (/스타렉스|승합|버스|12인승/.test(name)) return "승합차";
+            if (/스타렉스|승합|버스|12인승|AMB/.test(name)) return "승합차";
             if (/코란도|짚|지프|왜곤|1톤|봉고/.test(name)) return "소형/승용차";
             return null;
-        }
-
-        function cleanUpData() {
-            vehicles.forEach(v => { v.plate = v.plate.replace('3139-', ''); });
-            const uniqueMap = new Map();
-            const idMap = {}; 
-            vehicles.forEach(v => {
-                if(blackList.includes(v.plate)) return;
-                if(!uniqueMap.has(v.plate)) { uniqueMap.set(v.plate, v); idMap[v.id] = v.id; } 
-                else { idMap[v.id] = uniqueMap.get(v.plate).id; }
-            });
-            vehicles = Array.from(uniqueMap.values());
-            vehicles.sort((a,b) => a.plate.localeCompare(b.plate, undefined, {numeric: true}));
-            schedules = schedules.filter(s => { return vehicles.find(v => v.id === idMap[s.vId]); });
-            schedules.forEach(s => { if(idMap[s.vId]) { s.vId = idMap[s.vId]; } });
-            const uniqueSchedules = [];
-            schedules.forEach(s => {
-                if(!uniqueSchedules.some(u => u.vId === s.vId && u.originalDate === s.originalDate && u.cycle === s.cycle)) {
-                    uniqueSchedules.push(s);
-                }
-            });
-            schedules = uniqueSchedules;
         }
 
         function init() {
             const lsCustomDB = localStorage.getItem('vms_custom_db');
             if(lsCustomDB) db = JSON.parse(lsCustomDB);
+            
             const lsHolidays = localStorage.getItem('vms_holidays');
             if(lsHolidays) holidays = JSON.parse(lsHolidays);
 
@@ -581,32 +258,13 @@
             let lsSchedules = localStorage.getItem('vms_schedules');
             const lsLogs = localStorage.getItem('vms_logs');
 
-            if(lsVehicles && JSON.parse(lsVehicles).length > 0) {
+            if(lsVehicles && lsSchedules) {
                 vehicles = JSON.parse(lsVehicles);
                 schedules = JSON.parse(lsSchedules);
-                cleanUpData(); recalcAllSchedules(); saveData();
-            } else {
-                const lines = csvRawData.split('\n');
-                lines.forEach((line, i) => {
-                    if (i === 0 || !line.trim()) return;
-                    const cols = line.split(',');
-                    const cleanPlate = cols[1].trim().replace('3139-', '');
-                    if(blackList.includes(cleanPlate)) return;
-                    const vName = cols[0].trim();
-                    const vType = mapVehicleType(vName);
-                    if (vType) { 
-                        const cycle = cols[3].includes("반기") ? "정기점검" : "일일점검";
-                        const vId = Date.now() + i;
-                        vehicles.push({ id: vId, plate: cleanPlate, name: vName, type: vType });
-                        schedules.push({ id_s: Date.now()+i+1000, vId: vId, type: vType, cycle: cycle, originalDate: cols[2].trim(), assignedDate: cols[2].trim() });
-                    }
-                });
-                cleanUpData(); recalcAllSchedules(); saveData();
+                recalcAllSchedules();
             }
-            if(lsLogs) logs = JSON.parse(lsLogs);
 
-            const typeSelect = document.getElementById('edit-type');
-            Object.keys(db).forEach(t => { typeSelect.innerHTML += `<option value="${t}">${t}</option>`; });
+            if(lsLogs) logs = JSON.parse(lsLogs);
 
             const tList = document.getElementById('trouble-list');
             troubleshootingDB.forEach((item, i) => {
@@ -618,7 +276,22 @@
                         <div id="trb-${i}" class="accordion-content bg-[#121212] px-5"><p class="py-5 text-gray-300 font-bold leading-relaxed text-base whitespace-pre-line"><i class="fa-solid fa-wrench mr-2 text-blue-500"></i>점검포인트:\n${item.chk}</p></div>
                     </div>`;
             });
+            
+            updateDbSelects();
             switchTab('dashboard');
+
+            if (vehicles.length === 0) {
+                setTimeout(() => {
+                    alert("시스템에 등록된 차량/계획 데이터가 없습니다.\n[설정] 탭에서 통합 엑셀 파일을 먼저 업로드 해주세요.");
+                    switchTab('settings');
+                }, 500);
+            }
+        }
+
+        function updateDbSelects() {
+            const typeSelect = document.getElementById('edit-type');
+            typeSelect.innerHTML = '<option value="">차종 선택</option>';
+            Object.keys(db).forEach(t => { typeSelect.innerHTML += `<option value="${t}">${t}</option>`; });
         }
 
         function saveData() {
@@ -630,7 +303,7 @@
         }
 
         function factoryReset() {
-            if(confirm("모든 데이터를 초기화하고 엑셀 원본 상태로 되돌리시겠습니까?\n(등록된 정비 일지와 업로드한 스케줄이 모두 삭제됩니다!)")) {
+            if(confirm("모든 데이터를 초기화하고 빈 상태로 되돌리시겠습니까?\n(등록된 정비 일지와 업로드한 스케줄, DB가 모두 삭제됩니다!)")) {
                 localStorage.clear(); location.reload();
             }
         }
@@ -645,6 +318,7 @@
             const colors = { 'dashboard':'text-blue-500', 'maintenance':'text-green-500', 'trouble':'text-yellow-400', 'logs':'text-orange-400', 'settings':'text-purple-500' };
             document.getElementById(`tab-${tabId}`).classList.remove('text-gray-500');
             document.getElementById(`tab-${tabId}`).classList.add(colors[tabId].split(' ')[0]);
+            
             if(tabId === 'dashboard') { renderCalendar(); }
             if(tabId === 'maintenance') { renderMaintenanceOptions(); }
             if(tabId === 'logs') { renderLogs(); }
@@ -747,7 +421,7 @@
 
         function goToMaint(vId, cycle, origDate, assignDate, plate, type) {
             const labelCycle = cycle === '정기점검' ? '반기' : '월간';
-            let msg = `${plate}호 ${type}의 ${labelCycle} 정비 계획 스케줄(내부 연동 명칭: ${cycle})을 수행하시겠습니까?`;
+            let msg = `${plate}호 ${type}의 ${labelCycle} 정비 스케줄을 수행하시겠습니까?`;
             if (origDate && assignDate && origDate !== assignDate) {
                 const d1 = new Date(origDate.split('-')[0], origDate.split('-')[1] - 1, origDate.split('-')[2]);
                 const d2 = new Date(assignDate.split('-')[0], assignDate.split('-')[1] - 1, assignDate.split('-')[2]);
@@ -770,7 +444,7 @@
             return shuffled;
         }
 
-        // --- 텍스트 중복 종식 ("~ 점검 등 점검" 제거 엔진) ---
+        // --- 텍스트 필터링 엔진 ("~ 점검 등 점검" 어색함 제거) ---
         function cleanItemName(name) {
             return name.replace(/(점검|확인|검사|상태|수준|유격|장력|여부|류|량|오염|균열|소음)$/g, '').trim();
         }
@@ -786,7 +460,7 @@
             let targetScheds = schedules.filter(s => s.assignedDate === t1 || s.assignedDate === t2);
             targetScheds.sort((a,b) => a.assignedDate.localeCompare(b.assignedDate));
 
-            if(targetScheds.length === 0) { alert(`오늘(${m1}/${d1})과 내일(${m2}/${d2}) 배정된 예방정비 일정이 없습니다.`); return; }
+            if(targetScheds.length === 0) { alert(`오늘(${m1}/${d1})과 내일(${m2}/${d2}) 배정된 일정이 없습니다.`); return; }
 
             let report = `[오늘/내일 예방정비 예정사항]\n\n`;
             let typeTracker = {};
@@ -807,7 +481,7 @@
                 for(let i=0; i<6 && i<trk.shuffled.length; i++) {
                     picked.push(cleanItemName(trk.shuffled[(trk.offset + i) % trk.shuffled.length].항목));
                 }
-                trk.offset = (trk.offset + 3) % trk.shuffled.length;
+                trk.offset = (trk.offset + 3) % trk.shuffled.length; // 겹침 방지 밀어내기
                 
                 const dObj = new Date(s.assignedDate);
                 const mmdd = (dObj.getMonth()+1) + '월 ' + dObj.getDate() + '일';
@@ -815,7 +489,7 @@
                 const displayCycle = s.cycle === '정기점검' ? '반기 정비' : '월간 정비';
                 
                 report += `• [${v.plate}호] ${v.name} (${displayCycle}) - ${mmdd} ${dayLabel}\n`;
-                report += `  └ ${picked.slice(0,3).join(', ')} 등 점검\n`;
+                if(picked.length > 0) report += `  └ ${picked.slice(0,3).join(', ')} 등 점검\n`;
                 if(picked.length > 3) report += `  └ ${picked.slice(3,6).join(', ')} 등 점검\n`;
                 report += '\n';
             });
@@ -854,14 +528,14 @@
                 for(let i=0; i<6 && i<trk.shuffled.length; i++) {
                     picked.push(cleanItemName(trk.shuffled[(trk.offset + i) % trk.shuffled.length].항목));
                 }
-                trk.offset = (trk.offset + 3) % trk.shuffled.length;
+                trk.offset = (trk.offset + 3) % trk.shuffled.length; // 겹침 방지 밀어내기
                 
                 const dObj = new Date(s.assignedDate);
                 const mmdd = (dObj.getMonth()+1) + '월 ' + dObj.getDate() + '일';
                 const displayCycle = s.cycle === '정기점검' ? '반기 정비' : '월간 정비';
                 
                 report += `• [${v.plate}호] ${v.name} (${displayCycle}) - ${mmdd} 예정\n`;
-                report += `  └ ${picked.slice(0,3).join(', ')} 등 점검\n`;
+                if(picked.length > 0) report += `  └ ${picked.slice(0,3).join(', ')} 등 점검\n`;
                 if(picked.length > 3) report += `  └ ${picked.slice(3,6).join(', ')} 등 점검\n`;
                 report += '\n';
             });
@@ -874,21 +548,22 @@
             list.innerHTML = '';
             const formatDate = (dateStr) => { const [y, m, d] = dateStr.split('-'); return `${y}년 ${parseInt(m)}월 ${parseInt(d)}일`; };
 
-            const filtered = vehicles.filter(v => v.plate.toLowerCase().includes(q) || v.type.toLowerCase().includes(q));
+            const filtered = vehicles.filter(v => v.plate.toLowerCase().includes(q) || v.type.toLowerCase().includes(q) || v.name.toLowerCase().includes(q));
             filtered.forEach(v => {
                 const sMonth = schedules.find(x => x.vId === v.id && x.cycle === '일일점검');
                 const sHalf = schedules.find(x => x.vId === v.id && x.cycle === '정기점검');
                 list.innerHTML += `
                     <div class="bg-gray-800 border border-darkborder p-4 rounded-xl shadow-md">
                         <h4 class="font-extrabold text-xl text-white">${v.plate}</h4>
-                        <p class="text-sm text-green-400 font-bold mb-2">${v.name} (${v.type})</p>
-                        ${sMonth ? `<p class="text-xs text-gray-400"><i class="fa-solid fa-calendar-day mr-1"></i> 월간 정비 예정: ${formatDate(sMonth.assignedDate)}</p>` : ''}
-                        ${sHalf ? `<p class="text-xs text-gray-400 mt-1"><i class="fa-solid fa-calendar-day mr-1"></i> 반기 정비 예정: ${formatDate(sHalf.assignedDate)}</p>` : ''}
+                        <p class="text-sm text-green-400 font-bold mb-2">${v.name} <span class="text-gray-400 text-xs">(${v.type})</span></p>
+                        ${sMonth ? `<p class="text-xs text-gray-400"><i class="fa-solid fa-calendar-day mr-1"></i> 월간 예정: ${formatDate(sMonth.assignedDate)}</p>` : ''}
+                        ${sHalf ? `<p class="text-xs text-gray-400 mt-1"><i class="fa-solid fa-calendar-day mr-1"></i> 반기 예정: ${formatDate(sHalf.assignedDate)}</p>` : ''}
                     </div>
                 `;
             });
         }
 
+        // --- 엑셀 파싱 3시트 통합 엔진 (핵심) ---
         function handleExcelUpload(event) {
             const file = event.target.files[0];
             if(!file) return;
@@ -897,35 +572,89 @@
                 try {
                     const data = new Uint8Array(e.target.result);
                     const workbook = XLSX.read(data, {type: 'array'});
-                    const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], {header: 1, raw: false});
-                    let count = 0;
-                    for(let i=1; i<json.length; i++) {
-                        const r = json[i];
-                        if(r.length >= 4 && r[1]) {
-                            const rawPlate = String(r[1]).trim();
-                            const cleanPlate = rawPlate.replace('3139-', '');
-                            if(blackList.includes(cleanPlate)) continue;
-
-                            const name = String(r[0]).trim();
-                            const vType = mapVehicleType(name);
-                            if(!vType) continue; 
-
-                            let dateStr = String(r[2] || '').trim();
-                            const dMatch = dateStr.match(/(\d{4})[-./년\s]+(\d{1,2})[-./월\s]+(\d{1,2})/);
-                            const origDate = dMatch ? `${dMatch[1]}-${dMatch[2].padStart(2,'0')}-${dMatch[3].padStart(2,'0')}` : new Date().toISOString().split('T')[0];
-                            
-                            let cycleStr = String(r[3] || '');
-                            const cycle = cycleStr.includes("반기") ? "정기점검" : "일일점검";
-                            
-                            let v = vehicles.find(x => x.plate === cleanPlate);
-                            if(!v) { v = { id: Date.now() + i, plate: cleanPlate, name: name, type: vType }; vehicles.push(v); }
-                            const isDup = schedules.some(x => x.vId === v.id && x.originalDate === origDate && x.cycle === cycle);
-                            if(!isDup) { schedules.push({ id_s: Date.now()+i+3000, vId: v.id, type: vType, cycle, originalDate: origDate, assignedDate: origDate }); count++; }
-                        }
+                    
+                    if(workbook.SheetNames.length < 3) {
+                        throw new Error("엑셀 파일에 시트가 3개 이상 필요합니다. (1.차량대장, 2.체크리스트, 3.정비계획)");
                     }
-                    cleanUpData(); recalcAllSchedules(); saveData(); renderRegistry();
-                    alert(`✅ ${count}건 신규 업로드 완료 (블랙리스트 제외/대형차량 대통합/중복 자동필터링 적용)`);
-                } catch(err) { alert("엑셀 읽기 오류. 형식을 확인해주세요."); }
+
+                    // 1. 차량대장 파싱
+                    const regData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+                    // 2. 체크리스트 DB 파싱
+                    const dbData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[1]]);
+                    // 3. 예방정비계획 파싱
+                    const schedData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[2]]);
+
+                    // --- DB 덮어쓰기 ---
+                    let newDB = {};
+                    dbData.forEach(row => {
+                        let vType = String(row['차종'] || row['품명'] || '').trim();
+                        let cycle = String(row['점검주기'] || '').trim();
+                        let item = String(row['항목'] || '').trim();
+                        let method = String(row['정비방법'] || '').trim();
+                        if(vType && cycle && item) {
+                            if(!newDB[vType]) newDB[vType] = {};
+                            if(!newDB[vType][cycle]) newDB[vType][cycle] = [];
+                            newDB[vType][cycle].push({ 항목: item, 정비방법: method });
+                        }
+                    });
+
+                    // --- 대장 덮어쓰기 ---
+                    let newVehicles = [];
+                    let idCounter = Date.now();
+                    let uniquePlates = new Set();
+                    regData.forEach(row => {
+                        let plate = String(row['호수'] || row['등록번호'] || '').trim().replace('3139-', '');
+                        let rawName = String(row['차종'] || row['품명'] || '').trim();
+                        if(!plate || !rawName || blackList.includes(plate) || uniquePlates.has(plate)) return;
+                        
+                        uniquePlates.add(plate);
+                        // DB에 매칭하기 위해 안전장치 통과
+                        let mappedType = mapVehicleType(rawName) || rawName; 
+                        newVehicles.push({ id: idCounter++, plate: plate, name: rawName, type: mappedType });
+                    });
+
+                    // --- 스케줄 덮어쓰기 ---
+                    let newSchedules = [];
+                    let uniqueScheds = new Set();
+                    schedData.forEach(row => {
+                        let plate = String(row['호수'] || '').trim().replace('3139-', '');
+                        let dateStr = String(row['계획일자'] || row['예방정비계획일자'] || '').trim();
+                        let rawCycle = String(row['점검주기'] || '').trim();
+                        if(!plate || !dateStr) return;
+
+                        const dMatch = dateStr.match(/(\d{4})[-.\/년\s]+(\d{1,2})[-.\/월\s]+(\d{1,2})/);
+                        const origDate = dMatch ? `${dMatch[1]}-${dMatch[2].padStart(2,'0')}-${dMatch[3].padStart(2,'0')}` : new Date().toISOString().split('T')[0];
+                        // 반기/반년 -> 정기점검, 그 외 -> 일일점검
+                        const cycle = (rawCycle.includes("반기") || rawCycle.includes("반년")) ? "정기점검" : "일일점검";
+
+                        let v = newVehicles.find(x => x.plate === plate);
+                        if(v) {
+                            let sKey = `${v.id}_${cycle}_${origDate}`;
+                            if(!uniqueScheds.has(sKey)) {
+                                uniqueScheds.add(sKey);
+                                newSchedules.push({ id_s: idCounter++, vId: v.id, type: v.type, cycle: cycle, originalDate: origDate, assignedDate: origDate });
+                            }
+                        }
+                    });
+
+                    // 새 엑셀 데이터로 시스템 전체 교체
+                    if(Object.keys(newDB).length > 0) db = newDB;
+                    vehicles = newVehicles;
+                    schedules = newSchedules;
+                    
+                    recalcAllSchedules();
+                    saveData();
+                    updateDbSelects();
+                    renderRegistry();
+                    renderEditor();
+                    
+                    alert(`✅ 통합 데이터 세팅 완료!\n\n차량: ${vehicles.length}대\n스케줄: ${schedules.length}건\n체크리스트 DB: ${Object.keys(db).length}종 등록됨`);
+                    switchTab('dashboard');
+
+                } catch(err) {
+                    console.error(err);
+                    alert("엑셀 업로드 실패!\n1. 시트가 3개 있는지 확인\n2. 첫 줄 제목(호수, 차종, 점검주기 등) 확인\n에러상세: " + err.message);
+                }
                 event.target.value = '';
             };
             reader.readAsArrayBuffer(file);
@@ -943,15 +672,10 @@
             const data = db[type];
             if(!data) return [];
             let items = [];
-            // 일일점검 또는 정기점검 계층 묶음 추출 (정기점검은 일일점검을 포함)
+            // 일일점검 또는 정기점검 계층 묶음 추출 (정기점검은 일일점검 포함)
             if(freq === '일일점검' || freq === '정기점검') items = items.concat((data['일일점검']||[]).map(x => ({...x, badge:'일일', color:'bg-blue-600'})));
             if(freq === '정기점검') items = items.concat((data['정기점검']||[]).map(x => ({...x, badge:'정기', color:'bg-red-600'})));
             return items;
-        }
-
-        function highlightExamText(text) {
-            const regex = /(1만Km|12개월|최고점\s*\(?F\)?|\d+개소|\d+(?:\.\d+)?(?:~\d+(?:\.\d+)?)?(?:mm|cm|kg|F|점|V|A|%|Km|개소|개월)|[A-Za-z]+)/gi;
-            return text.replace(regex, '<span class="exam-highlight">$&</span>');
         }
 
         function loadChecklist() {
@@ -968,7 +692,7 @@
             if(!v) return;
             const items = getCascadingItems(v.type, freq);
             if(items.length === 0) {
-                container.innerHTML = `<div class="text-center py-10 font-bold">해당 차량의 정비 기준이 없습니다.</div>`;
+                container.innerHTML = `<div class="text-center py-10 font-bold">해당 차량의 정비 기준이 없습니다. DB를 확인하세요.</div>`;
                 submitBtnCon.classList.add('hidden'); return;
             }
             container.innerHTML = '';
@@ -1001,7 +725,7 @@
             const freq = document.getElementById('maint-type').value;
             const now = new Date();
             const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-            const rephrased = checked.map(item => `${item} 상태 점검 완료`);
+            const rephrased = checked.map(item => `${cleanItemName(item)} 점검 완료`);
             const displayCycle = freq === '정기점검' ? '반기 정비' : '월간 정비';
             const report = `[${v.plate} ${v.name} ${displayCycle} 결과]\n- 중점 정비사항: ${rephrased.join(', ')}\n- 결과: 이상 없음 (특이사항 없음)`;
 
