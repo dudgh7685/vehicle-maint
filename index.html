@@ -395,7 +395,6 @@
         let logs = []; 
         let currentDate = new Date(); 
 
-        // 197호(전지충전기) 블랙리스트 처리, 199호(세척기)는 제외
         const blackList = ["188-1", "190-1", "191-1", "197"];
         const systemHolidays = [
             "2026-01-01", "2026-02-16", "2026-02-17", "2026-02-18", "2026-03-02", "2026-05-05", "2026-05-25", "2026-08-17", "2026-09-24", "2026-09-25", "2026-10-05", "2026-10-09", "2026-12-25",
@@ -648,6 +647,7 @@
             return shuffled;
         }
 
+        // 보고서 출력 부분 v.type 대신 v.name(원래 이름) 출력하도록 수정 완료
         function generateDailyReport() {
             const realToday = new Date();
             const y1 = realToday.getFullYear(); const m1 = String(realToday.getMonth()+1).padStart(2,'0'); const d1 = String(realToday.getDate()).padStart(2,'0');
@@ -675,7 +675,7 @@
                 const mmdd = (dObj.getMonth()+1) + '월 ' + dObj.getDate() + '일';
                 const dayLabel = s.assignedDate === t1 ? '(오늘)' : '(내일)';
                 
-                report += `• [${v.plate}호] ${v.type} (${s.cycle} 정비) - ${mmdd} ${dayLabel}\n`;
+                report += `• [${v.plate}호] ${v.name} (${s.cycle} 정비) - ${mmdd} ${dayLabel}\n`;
                 report += `  └ ${picked.slice(0,3).join(', ')} 등 점검\n`;
                 if(picked.length > 3) report += `  └ ${picked.slice(3,6).join(', ')} 등 점검\n`;
                 report += '\n';
@@ -683,6 +683,7 @@
             showModal(report.trim());
         }
 
+        // 보고서 출력 부분 v.type 대신 v.name(원래 이름) 출력하도록 수정 완료
         function generateMonthlyReport() {
             const y = currentDate.getFullYear();
             const m = currentDate.getMonth();
@@ -709,7 +710,7 @@
                 const dObj = new Date(s.assignedDate);
                 const mmdd = (dObj.getMonth()+1) + '월 ' + dObj.getDate() + '일';
                 
-                report += `• [${v.plate}호] ${v.type} (${s.cycle} 정비) - ${mmdd} 예정\n`;
+                report += `• [${v.plate}호] ${v.name} (${s.cycle} 정비) - ${mmdd} 예정\n`;
                 report += `  └ ${picked.slice(0,3).join(', ')} 등 점검\n`;
                 if(picked.length > 3) report += `  └ ${picked.slice(3,6).join(', ')} 등 점검\n`;
                 report += '\n';
