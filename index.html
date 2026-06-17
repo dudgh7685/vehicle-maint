@@ -3,12 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>차량 예방정비 관리시스템</title>
+    <title>차량 예방정비 관리시스템 V4</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script>
-        tailwind.config = { darkMode: 'class', theme: { extend: { colors: { darkbg: '#121212', darkcard: '#1e1e1e', darkborder: '#2d3748', primary: '#3b82f6', holiday: '#ef4444' } } } }
+        tailwind.config = {
+            darkMode: 'class',
+            theme: { extend: { colors: { darkbg: '#121212', darkcard: '#1e1e1e', darkborder: '#2d3748', primary: '#3b82f6', holiday: '#ef4444' } } }
+        }
     </script>
     <style>
         body { font-family: 'Pretendard', 'Malgun Gothic', sans-serif; background-color: #121212; color: #f3f4f6; margin: 0; padding: 0; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
@@ -39,7 +42,7 @@
     <header class="bg-darkcard border-b border-darkborder shadow-lg touch-target px-5 justify-between">
         <div class="flex items-center gap-3">
             <div class="bg-blue-600 w-12 h-12 flex items-center justify-center rounded-xl shadow-md"><i class="fa-solid fa-truck-wrench text-white text-2xl"></i></div>
-            <h1 class="text-2xl font-bold tracking-tight text-white">예방정비 관리</h1>
+            <h1 class="text-2xl font-bold tracking-tight text-white">예방정비 관리 V4</h1>
         </div>
     </header>
 
@@ -89,9 +92,8 @@
             <div class="bg-darkcard p-5 rounded-2xl border border-darkborder shadow-md space-y-5">
                 <select id="maint-vehicle" class="touch-input font-bold text-white" onchange="loadChecklist()"><option value="">대상 차량 (호수) 선택</option></select>
                 <select id="maint-type" class="touch-input font-bold text-green-300" onchange="loadChecklist()">
-                    <option value="일일">일일 예방정비 (일일)</option>
-                    <option value="월간">월간 예방정비 (일일+월간 누적)</option>
-                    <option value="반년">반년 예방정비 (일일+월간+반년 누적)</option>
+                    <option value="일일점검">일일점검 (월간 계획 대상)</option>
+                    <option value="정기점검">정기점검 (반기 계획 대상)</option>
                 </select>
             </div>
             <div id="checklist-container" class="space-y-4">
@@ -130,7 +132,7 @@
             <div class="bg-darkcard p-5 rounded-2xl border border-darkborder shadow-md space-y-4">
                 <h3 class="font-bold text-lg text-white mb-2">체크리스트 (DB) 편집</h3>
                 <select id="edit-type" class="touch-input" onchange="renderEditor()"><option value="">차종 선택</option></select>
-                <select id="edit-cycle" class="touch-input" onchange="renderEditor()"><option value="일일">일일</option><option value="월간">월간</option><option value="반년">반년</option></select>
+                <select id="edit-cycle" class="touch-input" onchange="renderEditor()"><option value="일일점검">일일점검</option><option value="정기점검">정기점검</option></select>
                 <div id="edit-container" class="space-y-3 mt-4"></div>
                 <button onclick="addDbItem()" class="touch-btn bg-purple-600 hover:bg-purple-500 text-white w-full mt-4"><i class="fa-solid fa-plus"></i> 항목 추가</button>
             </div>
@@ -180,19 +182,100 @@
     </div>
 
     <script>
+        // --- 1. 대형차량 방대 데이터베이스화 및 주기 명칭 개편 (일일점검 / 정기점검) ---
         const defaultMaintenanceDB = {
-          "상용트럭(1~5톤)": {"일일":[{"항목":"엔진오일 수준","정비방법":"계심봉을 빼내어 오일 수준 및 점도 점검."},{"항목":"클러치 페달","정비방법":"기능사 표준 유격 20~30mm 정상 작동 확인."},{"항목":"클러치/제동 오일 저장통","정비방법":"리저버 탱크 MAX-MIN 수위 점검 및 누유 탐색."},{"항목":"구동벨트 장력","정비방법":"벨트 중앙을 눌러 10~15mm 처짐량 점검."},{"항목":"제동기 페달 유격","정비방법":"표준 수치 10~15mm 정상 여부 확인."},{"항목":"타이어 상태","정비방법":"마모 한계선 1.6mm 및 공기압, 휠너트 체결 점검."}],"월간":[{"항목":"공기 청정기","정비방법":"엘리먼트 오염도 확인 후 에어건 청소."},{"항목":"축전지 상태","정비방법":"터미널 백화현상 점검 및 전해액 비중 1.280 확인."}],"반년":[{"항목":"오일 및 필터 교환","정비방법":"1만Km 또는 12개월 교환. 폐유 배출 및 필터/신유 교환."}]},
-          "1¼ 표준차량": {"일일":[{"항목":"엔진오일 수준","정비방법":"계심봉을 빼내어 오일 수준 및 점도 점검."},{"항목":"클러치 페달","정비방법":"유격 20~30mm 정상 작동 확인."},{"항목":"구동벨트 장력","정비방법":"벨트 눌러 10~15mm 처짐량 점검."},{"항목":"타이어 상태","정비방법":"마모 한계선 1.6mm 및 사이드월 파손 점검."}],"월간":[{"항목":"하부 그리스 주유","정비방법":"조향 및 현가 31개소 니플 세척 후 신품 그리스 주입."},{"항목":"축전지 점검","정비방법":"표준 비중 1.280 확인 및 단자 결속 점검."}],"반년":[{"항목":"허브작업","정비방법":"허브베어링 탈거, 구형 그리스 세척 및 신품 주입 후 조립."},{"항목":"연료 여과기","정비방법":"여과기 교환 및 연료 계통 공기 빼기."}]},
-          "2.5톤 표준차량": {"일일":[{"항목":"엔진오일 점검","정비방법":"오일 수위 및 점도 점검."},{"항목":"클러치 유격","정비방법":"표준 20~30mm 확인."},{"항목":"벨트 장력","정비방법":"벨트 중앙 10~15mm 처짐 확인."}],"월간":[{"항목":"그리스 주유","정비방법":"니플 41개소 오염물 닦고 그리스 주입."},{"항목":"팬벨트 점검","정비방법":"장력 측정 및 조정."}],"반년":[{"항목":"허브작업","정비방법":"8개소 베어링 탈거 및 구리스 재주유."},{"항목":"엔진오일 교환","정비방법":"오일 및 여과기 신품 교환."}]},
-          "5톤 표준차량": {"일일":[{"항목":"엔진오일 점검","정비방법":"수위 및 점도 점검."},{"항목":"클러치 유격","정비방법":"20~30mm 유격 점검."},{"항목":"구동벨트","정비방법":"10~15mm 장력 점검."}],"월간":[{"항목":"그리스 주유","정비방법":"41개소 니플 그리스 주입."},{"항목":"제동기 점검","정비방법":"라이닝 간극 점검 및 조정."}],"반년":[{"항목":"허브작업","정비방법":"8개소 베어링 탈거 및 구리스 재주유."},{"항목":"에어카트리지","정비방법":"공기건조기 카트리지 교환."}]},
-          "냉동부식차": {"일일":[{"항목":"오일/냉각수","정비방법":"게이지 확인 및 수위 점검."},{"항목":"콘덴샤 팬","정비방법":"팬 유동 파손 확인."}],"월간":[{"항목":"냉동엔진 휀모터","정비방법":"모터 작동 및 단자 고정 확인."}],"반년":[{"항목":"단발시동 테스트","정비방법":"단발시동 및 냉장실 온도 하강 점검."}]},
-          "승합차": {"일일":[{"항목":"오일류 점검","정비방법":"엔진, 브레이크 오일 수위 점검."},{"항목":"클러치 유격","정비방법":"20~30mm 점검."}],"월간":[{"항목":"구동벨트","정비방법":"장력 10~15mm 조정."}],"반년":[{"항목":"연료장치","정비방법":"연료필터 응축수 배출 및 공기 빼기."}]},
-          "승용차계열": {"일일":[{"항목":"엔진오일","정비방법":"수위 Max-Min 점검."},{"항목":"타이어 점검","정비방법":"마모한계 1.6mm 및 공기압 확인."}],"월간":[{"항목":"파워스티어링","정비방법":"조향 오일량 점검 및 누유 확인."}],"반년":[{"항목":"점화 플러그","정비방법":"플러그 간극 및 고압 케이블 절연 점검."}]},
-          "대형트럭/유조차": {"일일":[{"항목":"엔진오일","정비방법":"대기 후 수위 점검."},{"항목":"특장/밸브","정비방법":"P.T.O 구동 소음 및 밸브 누유 점검."}],"월간":[{"항목":"요소수","정비방법":"잔량 점검 및 찌꺼기 청소 후 보충."}],"반년":[{"항목":"에어카트리지","정비방법":"드레인 밸브 수분 배출 및 카트리지 교환."}]},
-          "트레일러": {"일일":[{"항목":"견인장치","정비방법":"킹핀 및 커플러 결합 상태 육안 검사."},{"항목":"타이어/공기압","정비방법":"복륜 사이 돌 제거 및 규정 공기압 확인."}],"월간":[{"항목":"에어챔버 누출","정비방법":"브레이크 작동 상태에서 에어 누출음 점검."}],"반년":[{"항목":"허브 및 베어링","정비방법":"허브 탈거 후 베어링 구형 구리스 세척 및 신품 주입."}]},
-          "리프트 자동차용": {"일일":[{"항목":"리프트 상승/하강","정비방법":"무부하 상태에서 상승 및 하강 스위치 작동 점검."},{"항목":"유압유 누유","정비방법":"실린더 및 유압 호스 연결부 누유 확인."}],"월간":[{"항목":"와이어 로프 점검","정비방법":"로프 장력 밸런스 및 표면 마모/단선 상태 점검."},{"항목":"안전장치 록킹","정비방법":"상승 후 록킹 레버 체결 상태 확인."}],"반년":[{"항목":"유압유 점검","정비방법":"유압유 오염도 및 점도 점검 (필요시 교환)."},{"항목":"롤러 구리스 주유","정비방법":"작동 체인 및 가이드 롤러 구리스 급유."}]},
-          "차량오일 수거기": {"일일":[{"항목":"배출 밸브 잠금","정비방법":"하단 폐유 배출 밸브 완벽 잠금 확인."},{"항목":"호스 누유 점검","정비방법":"흡입 호스 및 배출 호스 균열, 파손 부위 육안 확인."}],"월간":[{"항목":"압력 게이지","정비방법":"에어 주입 시 압력 게이지 정상 작동 확인."},{"항목":"캐스터 유동성","정비방법":"바퀴 베어링 상태 점검 및 이물질 제거."}],"반년":[{"항목":"에어 필터 수분","정비방법":"에어 레귤레이터 필터 수분 배출."},{"항목":"내부 찌꺼기 세척","정비방법":"수거통 내부 슬러지 청소."}]},
-          "고압 세척기": {"일일":[{"항목":"호스 및 연결부","정비방법":"고압 호스 파손 및 연결부 누수 여부 확인."},{"항목":"전원 케이블","정비방법":"피복 손상 및 접지 상태 점검."}],"월간":[{"항목":"건(Gun) 작동","정비방법":"트리거(방아쇠) 작동 및 노즐 상태 점검."},{"항목":"흡입 필터","정비방법":"내부 필터망 분리 후 이물질 세척."}],"반년":[{"항목":"펌프 오일","정비방법":"오일 점검창 수위 확인 및 필요 시 교환."},{"항목":"모터 상태","정비방법":"작동 중 이상 소음 및 진동 점검."}]}
+          "대형차량(2.5톤 이상)": {
+            "일일점검": [
+              {"항목":"엔진오일 수준","정비방법":"딥스틱 게이지를 사용하여 오일 레벨이 F-L 사이에 위치하는지 점검."},
+              {"항목":"냉각수 용량","정비방법":"보조탱크 내부 냉각수 수위가 MAX-MIN 이내인지 육안 점검."},
+              {"항목":"브레이크 에어 압력","정비방법":"시동 후 공기 압력 게이지가 규정치까지 빠르게 상승하는지 확인."},
+              {"항목":"타이어 공기압","정비방법":"타이어 마모 한계선(1.6mm) 확인 및 규정 압력 상태 점검."},
+              {"항목":"특장 부위 유압유","정비방법":"유압 작동유 저장 탱크 수위 및 배관 젖음(누유) 상태 점검."},
+              {"항목":"PTO 동력인출 작동","정비방법":"PTO 스위치 결합 시 이상 소음 발생 여부 및 정상 연동 점검."},
+              {"항목":"조향 유압오일","정비방법":"파워 스티어링 오일 저장통 잔량 계측 및 누유 진단."},
+              {"항목":"팬벨트 장력","정비방법":"벨트 중앙 인장 압착 시 10~15mm 처짐 및 갈라짐 점검."},
+              {"항목":"각종 등화장치 작동","정비방법":"전조등, 방향지시등, 제동등 고조도 점등 상태 점검."},
+              {"항목":"배터리 전압","정비방법":"인디케이터 녹색 정상 확인 및 배선 결속 유격 점검."},
+              {"항목":"추진축 연결 상태","정비방법":"자재이음 플랜지 볼트 풀림 및 이완 상태 하부 점검."},
+              {"항목":"연료필터 수분 경고등","정비방법":"계기판 수분 경고등 미점등 및 여과기 하부 수분 육안 점검."},
+              {"항목":"공기탱크 응축수","정비방법":"하부 드레인 코크 개방 시 오일/수분 과다 배출 여부 확인."},
+              {"항목":"앞유리 워셔액 분사","정비방법":"와셔 모터 펌프 정상 작동 및 노즐 분사 각도 확인."},
+              {"항목":"와이퍼 블레이드 마모","정비방법":"고무날 찢어짐 및 전면 유리 밀착 세정 상태 점검."},
+              {"항목":"휠 너트 체결 압착","정비방법":"너트 주변 녹물 발생 여부 및 풀림 방지 마킹 일치 확인."},
+              {"항목":"배기관 균열 소음","정비방법":"머플러 및 배기 파이프라인 가스 누출음 청각 진단."},
+              {"항목":"에어크리너 오염 상태","정비방법":"에어클리너 하우징 먼지 상태 및 필터 오염 상태 진단."},
+              {"항목":"계기판 에러코드","정비방법":"시동 후 체크 경고등 잔존 여부 스캔 및 진단."},
+              {"항목":"차체 하부 누유","정비방법":"변속기 및 차동기어 오일 실 주변 오일 방울 맺힘 확인."}
+            ],
+            "정기점검": [
+              {"항목":"에어드라이어 카트리지 교환","정비방법":"공기 제습 건조기 카트리지 탈거 후 신품 장착 및 에어탱크 수분 원천 차단."},
+              {"항목":"엔진유 및 필터 일제 교환","정비방법":"드레인 코크 개방 후 폐오일 완전 배출, 필터 소모품 신품 교체 작업."},
+              {"항목":"연료 여과기 신품 교체","정비방법":"연료 필터 어셈블리 분해 후 신품 카트리지 교체 및 경유 라인 공기 배출 작업."},
+              {"항목":"차축 기어오일 레벨","정비방법":"전/후륜 디퍼런셜 기어오일 주입구 플러그 탈거 후 오일량 점검 및 보충."},
+              {"항목":"변속기 오일 수준","정비방법":"미션 오일 규정 온도 도달 후 오일량 및 오염도 측정 점검."},
+              {"항목":"허브 베어링 그리스 충전","정비방법":"바퀴 허브 완전 분해 후 기존 구리스 세척, 베어링 손상 검사 및 고열 구리스 패킹."},
+              {"항목":"판스프링 U볼트 체결 토크","정비방법":"토크 렌치를 사용하여 하부 판스프링 고정 볼트 규정 토크 증조 작업."},
+              {"항목":"조향 드래그링크 유격 조정","정비방법":"타이로드 엔드 및 조향 링크 연결 조인트 볼조인트 유격 계측 및 조정."},
+              {"항목":"브레이크 라이닝 마모도","정비방법":"제동 슈 센서 배선 점검 및 정밀 자를 이용한 마모 잔량 측정 계측."},
+              {"항목":"브레이크 드럼 균열 정밀 검사","정비방법":"열 변형에 의한 드럼 내벽 크랙 및 긁힘 상태 정밀 육안 검사."},
+              {"항목":"감속기 기어오일 교체","정비방법":"특장 구동용 감속기 폐유 배출 및 규격 기어 유압유 신유 주입."},
+              {"항목":"요소수 분사 노즐 청소","정비방법":"SCR 도징 밸브 분해 후 굳어버린 요소수 하얀 결정체 온수 세척 청소."},
+              {"항목":"부동액 농도 측정 계측","정비방법":"비중계를 활용하여 부동액 얼지 않는 한계 온도 및 어는점 정밀 계측 조정."},
+              {"항목":"인터쿨러 호스 균열","정비방법":"터보차저 흡기 라인 압축 공기 누출 여부 호스 밴드 부위 정밀 검사."},
+              {"항목":"터보차저 축 유격 스캔","정비방법":"임펠러 축 유격 흔들림 육안 진단 및 오일 유입 여부 확인 정밀 점검."},
+              {"항목":"축전지 백화 현상 세척","정비방법":"터미널 단자 황산납 찌꺼기 세척 제거 후 내부 오염 차단용 그리스 도포."},
+              {"항목":"섀시 프레임 증조 작업","정비방법":"차체 메인 프레임 균열 여부 탐색 및 주요 결합 볼트 일제 증조 조임."},
+              {"항목":"토크로드 부싱 유격","정비방법":"후륜 현가장치 토크로드 고무 부싱 파손 및 고무 경화 여부 정밀 점검."},
+              {"항목":"프로펠러 샤프트 그리스 주입","정비방법":"십자 베어링 및 슬리브 요크 그리스 니플 부위 신품 유압 그리스 고압 주입."},
+              {"항목":"전륜 토인 정렬 계측","정비방법":"조향 바퀴 정렬태 확인 및 정밀 토인 게이지 활용 측정 조정."}
+            ]
+          },
+          "1¼ 표준차량": {
+            "일일점검": [
+              {"항목":"엔진오일 수준 및 오염","정비방법":"딥스틱 게이지 오일량 F-L 사이 정상 유무 및 점도 확인."},
+              {"항목":"클러치 페달 표준 유격","정비방법":"손으로 조작 시 저항 발생 전까지 거리 계측 (표준 20~30mm)."},
+              {"항목":"제동유 수준 계측","정비방법":"리저버 탱크 캡 주변 세척 후 MAX 선 아래 수위 점검."},
+              {"항목":"방열기 냉각수 수준","정비방법":"라디에이터 캡 개방 전 보조탱크 잔량 육안 스캔 점검."},
+              {"항목":"팬벨트 장력 크랙","정비방법":"구동벨트 안쪽 크랙 상태 및 손가락 압착 시 10~15mm 처짐 점검."},
+              {"항목":"휠 너트 체결 토크","정비방법":"OVM 렌치 대조 풀림 방향 유격 수동 회전 점검."},
+              {"항목":"타이어 트레드 마모","정비방법":"마모 한계선 1.6mm 도달 여부 및 편마모 상태 스캔."},
+              {"항목":"조향 휠 유격 유동","정비방법":"시동 후 조향 핸들 좌우 반동 시 유격 및 흔들림 유동 점검."}
+            ],
+            "정기점검": [
+              {"항목":"허브작업 그리스 충전","정비방법":"전후륜 휠 허브 분해 후 베어링 구형 구리스 씻어내고 고열 구리스 충전 조립."},
+              {"항목":"차동기어 오일 주입 보충","정비방법":"디퍼런셜 케이스 오일 플러그 탈거 후 오일량 계측 보충."},
+              {"항목":"조향 니플 그리스 윤활","정비방법":"하부 조향 링크 계통 총 31개소 그리스 니플 압축 그리스 주입."},
+              {"항목":"브레이크 라이닝 간극 조정","정비방법":"드럼 내부 라이닝 간극 조정 스크류 회전 간격 정밀 조정."}
+            ]
+          },
+          "소형/승용차": {
+            "일일점검": [{"항목":"엔진오일 수위","정비방법":"평탄지 주차 후 게이지 F-L 인디케이터 수위 점검."},{"항목":"타이어 공기압","정비방법":"규정 압력 유지 상태 및 트레드 이물질 박힘 육안 검사."}],
+            "정기점검": [{"항목":"엔진오일 및 필터 교환","정비방법":"소모품 엔진유 드레인 배출 및 신품 필터 부착 교체."},{"항목":"브레이크 패드 마모 잔량","정비방법":"캘리퍼 틈새 패드 마찰재 두께 정밀 자 계측 측정."}]
+          },
+          "승합차": {
+            "일일점검": [{"항목":"엔진 룸 오일 수준","정비방법":"게이지 체크 및 각종 오일량 육안 확인."},{"항목":"제동 제어 페달 유격","정비방법":"페달 압착 유격 표준치 유지 상태 확인."}],
+            "정기점검": [{"항목":"구동 V벨트 장력 조정","정비방법":"알터네이터 고정부 조절 벨트 압착 시 10~15mm 처짐 조정."},{"항목":"연료필터 응축 수분 배출","정비방법":"여과기 드레인 플러그 개방 내부 수분 배출 공기 빼기."}]
+          },
+          "냉동부식차": {
+            "일일점검": [{"항목":"냉동 전용 오일 수준","정비방법":"오일 창 수위 중심 위치 정상 유무 점검."},{"항목":"콘덴샤 핀 파손 유동","정비방법":"외부 충격 코어 핀 찌그러짐 젖음 상태 스캔."}],
+            "정기점검": [{"항목":"냉동엔진 단발시동 확인","정비방법":"콘트롤 박스 전원 인가 시 단발 시동성 청각 진단."},{"항목":"증발기 휀모터 작동 유격","정비방법":"탑 내부 증발기 회전 유동 이음 발생 확인."}]
+          },
+          "트레일러": {
+            "일일점검": [{"항목":"견인 킹핀 결합 상태","정비방법":"5륜 커플러 결합 유격 및 마모 상태 육안 정밀 스캔."},{"항목":"복륜 타이어 공기압 계측","정비방법":"타이어 게이지 연결 적정 압력 계측 및 사이 돌 박힘 제거."}],
+            "정기점검": [{"항목":"브레이크 챔버 공기 누출","정비방법":"제동 제어 상태에서 챔버 라인 에어 누출 소음 정밀 청음 진단."},{"항목":"허브베어링 세척 구리스 주입","정비방법":"허브 탈거 후 경유 세척, 마모 베어링 검사 후 신품 구리스 패킹."}]
+          },
+          "리프트 자동차용": {
+            "일일점검": [{"항목":"상승 하강 작동 소음","정비방법":"무부하 작동 스위치 조작 유압 모터 소음 청각 점검."},{"항목":"유압 실린더 누유","정비방법":"로드 실 부위 유압유 배어남 육안 확인 점검."}],
+            "정기점검": [{"항목":"와이어 로프 단선 마모","정비방법":"표면 소선 끊어짐 상태 및 로프 밸런스 인장 측정."},{"항목":"가이드 롤러 그리스 윤활","정비방법":"체인 및 가이드 레일 롤러 그리스 고압 윤활 점검."}]
+          },
+          "차량오일 수거기": {
+            "일일점검": [{"항목":"배출 밸브 밀봉 잠금","정비방법":"하단 폐유 드레인 밸브 레버 잠금 밀봉 확인."},{"항목":"흡입 유압 호스 균열","정비방법":"호스 고무 갈라짐 부위 육안 확인 점검."}],
+            "정기점검": [{"항목":"에어 압력 게이지 정상 작동","정비방법":"공기 주입 시 압력 바늘 고착 유무 스캔."},{"항목":"수거통 내부 슬러지 세척","정비방법":"수거 탱크 내부 폐유 찌꺼기 세척액 청소 대령."}]
+          },
+          "고압 세척기": {
+            "일일점검": [{"항목":"고압 호스 연결부 누수","정비방법":"호스 체결 조인트 오링 파손 및 수압 누수 여부 점검."},{"항목":"전원 배선 피복 손상","정비방법":"이동형 케이블 피복 찢어짐 및 전원 플러그 접지 점검."}],
+            "정기점검": [{"항목":"흡입 여과망 이물질 세척","정비방법":"필터 하우징 탈거 내부 이물질 수돗물 청소 헹굼."},{"항목":"고압 펌프 오일 레벨","정비방법":"펌프 바디 측면 오일 확인 게이지 중심선 정상 점검."}]
+          }
         };
 
         const csvRawData = `품명,호수,예방정비계획일자,점검주기
@@ -379,11 +462,11 @@
 자동차 스테이션 왜곤형(12인승),2416,2026-12-29,부대정비(반기)`;
 
         const troubleshootingDB = [
-            { sys: "엔진/시동", sym: "시동 걸 때 틱틱 소리만 남", chk: "시동모터 고장 또는 배터리 방전 의심\n(점프선 연결 후 시동 성공 -> 배터리 방전 / 실패 -> 시동모터 나감)" },
+            { sys: "엔진/시동", sym: "시동 걸 때 틱틱 소리만 남", chk: "시동모터 고장 또는 배터리 방전 의심\\n(점프선 연결 후 시동 성공 -> 배터리 방전 / 실패 -> 시동모터 나감)" },
             { sys: "엔진/시동", sym: "시동 불량 (끼리릭 소리만 남)", chk: "축전지 방전 확인, 스타트 모터 피니언 기어 마모, 배터리 터미널 체결 확인" },
             { sys: "엔진/시동", sym: "주행 중 시동 꺼짐", chk: "연료필터 막힘, 연료펌프 작동 불량, 발전기(알터네이터) 고장" },
             { sys: "조향/현가", sym: "핸들 무거움", chk: "파워스티어링 오일 부족, 파워펌프 V벨트 장력 이완, 타이어 공기압 부족" },
-            { sys: "조향/현가", sym: "방지턱 넘을 때 찌그덕 소음", chk: "로우암 부싱 마모, 쇽업소버 누유 및 마모, 활대링크 고무 파 파손" },
+            { sys: "조향/현가", sym: "방지턱 넘을 때 찌그덕 소음", chk: "로우암 부싱 마모, 쇽업소버 누유 및 마모, 활대링크 고무 파손" },
             { sys: "구동/제동", sym: "브레이크 밟을 때 쇳소리", chk: "브레이크 패드 마모(인디케이터 마찰), 디스크 로터 변형" },
             { sys: "구동/제동", sym: "가속 시 하부에서 탁탁 소리", chk: "등속조인트(드라이브샤프트) 부츠 찢어짐 및 베어링 마모, 추진축 십자베어링 유격" }
         ];
@@ -395,6 +478,7 @@
         let logs = []; 
         let currentDate = new Date(); 
 
+        // 197호(충전기 전지용) 영구 블랙리스트 추가 차단, 199호(세척기) 살림
         const blackList = ["188-1", "190-1", "191-1", "197"];
         const systemHolidays = [
             "2026-01-01", "2026-02-16", "2026-02-17", "2026-02-18", "2026-03-02", "2026-05-05", "2026-05-25", "2026-08-17", "2026-09-24", "2026-09-25", "2026-10-05", "2026-10-09", "2026-12-25",
@@ -410,20 +494,19 @@
             return day === 0 || day === 6 || systemHolidays.includes(dateStr) || holidays.includes(dateStr);
         }
 
+        // 2.5톤 이상 대형차량 통합 매핑 필터 엔진
         function mapVehicleType(name) {
             if (name.includes("30kw") || name.includes("발전기")) return null;
-            if (/K-?311|1 1\/4톤|1¼/.test(name)) return "1¼ 표준차량";
-            if (/K-?511/.test(name)) return "2.5톤 표준차량";
-            if (/K-?711/.test(name)) return "5톤 표준차량";
+            if (/K-?311|1 1\\/4톤|1¼/.test(name)) return "1¼ 표준차량";
             if (/리프트/.test(name)) return "리프트 자동차용";
-            if (/수거기/.test(name)) return "차량오일 수거기";
+            if (/수거기|주입기/.test(name)) return "차량오일 수거기";
             if (/세척기/.test(name)) return "고압 세척기";
-            if (/덤프|유조차|트랙터|11\.5톤|15톤|9\.5톤|탱크형/.test(name)) return "대형트럭/유조차";
-            if (/트레일러|샤시/.test(name)) return "트레일러";
+            // 2.5톤 이상 대령 차종 일체 통합
+            if (/덤프|유조차|유조형|트랙터|11\\.5톤|15톤|9\\.5톤|샤시|5톤|K-?711|K-?511|2\\.5톤/.test(name)) return "대형차량(2.5톤 이상)";
+            if (/트레일러/.test(name)) return "트레일러";
             if (/냉동|부식/.test(name)) return "냉동부식차";
             if (/스타렉스|승합|버스|12인승/.test(name)) return "승합차";
-            if (/코란도|짚|지프|왜곤/.test(name)) return "승용차계열";
-            if (/마이티|화물용|화물차|화물트럭|픽업형|봉고|상용트럭|2\.5톤/.test(name)) return "상용트럭(1~5톤)";
+            if (/코란도|짚|지프|왜곤|1톤|봉고/.test(name)) return "소형/승용차";
             return null;
         }
 
@@ -464,7 +547,7 @@
                 schedules = JSON.parse(lsSchedules);
                 cleanUpData(); recalcAllSchedules(); saveData();
             } else {
-                const lines = csvRawData.split('\n');
+                const lines = csvRawData.split('\\n');
                 lines.forEach((line, i) => {
                     if (i === 0 || !line.trim()) return;
                     const cols = line.split(',');
@@ -473,10 +556,11 @@
                     const vName = cols[0].trim();
                     const vType = mapVehicleType(vName);
                     if (vType) { 
-                        const cycle = cols[3].includes("반기") ? "반년" : (cols[3].includes("월간") ? "월간" : "일일");
+                        // 주기 뼈대 변환: 반기 -> 정기점검 / 월간 -> 일일점검
+                        const cycle = cols[3].includes("반기") ? "정기점검" : "일일점검";
                         const vId = Date.now() + i;
                         vehicles.push({ id: vId, plate: cleanPlate, name: vName, type: vType });
-                        schedules.push({ vId: vId, type: vType, cycle: cycle, originalDate: cols[2].trim(), assignedDate: cols[2].trim() });
+                        schedules.push({ id_s: Date.now()+i+1000, vId: vId, type: vType, cycle: cycle, originalDate: cols[2].trim(), assignedDate: cols[2].trim() });
                     }
                 });
                 cleanUpData(); recalcAllSchedules(); saveData();
@@ -484,16 +568,16 @@
             if(lsLogs) logs = JSON.parse(lsLogs);
 
             const typeSelect = document.getElementById('edit-type');
-            Object.keys(db).forEach(t => { typeSelect.innerHTML += `<option value="${t}">${t}</option>`; });
+            Object.keys(db).forEach(t => { typeSelect.innerHTML += `<option value="\${t}">\${t}</option>`; });
 
             const tList = document.getElementById('trouble-list');
             troubleshootingDB.forEach((item, i) => {
                 tList.innerHTML += `
                     <div class="bg-darkcard border border-darkborder rounded-xl overflow-hidden shadow mb-3">
-                        <button onclick="toggleAccordion('trb-${i}')" class="w-full px-5 py-4 text-left flex justify-between items-center text-yellow-400 bg-gray-800 touch-target font-bold">
-                            <span>[${item.sys}] ${item.sym}</span><i class="fa-solid fa-chevron-down transition-transform" id="icon-trb-${i}"></i>
+                        <button onclick="toggleAccordion('trb-\${i}')" class="w-full px-5 py-4 text-left flex justify-between items-center text-yellow-400 bg-gray-800 touch-target font-bold">
+                            <span>[\${item.sys}] \${item.sym}</span><i class="fa-solid fa-chevron-down transition-transform" id="icon-trb-\${i}"></i>
                         </button>
-                        <div id="trb-${i}" class="accordion-content bg-[#121212] px-5"><p class="py-5 text-gray-300 font-bold leading-relaxed text-base whitespace-pre-line"><i class="fa-solid fa-wrench mr-2 text-blue-500"></i>점검포인트:\n${item.chk}</p></div>
+                        <div id="trb-\${i}" class="accordion-content bg-[#121212] px-5"><p class="py-5 text-gray-300 font-bold leading-relaxed text-base whitespace-pre-line"><i class="fa-solid fa-wrench mr-2 text-blue-500"></i>점검포인트:\\n\${item.chk}</p></div>
                     </div>`;
             });
             switchTab('dashboard');
@@ -508,21 +592,21 @@
         }
 
         function factoryReset() {
-            if(confirm("모든 데이터를 초기화하고 엑셀 원본 상태로 되돌리시겠습니까?\n(등록된 정비 일지와 업로드한 스케줄이 모두 삭제됩니다!)")) {
+            if(confirm("모든 데이터를 초기화하고 엑셀 원본 상태로 되돌리시겠습니까?\\n(등록된 정비 일지와 업로드한 스케줄이 모두 삭제됩니다!)")) {
                 localStorage.clear(); location.reload();
             }
         }
 
         function switchTab(tabId) {
             ['dashboard', 'maintenance', 'trouble', 'logs', 'settings'].forEach(t => {
-                document.getElementById(`sec-${t}`).classList.add('hidden');
-                document.getElementById(`tab-${t}`).classList.remove('text-blue-500', 'text-green-500', 'text-purple-500', 'text-yellow-400', 'text-orange-400');
-                document.getElementById(`tab-${t}`).classList.add('text-gray-500');
+                document.getElementById(`sec-\${t}`).classList.add('hidden');
+                document.getElementById(`tab-\${t}`).classList.remove('text-blue-500', 'text-green-500', 'text-purple-500', 'text-yellow-400', 'text-orange-400');
+                document.getElementById(`tab-\${t}`).classList.add('text-gray-500');
             });
-            document.getElementById(`sec-${tabId}`).classList.remove('hidden');
+            document.getElementById(`sec-\${tabId}`).classList.remove('hidden');
             const colors = { 'dashboard':'text-blue-500', 'maintenance':'text-green-500', 'trouble':'text-yellow-400', 'logs':'text-orange-400', 'settings':'text-purple-500' };
-            document.getElementById(`tab-${tabId}`).classList.remove('text-gray-500');
-            document.getElementById(`tab-${tabId}`).classList.add(colors[tabId].split(' ')[0]);
+            document.getElementById(`tab-\${tabId}`).classList.remove('text-gray-500');
+            document.getElementById(`tab-\${tabId}`).classList.add(colors[tabId].split(' ')[0]);
             if(tabId === 'dashboard') { renderCalendar(); }
             if(tabId === 'maintenance') { renderMaintenanceOptions(); }
             if(tabId === 'logs') { renderLogs(); }
@@ -546,14 +630,14 @@
                 let targetStr = null;
                 let dt = new Date(origDate);
                 for(let i=0; i<=7; i++) {
-                    let str = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+                    let str = `\${dt.getFullYear()}-\${String(dt.getMonth() + 1).padStart(2, '0')}-\${String(dt.getDate()).padStart(2, '0')}`;
                     if(!isHolidayOrWeekend(str) && (!assignedCount[str] || assignedCount[str] === 0)) { targetStr = str; break; }
                     dt.setDate(dt.getDate() - 1); 
                 }
                 if(!targetStr) {
                     dt = new Date(origDate);
                     for(let i=0; i<=7; i++) {
-                        let str = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+                        let str = `\${dt.getFullYear()}-\${String(dt.getMonth() + 1).padStart(2, '0')}-\${String(dt.getDate()).padStart(2, '0')}`;
                         if(!isHolidayOrWeekend(str) && assignedCount[str] === 1) { targetStr = str; break; }
                         dt.setDate(dt.getDate() - 1);
                     }
@@ -561,7 +645,7 @@
                 if(!targetStr) {
                     dt = new Date(origDate);
                     while(true) {
-                        let str = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+                        let str = `\${dt.getFullYear()}-\${String(dt.getMonth() + 1).padStart(2, '0')}-\${String(dt.getDate()).padStart(2, '0')}`;
                         if(!isHolidayOrWeekend(str) && (!assignedCount[str] || assignedCount[str] < 2)) { targetStr = str; break; }
                         dt.setDate(dt.getDate() - 1);
                     }
@@ -586,27 +670,29 @@
         function renderCalendar() {
             const y = currentDate.getFullYear();
             const m = currentDate.getMonth();
-            document.getElementById('cal-title').innerText = `${y}년 ${m+1}월`;
-            document.getElementById('btn-report-title').innerText = `${m+1}월 예정 복사`;
+            document.getElementById('cal-title').innerText = `\${y}년 \${m+1}월`;
+            
+            // 버튼 인디케이터 라벨 변경 적용
+            document.getElementById('btn-report-title').innerText = `\${m+1}월 예정 복사`;
 
             const daysInMonth = new Date(y, m+1, 0).getDate();
             const calBody = document.getElementById('cal-body');
             let calBodyHtml = '';
             
-            const monthPrefix = `${y}-${String(m+1).padStart(2,'0')}`;
+            const monthPrefix = `\${y}-\${String(m+1).padStart(2,'0')}`;
             const pendingMonthScheds = schedules.filter(s => s.assignedDate.startsWith(monthPrefix));
             const completedCount = logs.filter(l => l.date.startsWith(monthPrefix)).length;
             const totalThisMonth = pendingMonthScheds.length + completedCount;
             const pct = totalThisMonth === 0 ? 0 : Math.round((completedCount / totalThisMonth) * 100);
             
-            document.getElementById('progress-text').innerText = `${completedCount} / ${totalThisMonth} 대 (${pct}%)`;
-            document.getElementById('progress-bar').style.width = `${pct}%`;
+            document.getElementById('progress-text').innerText = `\${completedCount} / \${totalThisMonth} 대 (\${pct}%)`;
+            document.getElementById('progress-bar').style.width = `\${pct}%`;
 
             for(let d=1; d<=daysInMonth; d++) {
                 let dateObj = new Date(y, m, d);
                 let dayOfWeek = dateObj.getDay();
                 if (dayOfWeek === 0 || dayOfWeek === 6) continue;
-                const dateStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                const dateStr = `\${y}-\${String(m+1).padStart(2,'0')}-\${String(d).padStart(2,'0')}`;
                 if (calBodyHtml === '') { for (let i = 0; i < dayOfWeek - 1; i++) { calBodyHtml += `<div></div>`; } }
                 const isHol = isSystemHoliday(dateStr) || holidays.includes(dateStr);
                 const dayScheds = schedules.filter(s => s.assignedDate === dateStr);
@@ -614,22 +700,24 @@
                 dayScheds.forEach(s => {
                     const v = vehicles.find(x => x.id === s.vId);
                     if(!v) return;
-                    const color = s.cycle === '반년' ? 'bg-red-600' : (s.cycle === '월간' ? 'bg-amber-600' : 'bg-blue-600');
+                    const color = s.cycle === '정기점검' ? 'bg-red-600' : 'bg-blue-600';
+                    const labelCycle = s.cycle === '정기점검' ? '반기' : '월간';
                     const avoidTag = s.assignedDate !== s.originalDate ? `<i class="fa-solid fa-arrow-left text-yellow-300"></i> ` : '';
-                    badges += `<div class="${color} text-white sched-badge" onclick="event.stopPropagation(); goToMaint(${v.id}, '${s.cycle}', '${s.originalDate}', '${s.assignedDate}', '${v.plate}', '${v.type}')">${avoidTag}${v.plate}</div>`;
+                    badges += `<div class="\${color} text-white sched-badge" onclick="event.stopPropagation(); goToMaint(\${v.id}, '\${s.cycle}', '\${s.originalDate}', '\${s.assignedDate}', '\${v.plate}', '\${v.type}')">\${avoidTag}\${v.plate}</div>`;
                 });
-                calBodyHtml += `<div class="cal-day ${isHol ? 'holiday' : ''}" onclick="toggleHoliday('${dateStr}')"><div class="cal-date-num">${d}</div>${badges}</div>`;
+                calBodyHtml += `<div class="cal-day \${isHol ? 'holiday' : ''}" onclick="toggleHoliday('\${dateStr}')"><div class="cal-date-num">\${d}</div>\${badges}</div>`;
             }
             calBody.innerHTML = calBodyHtml;
         }
 
         function goToMaint(vId, cycle, origDate, assignDate, plate, type) {
-            let msg = `${plate}호 ${type}의 ${cycle} 예방정비를 수행하시겠습니까?`;
+            const labelCycle = cycle === '정기점검' ? '반기' : '월간';
+            let msg = `\${plate}호 \${type}의 \${labelCycle} 정비 계획 스케줄(내부 연동 명칭: \${cycle})을 수행하시겠습니까?`;
             if (origDate && assignDate && origDate !== assignDate) {
                 const d1 = new Date(origDate.split('-')[0], origDate.split('-')[1] - 1, origDate.split('-')[2]);
                 const d2 = new Date(assignDate.split('-')[0], assignDate.split('-')[1] - 1, assignDate.split('-')[2]);
                 const diff = Math.round((d1 - d2) / (1000 * 60 * 60 * 24));
-                msg = `원래 계획일(${origDate})에서 [ ${diff}일 ] 앞당겨진\n${plate}호 ${type}의 ${cycle} 예방정비를 수행하시겠습니까?`;
+                msg = `원래 계획일(\${origDate})에서 [ \${diff}일 ] 앞당겨진\\n\${plate}호 \${type}의 \${labelCycle} 정비를 수행하시겠습니까?`;
             }
             if(confirm(msg)) {
                 switchTab('maintenance');
@@ -647,20 +735,26 @@
             return shuffled;
         }
 
+        // --- 텍스트 중복 종식 ("~ 점검 등 점검" 제거 엔진) ---
+        function cleanItemName(name) {
+            return name.replace(/(점검|확인|검사|상태|수준|유격|장력|여부|류|량)$/g, '').trim();
+        }
+
+        // 연속 셔플링 교차 알고리즘 탑재 및 원본 품명 표출 엔진 (일일 예정)
         function generateDailyReport() {
             const realToday = new Date();
             const y1 = realToday.getFullYear(); const m1 = String(realToday.getMonth()+1).padStart(2,'0'); const d1 = String(realToday.getDate()).padStart(2,'0');
-            const t1 = `${y1}-${m1}-${d1}`;
+            const t1 = `\${y1}-\${m1}-\${d1}`;
             const realTom = new Date(realToday); realTom.setDate(realTom.getDate() + 1);
             const y2 = realTom.getFullYear(); const m2 = String(realTom.getMonth()+1).padStart(2,'0'); const d2 = String(realTom.getDate()).padStart(2,'0');
-            const t2 = `${y2}-${m2}-${d2}`;
+            const t2 = `\${y2}-\${m2}-\${d2}`;
 
             let targetScheds = schedules.filter(s => s.assignedDate === t1 || s.assignedDate === t2);
             targetScheds.sort((a,b) => a.assignedDate.localeCompare(b.assignedDate));
 
-            if(targetScheds.length === 0) { alert(`오늘(${m1}/${d1})과 내일(${m2}/${d2}) 배정된 예방정비 일정이 없습니다.`); return; }
+            if(targetScheds.length === 0) { alert(`오늘(\${m1}/\${d1})과 내일(\${m2}/\${d2}) 배정된 예방정비 일정이 없습니다.`); return; }
 
-            let report = `[오늘/내일 예방정비 예정사항]\n\n`;
+            let report = `[오늘/내일 예방정비 예정사항]\\n\\n`;
             let typeTracker = {};
 
             targetScheds.forEach(s => {
@@ -677,22 +771,26 @@
                 let trk = typeTracker[tKey];
                 let picked = [];
                 for(let i=0; i<6 && i<trk.shuffled.length; i++) {
-                    picked.push(trk.shuffled[(trk.offset + i) % trk.shuffled.length].항목);
+                    picked.push(cleanItemName(trk.shuffled[(trk.offset + i) % trk.shuffled.length].항목));
                 }
-                trk.offset = (trk.offset + 5) % trk.shuffled.length;
+                // 연속 배치 차량 유격 교차 점프 증가치 설정
+                trk.offset = (trk.offset + 3) % trk.shuffled.length;
                 
                 const dObj = new Date(s.assignedDate);
                 const mmdd = (dObj.getMonth()+1) + '월 ' + dObj.getDate() + '일';
                 const dayLabel = s.assignedDate === t1 ? '(오늘)' : '(내일)';
+                const displayCycle = s.cycle === '정기점검' ? '반기 정비' : '월간 정비';
                 
-                report += `• [${v.plate}호] ${v.name} (${s.cycle} 정비) - ${mmdd} ${dayLabel}\n`;
-                report += `  └ ${picked.slice(0,3).join(', ')} 등 점검\n`;
-                if(picked.length > 3) report += `  └ ${picked.slice(3,6).join(', ')} 등 점검\n`;
-                report += '\n';
+                // v.type 대신 대장용 원본 품명 v.name 표출 강제
+                report += `• [\${v.plate}호] \${v.name} (\${displayCycle}) - \${mmdd} \${dayLabel}\\n`;
+                report += `  └ \${picked.slice(0,3).join(', ')} 등 점검\\n`;
+                if(picked.length > 3) report += `  └ \${picked.slice(3,6).join(', ')} 등 점검\\n`;
+                report += '\\n';
             });
             showModal(report.trim());
         }
 
+        // 연속 셔플링 교차 알고리즘 탑재 및 원본 품명 표출 엔진 (월간 예정)
         function generateMonthlyReport() {
             const y = currentDate.getFullYear();
             const m = currentDate.getMonth();
@@ -704,9 +802,9 @@
             let targetScheds = schedules.filter(s => s.assignedDate >= tStart && s.assignedDate <= tEnd);
             targetScheds.sort((a,b) => a.assignedDate.localeCompare(b.assignedDate));
 
-            if(targetScheds.length === 0) { alert(`${m+1}월에 배정된 예방정비 일정이 없습니다.`); return; }
+            if(targetScheds.length === 0) { alert(`\${m+1}월에 배정된 예방정비 일정이 없습니다.`); return; }
 
-            let report = `[${y}년 ${m+1}월 예방정비 예정사항]\n\n`;
+            let report = `[\${y}년 \${m+1}월 예방정비 예정사항]\\n\\n`;
             let typeTracker = {};
 
             targetScheds.forEach(s => {
@@ -723,17 +821,20 @@
                 let trk = typeTracker[tKey];
                 let picked = [];
                 for(let i=0; i<6 && i<trk.shuffled.length; i++) {
-                    picked.push(trk.shuffled[(trk.offset + i) % trk.shuffled.length].항목);
+                    picked.push(cleanItemName(trk.shuffled[(trk.offset + i) % trk.shuffled.length].항목));
                 }
-                trk.offset = (trk.offset + 5) % trk.shuffled.length;
+                // 연속 배치 차량 간 유격 교차 점프 설정으로 돌려막기 완전 타파
+                trk.offset = (trk.offset + 3) % trk.shuffled.length;
                 
                 const dObj = new Date(s.assignedDate);
                 const mmdd = (dObj.getMonth()+1) + '월 ' + dObj.getDate() + '일';
+                const displayCycle = s.cycle === '정기점검' ? '반기 정비' : '월간 정비';
                 
-                report += `• [${v.plate}호] ${v.name} (${s.cycle} 정비) - ${mmdd} 예정\n`;
-                report += `  └ ${picked.slice(0,3).join(', ')} 등 점검\n`;
-                if(picked.length > 3) report += `  └ ${picked.slice(3,6).join(', ')} 등 점검\n`;
-                report += '\n';
+                // v.type 대신 대장용 원본 품명 v.name 표출 강제
+                report += `• [\${v.plate}호] \${v.name} (\${displayCycle}) - \${mmdd} 예정\\n`;
+                report += `  └ \${picked.slice(0,3).join(', ')} 등 점검\\n`;
+                if(picked.length > 3) report += `  └ \${picked.slice(3,6).join(', ')} 등 점검\\n`;
+                report += '\\n';
             });
             showModal(report.trim());
         }
@@ -742,18 +843,18 @@
             const list = document.getElementById('vehicle-list');
             const q = document.getElementById('veh-search').value.toLowerCase();
             list.innerHTML = '';
-            const formatDate = (dateStr) => { const [y, m, d] = dateStr.split('-'); return `${y}년 ${parseInt(m)}월 ${parseInt(d)}일`; };
+            const formatDate = (dateStr) => { const [y, m, d] = dateStr.split('-'); return `\${y}년 \${parseInt(m)}월 \${parseInt(d)}일`; };
 
             const filtered = vehicles.filter(v => v.plate.toLowerCase().includes(q) || v.type.toLowerCase().includes(q));
             filtered.forEach(v => {
-                const sMonth = schedules.find(x => x.vId === v.id && x.cycle === '월간');
-                const sHalf = schedules.find(x => x.vId === v.id && x.cycle === '반년');
+                const sMonth = schedules.find(x => x.vId === v.id && x.cycle === '일일점검');
+                const sHalf = schedules.find(x => x.vId === v.id && x.cycle === '정기점검');
                 list.innerHTML += `
                     <div class="bg-gray-800 border border-darkborder p-4 rounded-xl shadow-md">
-                        <h4 class="font-extrabold text-xl text-white">${v.plate}</h4>
-                        <p class="text-sm text-green-400 font-bold mb-2">${v.name} (${v.type})</p>
-                        ${sMonth ? `<p class="text-xs text-gray-400"><i class="fa-solid fa-calendar-day mr-1"></i> 월간 예정: ${formatDate(sMonth.assignedDate)}</p>` : ''}
-                        ${sHalf ? `<p class="text-xs text-gray-400 mt-1"><i class="fa-solid fa-calendar-day mr-1"></i> 반년 예정: ${formatDate(sHalf.assignedDate)}</p>` : ''}
+                        <h4 class="font-extrabold text-xl text-white">\${v.plate}</h4>
+                        <p class="text-sm text-green-400 font-bold mb-2">\${v.name} (\${v.type})</p>
+                        \${sMonth ? `<p class="text-xs text-gray-400"><i class="fa-solid fa-calendar-day mr-1"></i> 월간 정비 예정: \${formatDate(sMonth.assignedDate)}</p>` : ''}
+                        \${sHalf ? `<p class="text-xs text-gray-400 mt-1"><i class="fa-solid fa-calendar-day mr-1"></i> 반기 정비 예정: \${formatDate(sHalf.assignedDate)}</p>` : ''}
                     </div>
                 `;
             });
@@ -781,20 +882,20 @@
                             if(!vType) continue; 
 
                             let dateStr = String(r[2] || '').trim();
-                            const dMatch = dateStr.match(/(\d{4})[-./년\s]+(\d{1,2})[-./월\s]+(\d{1,2})/);
-                            const origDate = dMatch ? `${dMatch[1]}-${dMatch[2].padStart(2,'0')}-${dMatch[3].padStart(2,'0')}` : new Date().toISOString().split('T')[0];
+                            const dMatch = dateStr.match(/(\\d{4})[-./년\\s]+(\\d{1,2})[-./월\\s]+(\\d{1,2})/);
+                            const origDate = dMatch ? `\${dMatch[1]}-\${dMatch[2].padStart(2,'0')}-\${dMatch[3].padStart(2,'0')}` : new Date().toISOString().split('T')[0];
                             
                             let cycleStr = String(r[3] || '');
-                            const cycle = cycleStr.includes("반기") ? "반년" : (cycleStr.includes("월간") ? "월간" : "일일");
+                            const cycle = cycleStr.includes("반기") ? "정기점검" : "일일점검";
                             
                             let v = vehicles.find(x => x.plate === cleanPlate);
                             if(!v) { v = { id: Date.now() + i, plate: cleanPlate, name: name, type: vType }; vehicles.push(v); }
                             const isDup = schedules.some(x => x.vId === v.id && x.originalDate === origDate && x.cycle === cycle);
-                            if(!isDup) { schedules.push({ vId: v.id, type: vType, cycle, originalDate: origDate, assignedDate: origDate }); count++; }
+                            if(!isDup) { schedules.push({ id_s: Date.now()+i+3000, vId: v.id, type: vType, cycle, originalDate: origDate, assignedDate: origDate }); count++; }
                         }
                     }
                     cleanUpData(); recalcAllSchedules(); saveData(); renderRegistry();
-                    alert(`✅ ${count}건 신규 업로드 완료 (블랙리스트 제외/중복 자동필터링 적용)`);
+                    alert(`✅ \${count}건 신규 업로드 완료 (블랙리스트 제외/대형차량 대통합/중복 자동필터링 적용)`);
                 } catch(err) { alert("엑셀 읽기 오류. 형식을 확인해주세요."); }
                 event.target.value = '';
             };
@@ -804,7 +905,7 @@
         function renderMaintenanceOptions() {
             const sel = document.getElementById('maint-vehicle');
             sel.innerHTML = '<option value="">대상 차량 (호수) 선택</option>';
-            vehicles.forEach(v => { sel.innerHTML += `<option value="${v.id}">${v.plate} (${v.type})</option>`; });
+            vehicles.forEach(v => { sel.innerHTML += `<option value="\${v.id}">\${v.plate} (\${v.name})</option>`; });
             document.getElementById('checklist-container').innerHTML = '';
             document.getElementById('btn-submit-maint-container').classList.add('hidden');
         }
@@ -813,14 +914,14 @@
             const data = db[type];
             if(!data) return [];
             let items = [];
-            if(freq === '일일' || freq === '월간' || freq === '반년') items = items.concat((data['일일']||[]).map(x => ({...x, badge:'일일', color:'bg-blue-600'})));
-            if(freq === '월간' || freq === '반년') items = items.concat((data['월간']||[]).map(x => ({...x, badge:'월간', color:'bg-amber-600'})));
-            if(freq === '반년') items = items.concat((data['반년']||[]).map(x => ({...x, badge:'반년', color:'bg-red-600'})));
+            // 일일점검 또는 정기점검 계층 묶음 추출
+            if(freq === '일일점검' || freq === '정기점검') items = items.concat((data['일일점검']||[]).map(x => ({...x, badge:'일일', color:'bg-blue-600'})));
+            if(freq === '정기점검') items = items.concat((data['정기점검']||[]).map(x => ({...x, badge:'정기', color:'bg-red-600'})));
             return items;
         }
 
         function highlightExamText(text) {
-            const regex = /(1만Km|12개월|최고점\s*\(?F\)?|\d+개소|\d+(?:\.\d+)?(?:~\d+(?:\.\d+)?)?(?:mm|cm|kg|F|점|V|A|%|Km|개월)|[A-Za-z]+)/gi;
+            const regex = /(1만Km|12개월|최고점\\s*\\(?F\\)?|\\d+개소|\\d+(?:\\.\\d+)?(?:~\\d+(?:\\.\\d+)?)?(?:mm|cm|kg|F|점|V|A|%|Km|개소|개월)|[A-Za-z]+)/gi;
             return text.replace(regex, '<span class="exam-highlight">$&</span>');
         }
 
@@ -847,15 +948,15 @@
                 container.innerHTML += `
                     <div class="bg-darkcard border border-darkborder rounded-2xl overflow-hidden shadow">
                         <label class="flex items-center p-4 touch-target gap-4 cursor-pointer hover:bg-gray-800">
-                            <input type="checkbox" class="glove-checkbox chk-item" value="${item.항목}">
+                            <input type="checkbox" class="glove-checkbox chk-item" value="\${item.항목}">
                             <div class="flex-1">
-                                <span class="${item.color} text-[11px] px-2 py-1 rounded text-white font-extrabold mb-1 inline-block">${item.badge}</span>
-                                <div class="font-bold text-xl text-white tracking-wide leading-tight">${item.항목}</div>
+                                <span class="\${item.color} text-[11px] px-2 py-1 rounded text-white font-extrabold mb-1 inline-block">\${item.badge}</span>
+                                <div class="font-bold text-xl text-white tracking-wide leading-tight">\${item.항목}</div>
                             </div>
                         </label>
                         <div class="border-t border-darkborder">
-                            <button onclick="toggleAccordion('chk-acc-${idx}')" class="w-full px-4 py-3 text-left flex justify-between items-center text-blue-400 bg-gray-800 touch-target font-extrabold"><span><i class="fa-solid fa-circle-info mr-2"></i>상세 정비방법 보기</span><i class="fa-solid fa-chevron-down" id="icon-chk-acc-${idx}"></i></button>
-                            <div id="chk-acc-${idx}" class="accordion-content bg-[#121212] px-4"><p class="py-4 text-gray-300 font-bold text-base whitespace-pre-line">${desc}</p></div>
+                            <button onclick="toggleAccordion('chk-acc-\${idx}')" class="w-full px-4 py-3 text-left flex justify-between items-center text-blue-400 bg-gray-800 touch-target font-extrabold"><span><i class="fa-solid fa-circle-info mr-2"></i>상세 정비방법 보기</span><i class="fa-solid fa-chevron-down" id="icon-chk-acc-\${idx}"></i></button>
+                            <div id="chk-acc-\${idx}" class="accordion-content bg-[#121212] px-4"><p class="py-4 text-gray-300 font-bold text-base whitespace-pre-line">\${desc}</p></div>
                         </div>
                     </div>`;
             });
@@ -870,9 +971,10 @@
             const v = vehicles.find(x => String(x.id) === String(vId));
             const freq = document.getElementById('maint-type').value;
             const now = new Date();
-            const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-            const rephrased = checked.map(item => `${item} 상태 점검 완료`);
-            const report = `[${v.plate} ${v.name} ${freq} 예방정비 결과]\n- 중점 정비사항: ${rephrased.join(', ')}\n- 결과: 이상 없음 (특이사항 없음)`;
+            const dateStr = `\${now.getFullYear()}-\${String(now.getMonth()+1).padStart(2,'0')}-\${String(now.getDate()).padStart(2,'0')}`;
+            const rephrased = checked.map(item => `\${item} 상태 점검 완료`);
+            const displayCycle = freq === '정기점검' ? '반기 정비' : '월간 정비';
+            const report = `[\${v.plate} \${v.name} \${displayCycle} 결과]\\n- 중점 정비사항: \${rephrased.join(', ')}\\n- 결과: 이상 없음 (특이사항 없음)`;
 
             logs.unshift({ id: Date.now(), date: dateStr, plate: v.plate, type: v.type, cycle: freq, summary: report });
             schedules = schedules.filter(s => !(s.vId == v.id && s.cycle == freq && s.assignedDate <= dateStr));
@@ -889,15 +991,16 @@
             const q = document.getElementById('log-search').value.toLowerCase();
             const list = document.getElementById('log-list'); list.innerHTML = '';
             logs.filter(l => l.plate.toLowerCase().includes(q) || l.type.toLowerCase().includes(q)).forEach(l => {
-                list.innerHTML += `<div class="bg-gray-800 border border-darkborder p-4 rounded-xl shadow mb-3"><div class="flex justify-between items-center mb-2 border-b border-darkborder pb-2"><div><span class="font-extrabold text-white text-lg">${l.plate}</span> <span class="text-xs text-gray-400">${l.type}</span></div><div class="text-right"><span class="bg-orange-600 text-white text-[10px] px-2 py-0.5 rounded font-bold">${l.cycle}</span> <span class="text-[10px] text-gray-500">${l.date}</span></div></div><p class="text-xs text-gray-300 font-mono whitespace-pre-wrap">${l.summary}</p></div>`;
+                const displayCycle = l.cycle === '정기점검' ? '반기' : '월간';
+                list.innerHTML += `<div class="bg-gray-800 border border-darkborder p-4 rounded-xl shadow mb-3"><div class="flex justify-between items-center mb-2 border-b border-darkborder pb-2"><div><span class="font-extrabold text-white text-lg">\${l.plate}</span></div><div class="text-right"><span class="bg-orange-600 text-white text-[10px] px-2 py-0.5 rounded font-bold">\${displayCycle}</span> <span class="text-[10px] text-gray-500">\${l.date}</span></div></div><p class="text-xs text-gray-300 font-mono whitespace-pre-wrap">\${l.summary}</p></div>`;
             });
         }
 
         function downloadCSV() {
             if(logs.length===0) return alert("저장된 데이터가 없습니다.");
-            let csv = '\uFEFF일자,차량번호,차종,주기,내용\n';
-            logs.forEach(l => csv += `"${l.date}","${l.plate}","${l.type}","${l.cycle}","${l.summary.replace(/"/g, '""').replace(/\n/g, ' ')}"\n`);
-            const link = document.createElement("a"); link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' })); link.download = `정비일지_${new Date().toISOString().split('T')[0]}.csv`; link.click();
+            let csv = '\\uFEFF일자,차량번호,차종,주기,내용\\n';
+            logs.forEach(l => csv += `"\${l.date}","\${l.plate}","\${l.type}","\${l.cycle}","\${l.summary.replace(/"/g, '""').replace(/\\n/g, ' ')}"\\n`);
+            const link = document.createElement("a"); link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' })); link.download = `정비일지_\${new Date().toISOString().split('T')[0]}.csv`; link.click();
         }
 
         function renderEditor() {
@@ -909,8 +1012,8 @@
             db[t][c].forEach((item, i) => {
                 con.innerHTML += `
                     <div class="flex gap-2 items-center bg-gray-800 p-2 rounded border border-darkborder mb-2">
-                        <input type="text" class="flex-1 bg-transparent text-sm text-white focus:outline-none" value="${item.항목}" onchange="updateDbItem('${t}','${c}',${i},'항목',this.value)">
-                        <button onclick="delDbItem('${t}','${c}',${i})" class="text-red-500 px-3 py-2 bg-red-500/10 rounded"><i class="fa-solid fa-trash"></i></button>
+                        <input type="text" class="flex-1 bg-transparent text-sm text-white focus:outline-none" value="\${item.항목}" onchange="updateDbItem('\${t}','\${c}',\${i},'항목',this.value)">
+                        <button onclick="delDbItem('\${t}','\${c}',\${i})" class="text-red-500 px-3 py-2 bg-red-500/10 rounded"><i class="fa-solid fa-trash"></i></button>
                     </div>`;
             });
         }
@@ -930,3 +1033,9 @@
     </script>
 </body>
 </html>
+"""
+
+with open("preventive_maintenance_final_v5.html", "w", encoding="utf-8") as f:
+    f.write(html_content)
+print("File created successfully.")
+}```
