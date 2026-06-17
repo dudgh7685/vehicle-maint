@@ -462,7 +462,7 @@
 자동차 스테이션 왜곤형(12인승),2416,2026-12-29,부대정비(반기)`;
 
         const troubleshootingDB = [
-            { sys: "엔진/시동", sym: "시동 걸 때 틱틱 소리만 남", chk: "시동모터 고장 또는 배터리 방전 의심\\n(점프선 연결 후 시동 성공 -> 배터리 방전 / 실패 -> 시동모터 나감)" },
+            { sys: "엔진/시동", sym: "시동 걸 때 틱틱 소리만 남", chk: "시동모터 고장 또는 배터리 방전 의심\n(점프선 연결 후 시동 성공 -> 배터리 방전 / 실패 -> 시동모터 나감)" },
             { sys: "엔진/시동", sym: "시동 불량 (끼리릭 소리만 남)", chk: "축전지 방전 확인, 스타트 모터 피니언 기어 마모, 배터리 터미널 체결 확인" },
             { sys: "엔진/시동", sym: "주행 중 시동 꺼짐", chk: "연료필터 막힘, 연료펌프 작동 불량, 발전기(알터네이터) 고장" },
             { sys: "조향/현가", sym: "핸들 무거움", chk: "파워스티어링 오일 부족, 파워펌프 V벨트 장력 이완, 타이어 공기압 부족" },
@@ -497,12 +497,12 @@
         // 2.5톤 이상 대형차량 통합 매핑 필터 엔진
         function mapVehicleType(name) {
             if (name.includes("30kw") || name.includes("발전기")) return null;
-            if (/K-?311|1 1\\/4톤|1¼/.test(name)) return "1¼ 표준차량";
+            if (/K-?311|1 1\/4톤|1¼/.test(name)) return "1¼ 표준차량";
             if (/리프트/.test(name)) return "리프트 자동차용";
             if (/수거기|주입기/.test(name)) return "차량오일 수거기";
             if (/세척기/.test(name)) return "고압 세척기";
-            // 2.5톤 이상 대령 차종 일체 통합
-            if (/덤프|유조차|유조형|트랙터|11\\.5톤|15톤|9\\.5톤|샤시|5톤|K-?711|K-?511|2\\.5톤/.test(name)) return "대형차량(2.5톤 이상)";
+            // 2.5톤 이상 대형 차종 일체 통합
+            if (/덤프|유조차|유조형|트랙터|11\.5톤|15톤|9\.5톤|샤시|5톤|K-?711|K-?511|2\.5톤/.test(name)) return "대형차량(2.5톤 이상)";
             if (/트레일러/.test(name)) return "트레일러";
             if (/냉동|부식/.test(name)) return "냉동부식차";
             if (/스타렉스|승합|버스|12인승/.test(name)) return "승합차";
@@ -547,7 +547,7 @@
                 schedules = JSON.parse(lsSchedules);
                 cleanUpData(); recalcAllSchedules(); saveData();
             } else {
-                const lines = csvRawData.split('\\n');
+                const lines = csvRawData.split('\n');
                 lines.forEach((line, i) => {
                     if (i === 0 || !line.trim()) return;
                     const cols = line.split(',');
@@ -568,16 +568,16 @@
             if(lsLogs) logs = JSON.parse(lsLogs);
 
             const typeSelect = document.getElementById('edit-type');
-            Object.keys(db).forEach(t => { typeSelect.innerHTML += `<option value="\${t}">\${t}</option>`; });
+            Object.keys(db).forEach(t => { typeSelect.innerHTML += `<option value="${t}">${t}</option>`; });
 
             const tList = document.getElementById('trouble-list');
             troubleshootingDB.forEach((item, i) => {
                 tList.innerHTML += `
                     <div class="bg-darkcard border border-darkborder rounded-xl overflow-hidden shadow mb-3">
-                        <button onclick="toggleAccordion('trb-\${i}')" class="w-full px-5 py-4 text-left flex justify-between items-center text-yellow-400 bg-gray-800 touch-target font-bold">
-                            <span>[\${item.sys}] \${item.sym}</span><i class="fa-solid fa-chevron-down transition-transform" id="icon-trb-\${i}"></i>
+                        <button onclick="toggleAccordion('trb-${i}')" class="w-full px-5 py-4 text-left flex justify-between items-center text-yellow-400 bg-gray-800 touch-target font-bold">
+                            <span>[${item.sys}] ${item.sym}</span><i class="fa-solid fa-chevron-down transition-transform" id="icon-trb-${i}"></i>
                         </button>
-                        <div id="trb-\${i}" class="accordion-content bg-[#121212] px-5"><p class="py-5 text-gray-300 font-bold leading-relaxed text-base whitespace-pre-line"><i class="fa-solid fa-wrench mr-2 text-blue-500"></i>점검포인트:\\n\${item.chk}</p></div>
+                        <div id="trb-${i}" class="accordion-content bg-[#121212] px-5"><p class="py-5 text-gray-300 font-bold leading-relaxed text-base whitespace-pre-line"><i class="fa-solid fa-wrench mr-2 text-blue-500"></i>점검포인트:\n${item.chk}</p></div>
                     </div>`;
             });
             switchTab('dashboard');
@@ -592,21 +592,21 @@
         }
 
         function factoryReset() {
-            if(confirm("모든 데이터를 초기화하고 엑셀 원본 상태로 되돌리시겠습니까?\\n(등록된 정비 일지와 업로드한 스케줄이 모두 삭제됩니다!)")) {
+            if(confirm("모든 데이터를 초기화하고 엑셀 원본 상태로 되돌리시겠습니까?\n(등록된 정비 일지와 업로드한 스케줄이 모두 삭제됩니다!)")) {
                 localStorage.clear(); location.reload();
             }
         }
 
         function switchTab(tabId) {
             ['dashboard', 'maintenance', 'trouble', 'logs', 'settings'].forEach(t => {
-                document.getElementById(`sec-\${t}`).classList.add('hidden');
-                document.getElementById(`tab-\${t}`).classList.remove('text-blue-500', 'text-green-500', 'text-purple-500', 'text-yellow-400', 'text-orange-400');
-                document.getElementById(`tab-\${t}`).classList.add('text-gray-500');
+                document.getElementById(`sec-${t}`).classList.add('hidden');
+                document.getElementById(`tab-${t}`).classList.remove('text-blue-500', 'text-green-500', 'text-purple-500', 'text-yellow-400', 'text-orange-400');
+                document.getElementById(`tab-${t}`).classList.add('text-gray-500');
             });
-            document.getElementById(`sec-\${tabId}`).classList.remove('hidden');
+            document.getElementById(`sec-${tabId}`).classList.remove('hidden');
             const colors = { 'dashboard':'text-blue-500', 'maintenance':'text-green-500', 'trouble':'text-yellow-400', 'logs':'text-orange-400', 'settings':'text-purple-500' };
-            document.getElementById(`tab-\${tabId}`).classList.remove('text-gray-500');
-            document.getElementById(`tab-\${tabId}`).classList.add(colors[tabId].split(' ')[0]);
+            document.getElementById(`tab-${tabId}`).classList.remove('text-gray-500');
+            document.getElementById(`tab-${tabId}`).classList.add(colors[tabId].split(' ')[0]);
             if(tabId === 'dashboard') { renderCalendar(); }
             if(tabId === 'maintenance') { renderMaintenanceOptions(); }
             if(tabId === 'logs') { renderLogs(); }
@@ -630,14 +630,14 @@
                 let targetStr = null;
                 let dt = new Date(origDate);
                 for(let i=0; i<=7; i++) {
-                    let str = `\${dt.getFullYear()}-\${String(dt.getMonth() + 1).padStart(2, '0')}-\${String(dt.getDate()).padStart(2, '0')}`;
+                    let str = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
                     if(!isHolidayOrWeekend(str) && (!assignedCount[str] || assignedCount[str] === 0)) { targetStr = str; break; }
                     dt.setDate(dt.getDate() - 1); 
                 }
                 if(!targetStr) {
                     dt = new Date(origDate);
                     for(let i=0; i<=7; i++) {
-                        let str = `\${dt.getFullYear()}-\${String(dt.getMonth() + 1).padStart(2, '0')}-\${String(dt.getDate()).padStart(2, '0')}`;
+                        let str = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
                         if(!isHolidayOrWeekend(str) && assignedCount[str] === 1) { targetStr = str; break; }
                         dt.setDate(dt.getDate() - 1);
                     }
@@ -645,7 +645,7 @@
                 if(!targetStr) {
                     dt = new Date(origDate);
                     while(true) {
-                        let str = `\${dt.getFullYear()}-\${String(dt.getMonth() + 1).padStart(2, '0')}-\${String(dt.getDate()).padStart(2, '0')}`;
+                        let str = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
                         if(!isHolidayOrWeekend(str) && (!assignedCount[str] || assignedCount[str] < 2)) { targetStr = str; break; }
                         dt.setDate(dt.getDate() - 1);
                     }
@@ -670,29 +670,29 @@
         function renderCalendar() {
             const y = currentDate.getFullYear();
             const m = currentDate.getMonth();
-            document.getElementById('cal-title').innerText = `\${y}년 \${m+1}월`;
+            document.getElementById('cal-title').innerText = `${y}년 ${m+1}월`;
             
             // 버튼 인디케이터 라벨 변경 적용
-            document.getElementById('btn-report-title').innerText = `\${m+1}월 예정 복사`;
+            document.getElementById('btn-report-title').innerText = `${m+1}월 예정 복사`;
 
             const daysInMonth = new Date(y, m+1, 0).getDate();
             const calBody = document.getElementById('cal-body');
             let calBodyHtml = '';
             
-            const monthPrefix = `\${y}-\${String(m+1).padStart(2,'0')}`;
+            const monthPrefix = `${y}-${String(m+1).padStart(2,'0')}`;
             const pendingMonthScheds = schedules.filter(s => s.assignedDate.startsWith(monthPrefix));
             const completedCount = logs.filter(l => l.date.startsWith(monthPrefix)).length;
             const totalThisMonth = pendingMonthScheds.length + completedCount;
             const pct = totalThisMonth === 0 ? 0 : Math.round((completedCount / totalThisMonth) * 100);
             
-            document.getElementById('progress-text').innerText = `\${completedCount} / \${totalThisMonth} 대 (\${pct}%)`;
-            document.getElementById('progress-bar').style.width = `\${pct}%`;
+            document.getElementById('progress-text').innerText = `${completedCount} / ${totalThisMonth} 대 (${pct}%)`;
+            document.getElementById('progress-bar').style.width = `${pct}%`;
 
             for(let d=1; d<=daysInMonth; d++) {
                 let dateObj = new Date(y, m, d);
                 let dayOfWeek = dateObj.getDay();
                 if (dayOfWeek === 0 || dayOfWeek === 6) continue;
-                const dateStr = `\${y}-\${String(m+1).padStart(2,'0')}-\${String(d).padStart(2,'0')}`;
+                const dateStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
                 if (calBodyHtml === '') { for (let i = 0; i < dayOfWeek - 1; i++) { calBodyHtml += `<div></div>`; } }
                 const isHol = isSystemHoliday(dateStr) || holidays.includes(dateStr);
                 const dayScheds = schedules.filter(s => s.assignedDate === dateStr);
@@ -703,21 +703,21 @@
                     const color = s.cycle === '정기점검' ? 'bg-red-600' : 'bg-blue-600';
                     const labelCycle = s.cycle === '정기점검' ? '반기' : '월간';
                     const avoidTag = s.assignedDate !== s.originalDate ? `<i class="fa-solid fa-arrow-left text-yellow-300"></i> ` : '';
-                    badges += `<div class="\${color} text-white sched-badge" onclick="event.stopPropagation(); goToMaint(\${v.id}, '\${s.cycle}', '\${s.originalDate}', '\${s.assignedDate}', '\${v.plate}', '\${v.type}')">\${avoidTag}\${v.plate}</div>`;
+                    badges += `<div class="${color} text-white sched-badge" onclick="event.stopPropagation(); goToMaint(${v.id}, '${s.cycle}', '${s.originalDate}', '${s.assignedDate}', '${v.plate}', '${v.type}')">${avoidTag}${v.plate}</div>`;
                 });
-                calBodyHtml += `<div class="cal-day \${isHol ? 'holiday' : ''}" onclick="toggleHoliday('\${dateStr}')"><div class="cal-date-num">\${d}</div>\${badges}</div>`;
+                calBodyHtml += `<div class="cal-day ${isHol ? 'holiday' : ''}" onclick="toggleHoliday('${dateStr}')"><div class="cal-date-num">${d}</div>${badges}</div>`;
             }
             calBody.innerHTML = calBodyHtml;
         }
 
         function goToMaint(vId, cycle, origDate, assignDate, plate, type) {
             const labelCycle = cycle === '정기점검' ? '반기' : '월간';
-            let msg = `\${plate}호 \${type}의 \${labelCycle} 정비 계획 스케줄(내부 연동 명칭: \${cycle})을 수행하시겠습니까?`;
+            let msg = `${plate}호 ${type}의 ${labelCycle} 정비 계획 스케줄(내부 연동 명칭: ${cycle})을 수행하시겠습니까?`;
             if (origDate && assignDate && origDate !== assignDate) {
                 const d1 = new Date(origDate.split('-')[0], origDate.split('-')[1] - 1, origDate.split('-')[2]);
                 const d2 = new Date(assignDate.split('-')[0], assignDate.split('-')[1] - 1, assignDate.split('-')[2]);
                 const diff = Math.round((d1 - d2) / (1000 * 60 * 60 * 24));
-                msg = `원래 계획일(\${origDate})에서 [ \${diff}일 ] 앞당겨진\\n\${plate}호 \${type}의 \${labelCycle} 정비를 수행하시겠습니까?`;
+                msg = `원래 계획일(${origDate})에서 [ ${diff}일 ] 앞당겨진\n${plate}호 ${type}의 ${labelCycle} 정비를 수행하시겠습니까?`;
             }
             if(confirm(msg)) {
                 switchTab('maintenance');
@@ -744,17 +744,17 @@
         function generateDailyReport() {
             const realToday = new Date();
             const y1 = realToday.getFullYear(); const m1 = String(realToday.getMonth()+1).padStart(2,'0'); const d1 = String(realToday.getDate()).padStart(2,'0');
-            const t1 = `\${y1}-\${m1}-\${d1}`;
+            const t1 = `${y1}-${m1}-${d1}`;
             const realTom = new Date(realToday); realTom.setDate(realTom.getDate() + 1);
             const y2 = realTom.getFullYear(); const m2 = String(realTom.getMonth()+1).padStart(2,'0'); const d2 = String(realTom.getDate()).padStart(2,'0');
-            const t2 = `\${y2}-\${m2}-\${d2}`;
+            const t2 = `${y2}-${m2}-${d2}`;
 
             let targetScheds = schedules.filter(s => s.assignedDate === t1 || s.assignedDate === t2);
             targetScheds.sort((a,b) => a.assignedDate.localeCompare(b.assignedDate));
 
-            if(targetScheds.length === 0) { alert(`오늘(\${m1}/\${d1})과 내일(\${m2}/\${d2}) 배정된 예방정비 일정이 없습니다.`); return; }
+            if(targetScheds.length === 0) { alert(`오늘(${m1}/${d1})과 내일(${m2}/${d2}) 배정된 예방정비 일정이 없습니다.`); return; }
 
-            let report = `[오늘/내일 예방정비 예정사항]\\n\\n`;
+            let report = `[오늘/내일 예방정비 예정사항]\n\n`;
             let typeTracker = {};
 
             targetScheds.forEach(s => {
@@ -782,10 +782,10 @@
                 const displayCycle = s.cycle === '정기점검' ? '반기 정비' : '월간 정비';
                 
                 // v.type 대신 대장용 원본 품명 v.name 표출 강제
-                report += `• [\${v.plate}호] \${v.name} (\${displayCycle}) - \${mmdd} \${dayLabel}\\n`;
-                report += `  └ \${picked.slice(0,3).join(', ')} 등 점검\\n`;
-                if(picked.length > 3) report += `  └ \${picked.slice(3,6).join(', ')} 등 점검\\n`;
-                report += '\\n';
+                report += `• [${v.plate}호] ${v.name} (${displayCycle}) - ${mmdd} ${dayLabel}\n`;
+                report += `  └ ${picked.slice(0,3).join(', ')} 등 점검\n`;
+                if(picked.length > 3) report += `  └ ${picked.slice(3,6).join(', ')} 등 점검\n`;
+                report += '\n';
             });
             showModal(report.trim());
         }
@@ -802,9 +802,9 @@
             let targetScheds = schedules.filter(s => s.assignedDate >= tStart && s.assignedDate <= tEnd);
             targetScheds.sort((a,b) => a.assignedDate.localeCompare(b.assignedDate));
 
-            if(targetScheds.length === 0) { alert(`\${m+1}월에 배정된 예방정비 일정이 없습니다.`); return; }
+            if(targetScheds.length === 0) { alert(`${m+1}월에 배정된 예방정비 일정이 없습니다.`); return; }
 
-            let report = `[\${y}년 \${m+1}월 예방정비 예정사항]\\n\\n`;
+            let report = `[${y}년 ${m+1}월 예방정비 예정사항]\n\n`;
             let typeTracker = {};
 
             targetScheds.forEach(s => {
@@ -831,10 +831,10 @@
                 const displayCycle = s.cycle === '정기점검' ? '반기 정비' : '월간 정비';
                 
                 // v.type 대신 대장용 원본 품명 v.name 표출 강제
-                report += `• [\${v.plate}호] \${v.name} (\${displayCycle}) - \${mmdd} 예정\\n`;
-                report += `  └ \${picked.slice(0,3).join(', ')} 등 점검\\n`;
-                if(picked.length > 3) report += `  └ \${picked.slice(3,6).join(', ')} 등 점검\\n`;
-                report += '\\n';
+                report += `• [${v.plate}호] ${v.name} (${displayCycle}) - ${mmdd} 예정\n`;
+                report += `  └ ${picked.slice(0,3).join(', ')} 등 점검\n`;
+                if(picked.length > 3) report += `  └ ${picked.slice(3,6).join(', ')} 등 점검\n`;
+                report += '\n';
             });
             showModal(report.trim());
         }
@@ -843,7 +843,7 @@
             const list = document.getElementById('vehicle-list');
             const q = document.getElementById('veh-search').value.toLowerCase();
             list.innerHTML = '';
-            const formatDate = (dateStr) => { const [y, m, d] = dateStr.split('-'); return `\${y}년 \${parseInt(m)}월 \${parseInt(d)}일`; };
+            const formatDate = (dateStr) => { const [y, m, d] = dateStr.split('-'); return `${y}년 ${parseInt(m)}월 ${parseInt(d)}일`; };
 
             const filtered = vehicles.filter(v => v.plate.toLowerCase().includes(q) || v.type.toLowerCase().includes(q));
             filtered.forEach(v => {
@@ -851,10 +851,10 @@
                 const sHalf = schedules.find(x => x.vId === v.id && x.cycle === '정기점검');
                 list.innerHTML += `
                     <div class="bg-gray-800 border border-darkborder p-4 rounded-xl shadow-md">
-                        <h4 class="font-extrabold text-xl text-white">\${v.plate}</h4>
-                        <p class="text-sm text-green-400 font-bold mb-2">\${v.name} (\${v.type})</p>
-                        \${sMonth ? `<p class="text-xs text-gray-400"><i class="fa-solid fa-calendar-day mr-1"></i> 월간 정비 예정: \${formatDate(sMonth.assignedDate)}</p>` : ''}
-                        \${sHalf ? `<p class="text-xs text-gray-400 mt-1"><i class="fa-solid fa-calendar-day mr-1"></i> 반기 정비 예정: \${formatDate(sHalf.assignedDate)}</p>` : ''}
+                        <h4 class="font-extrabold text-xl text-white">${v.plate}</h4>
+                        <p class="text-sm text-green-400 font-bold mb-2">${v.name} (${v.type})</p>
+                        ${sMonth ? `<p class="text-xs text-gray-400"><i class="fa-solid fa-calendar-day mr-1"></i> 월간 정비 예정: ${formatDate(sMonth.assignedDate)}</p>` : ''}
+                        ${sHalf ? `<p class="text-xs text-gray-400 mt-1"><i class="fa-solid fa-calendar-day mr-1"></i> 반기 정비 예정: ${formatDate(sHalf.assignedDate)}</p>` : ''}
                     </div>
                 `;
             });
@@ -882,8 +882,8 @@
                             if(!vType) continue; 
 
                             let dateStr = String(r[2] || '').trim();
-                            const dMatch = dateStr.match(/(\\d{4})[-./년\\s]+(\\d{1,2})[-./월\\s]+(\\d{1,2})/);
-                            const origDate = dMatch ? `\${dMatch[1]}-\${dMatch[2].padStart(2,'0')}-\${dMatch[3].padStart(2,'0')}` : new Date().toISOString().split('T')[0];
+                            const dMatch = dateStr.match(/(\d{4})[-./년\s]+(\d{1,2})[-./월\s]+(\d{1,2})/);
+                            const origDate = dMatch ? `${dMatch[1]}-${dMatch[2].padStart(2,'0')}-${dMatch[3].padStart(2,'0')}` : new Date().toISOString().split('T')[0];
                             
                             let cycleStr = String(r[3] || '');
                             const cycle = cycleStr.includes("반기") ? "정기점검" : "일일점검";
@@ -895,7 +895,7 @@
                         }
                     }
                     cleanUpData(); recalcAllSchedules(); saveData(); renderRegistry();
-                    alert(`✅ \${count}건 신규 업로드 완료 (블랙리스트 제외/대형차량 대통합/중복 자동필터링 적용)`);
+                    alert(`✅ ${count}건 신규 업로드 완료 (블랙리스트 제외/대형차량 대통합/중복 자동필터링 적용)`);
                 } catch(err) { alert("엑셀 읽기 오류. 형식을 확인해주세요."); }
                 event.target.value = '';
             };
@@ -905,7 +905,7 @@
         function renderMaintenanceOptions() {
             const sel = document.getElementById('maint-vehicle');
             sel.innerHTML = '<option value="">대상 차량 (호수) 선택</option>';
-            vehicles.forEach(v => { sel.innerHTML += `<option value="\${v.id}">\${v.plate} (\${v.name})</option>`; });
+            vehicles.forEach(v => { sel.innerHTML += `<option value="${v.id}">${v.plate} (${v.name})</option>`; });
             document.getElementById('checklist-container').innerHTML = '';
             document.getElementById('btn-submit-maint-container').classList.add('hidden');
         }
@@ -921,7 +921,7 @@
         }
 
         function highlightExamText(text) {
-            const regex = /(1만Km|12개월|최고점\\s*\\(?F\\)?|\\d+개소|\\d+(?:\\.\\d+)?(?:~\\d+(?:\\.\\d+)?)?(?:mm|cm|kg|F|점|V|A|%|Km|개소|개월)|[A-Za-z]+)/gi;
+            const regex = /(1만Km|12개월|최고점\s*\(?F\)?|\d+개소|\d+(?:\.\d+)?(?:~\d+(?:\.\d+)?)?(?:mm|cm|kg|F|점|V|A|%|Km|개소|개월)|[A-Za-z]+)/gi;
             return text.replace(regex, '<span class="exam-highlight">$&</span>');
         }
 
@@ -948,15 +948,15 @@
                 container.innerHTML += `
                     <div class="bg-darkcard border border-darkborder rounded-2xl overflow-hidden shadow">
                         <label class="flex items-center p-4 touch-target gap-4 cursor-pointer hover:bg-gray-800">
-                            <input type="checkbox" class="glove-checkbox chk-item" value="\${item.항목}">
+                            <input type="checkbox" class="glove-checkbox chk-item" value="${item.항목}">
                             <div class="flex-1">
-                                <span class="\${item.color} text-[11px] px-2 py-1 rounded text-white font-extrabold mb-1 inline-block">\${item.badge}</span>
-                                <div class="font-bold text-xl text-white tracking-wide leading-tight">\${item.항목}</div>
+                                <span class="${item.color} text-[11px] px-2 py-1 rounded text-white font-extrabold mb-1 inline-block">${item.badge}</span>
+                                <div class="font-bold text-xl text-white tracking-wide leading-tight">${item.항목}</div>
                             </div>
                         </label>
                         <div class="border-t border-darkborder">
-                            <button onclick="toggleAccordion('chk-acc-\${idx}')" class="w-full px-4 py-3 text-left flex justify-between items-center text-blue-400 bg-gray-800 touch-target font-extrabold"><span><i class="fa-solid fa-circle-info mr-2"></i>상세 정비방법 보기</span><i class="fa-solid fa-chevron-down" id="icon-chk-acc-\${idx}"></i></button>
-                            <div id="chk-acc-\${idx}" class="accordion-content bg-[#121212] px-4"><p class="py-4 text-gray-300 font-bold text-base whitespace-pre-line">\${desc}</p></div>
+                            <button onclick="toggleAccordion('chk-acc-${idx}')" class="w-full px-4 py-3 text-left flex justify-between items-center text-blue-400 bg-gray-800 touch-target font-extrabold"><span><i class="fa-solid fa-circle-info mr-2"></i>상세 정비방법 보기</span><i class="fa-solid fa-chevron-down" id="icon-chk-acc-${idx}"></i></button>
+                            <div id="chk-acc-${idx}" class="accordion-content bg-[#121212] px-4"><p class="py-4 text-gray-300 font-bold text-base whitespace-pre-line">${desc}</p></div>
                         </div>
                     </div>`;
             });
@@ -971,10 +971,10 @@
             const v = vehicles.find(x => String(x.id) === String(vId));
             const freq = document.getElementById('maint-type').value;
             const now = new Date();
-            const dateStr = `\${now.getFullYear()}-\${String(now.getMonth()+1).padStart(2,'0')}-\${String(now.getDate()).padStart(2,'0')}`;
-            const rephrased = checked.map(item => `\${item} 상태 점검 완료`);
+            const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+            const rephrased = checked.map(item => `${item} 상태 점검 완료`);
             const displayCycle = freq === '정기점검' ? '반기 정비' : '월간 정비';
-            const report = `[\${v.plate} \${v.name} \${displayCycle} 결과]\\n- 중점 정비사항: \${rephrased.join(', ')}\\n- 결과: 이상 없음 (특이사항 없음)`;
+            const report = `[${v.plate} ${v.name} ${displayCycle} 결과]\n- 중점 정비사항: ${rephrased.join(', ')}\n- 결과: 이상 없음 (특이사항 없음)`;
 
             logs.unshift({ id: Date.now(), date: dateStr, plate: v.plate, type: v.type, cycle: freq, summary: report });
             schedules = schedules.filter(s => !(s.vId == v.id && s.cycle == freq && s.assignedDate <= dateStr));
@@ -992,15 +992,15 @@
             const list = document.getElementById('log-list'); list.innerHTML = '';
             logs.filter(l => l.plate.toLowerCase().includes(q) || l.type.toLowerCase().includes(q)).forEach(l => {
                 const displayCycle = l.cycle === '정기점검' ? '반기' : '월간';
-                list.innerHTML += `<div class="bg-gray-800 border border-darkborder p-4 rounded-xl shadow mb-3"><div class="flex justify-between items-center mb-2 border-b border-darkborder pb-2"><div><span class="font-extrabold text-white text-lg">\${l.plate}</span></div><div class="text-right"><span class="bg-orange-600 text-white text-[10px] px-2 py-0.5 rounded font-bold">\${displayCycle}</span> <span class="text-[10px] text-gray-500">\${l.date}</span></div></div><p class="text-xs text-gray-300 font-mono whitespace-pre-wrap">\${l.summary}</p></div>`;
+                list.innerHTML += `<div class="bg-gray-800 border border-darkborder p-4 rounded-xl shadow mb-3"><div class="flex justify-between items-center mb-2 border-b border-darkborder pb-2"><div><span class="font-extrabold text-white text-lg">${l.plate}</span></div><div class="text-right"><span class="bg-orange-600 text-white text-[10px] px-2 py-0.5 rounded font-bold">${displayCycle}</span> <span class="text-[10px] text-gray-500">${l.date}</span></div></div><p class="text-xs text-gray-300 font-mono whitespace-pre-wrap">${l.summary}</p></div>`;
             });
         }
 
         function downloadCSV() {
             if(logs.length===0) return alert("저장된 데이터가 없습니다.");
-            let csv = '\\uFEFF일자,차량번호,차종,주기,내용\\n';
-            logs.forEach(l => csv += `"\${l.date}","\${l.plate}","\${l.type}","\${l.cycle}","\${l.summary.replace(/"/g, '""').replace(/\\n/g, ' ')}"\\n`);
-            const link = document.createElement("a"); link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' })); link.download = `정비일지_\${new Date().toISOString().split('T')[0]}.csv`; link.click();
+            let csv = '\uFEFF일자,차량번호,차종,주기,내용\n';
+            logs.forEach(l => csv += `"${l.date}","${l.plate}","${l.type}","${l.cycle}","${l.summary.replace(/"/g, '""').replace(/\n/g, ' ')}"\n`);
+            const link = document.createElement("a"); link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' })); link.download = `정비일지_${new Date().toISOString().split('T')[0]}.csv`; link.click();
         }
 
         function renderEditor() {
@@ -1012,8 +1012,8 @@
             db[t][c].forEach((item, i) => {
                 con.innerHTML += `
                     <div class="flex gap-2 items-center bg-gray-800 p-2 rounded border border-darkborder mb-2">
-                        <input type="text" class="flex-1 bg-transparent text-sm text-white focus:outline-none" value="\${item.항목}" onchange="updateDbItem('\${t}','\${c}',\${i},'항목',this.value)">
-                        <button onclick="delDbItem('\${t}','\${c}',\${i})" class="text-red-500 px-3 py-2 bg-red-500/10 rounded"><i class="fa-solid fa-trash"></i></button>
+                        <input type="text" class="flex-1 bg-transparent text-sm text-white focus:outline-none" value="${item.항목}" onchange="updateDbItem('${t}','${c}',${i},'항목',this.value)">
+                        <button onclick="delDbItem('${t}','${c}',${i})" class="text-red-500 px-3 py-2 bg-red-500/10 rounded"><i class="fa-solid fa-trash"></i></button>
                     </div>`;
             });
         }
@@ -1033,9 +1033,3 @@
     </script>
 </body>
 </html>
-"""
-
-with open("preventive_maintenance_final_v5.html", "w", encoding="utf-8") as f:
-    f.write(html_content)
-print("File created successfully.")
-}```
