@@ -383,7 +383,7 @@
             { sys: "엔진/시동", sym: "시동 불량 (끼리릭 소리만 남)", chk: "축전지 방전 확인, 스타트 모터 피니언 기어 마모, 배터리 터미널 체결 확인" },
             { sys: "엔진/시동", sym: "주행 중 시동 꺼짐", chk: "연료필터 막힘, 연료펌프 작동 불량, 발전기(알터네이터) 고장" },
             { sys: "조향/현가", sym: "핸들 무거움", chk: "파워스티어링 오일 부족, 파워펌프 V벨트 장력 이완, 타이어 공기압 부족" },
-            { sys: "조향/현가", sym: "방지턱 넘을 때 찌그덕 소음", chk: "로우암 부싱 마모, 쇽업소버 누유 및 마모, 활대링크 고무 파손" },
+            { sys: "조향/현가", sym: "방지턱 넘을 때 찌그덕 소음", chk: "로우암 부싱 마모, 쇽업소버 누유 및 마모, 활대링크 고무 파 파손" },
             { sys: "구동/제동", sym: "브레이크 밟을 때 쇳소리", chk: "브레이크 패드 마모(인디케이터 마찰), 디스크 로터 변형" },
             { sys: "구동/제동", sym: "가속 시 하부에서 탁탁 소리", chk: "등속조인트(드라이브샤프트) 부츠 찢어짐 및 베어링 마모, 추진축 십자베어링 유격" }
         ];
@@ -647,7 +647,6 @@
             return shuffled;
         }
 
-        // 보고서 출력 부분 v.type 대신 v.name(원래 이름) 출력하도록 수정 완료
         function generateDailyReport() {
             const realToday = new Date();
             const y1 = realToday.getFullYear(); const m1 = String(realToday.getMonth()+1).padStart(2,'0'); const d1 = String(realToday.getDate()).padStart(2,'0');
@@ -662,14 +661,25 @@
             if(targetScheds.length === 0) { alert(`오늘(${m1}/${d1})과 내일(${m2}/${d2}) 배정된 예방정비 일정이 없습니다.`); return; }
 
             let report = `[오늘/내일 예방정비 예정사항]\n\n`;
+            let typeTracker = {};
+
             targetScheds.forEach(s => {
                 const v = vehicles.find(x => x.id === s.vId);
                 if(!v) return;
                 const list = getCascadingItems(s.type, s.cycle);
                 
-                let seed = parseInt(v.plate.replace(/[^0-9]/g, '') || v.id) + new Date(s.assignedDate).getTime();
-                let shuffledList = shuffleItems(list, seed);
-                let picked = shuffledList.slice(0, 6).map(x => x.항목);
+                let tKey = s.type + "_" + s.cycle;
+                if(!typeTracker[tKey]) {
+                    let seed = new Date().getDate() + list.length;
+                    typeTracker[tKey] = { shuffled: shuffleItems(list, seed), offset: 0 };
+                }
+                
+                let trk = typeTracker[tKey];
+                let picked = [];
+                for(let i=0; i<6 && i<trk.shuffled.length; i++) {
+                    picked.push(trk.shuffled[(trk.offset + i) % trk.shuffled.length].항목);
+                }
+                trk.offset = (trk.offset + 5) % trk.shuffled.length;
                 
                 const dObj = new Date(s.assignedDate);
                 const mmdd = (dObj.getMonth()+1) + '월 ' + dObj.getDate() + '일';
@@ -683,7 +693,6 @@
             showModal(report.trim());
         }
 
-        // 보고서 출력 부분 v.type 대신 v.name(원래 이름) 출력하도록 수정 완료
         function generateMonthlyReport() {
             const y = currentDate.getFullYear();
             const m = currentDate.getMonth();
@@ -698,14 +707,25 @@
             if(targetScheds.length === 0) { alert(`${m+1}월에 배정된 예방정비 일정이 없습니다.`); return; }
 
             let report = `[${y}년 ${m+1}월 예방정비 예정사항]\n\n`;
+            let typeTracker = {};
+
             targetScheds.forEach(s => {
                 const v = vehicles.find(x => x.id === s.vId);
                 if(!v) return;
                 const list = getCascadingItems(s.type, s.cycle);
                 
-                let seed = parseInt(v.plate.replace(/[^0-9]/g, '') || v.id) + new Date(s.assignedDate).getTime();
-                let shuffledList = shuffleItems(list, seed);
-                let picked = shuffledList.slice(0, 6).map(x => x.항목);
+                let tKey = s.type + "_" + s.cycle;
+                if(!typeTracker[tKey]) {
+                    let seed = new Date(s.assignedDate).getMonth() * 100 + list.length;
+                    typeTracker[tKey] = { shuffled: shuffleItems(list, seed), offset: 0 };
+                }
+                
+                let trk = typeTracker[tKey];
+                let picked = [];
+                for(let i=0; i<6 && i<trk.shuffled.length; i++) {
+                    picked.push(trk.shuffled[(trk.offset + i) % trk.shuffled.length].항목);
+                }
+                trk.offset = (trk.offset + 5) % trk.shuffled.length;
                 
                 const dObj = new Date(s.assignedDate);
                 const mmdd = (dObj.getMonth()+1) + '월 ' + dObj.getDate() + '일';
