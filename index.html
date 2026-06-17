@@ -56,7 +56,6 @@
                 </div>
             </div>
             
-            <!-- 복사 버튼 영역 2개로 분할 -->
             <div class="flex gap-3">
                 <button onclick="generateDailyReport()" class="flex-1 touch-btn bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg flex-col !items-start p-4 h-auto py-5">
                     <span class="text-sm font-normal text-emerald-200"><i class="fa-solid fa-clock mr-1"></i>오늘/내일 기준</span>
@@ -190,7 +189,10 @@
           "승합차": {"일일":[{"항목":"오일류 점검","정비방법":"엔진, 브레이크 오일 수위 점검."},{"항목":"클러치 유격","정비방법":"20~30mm 점검."}],"월간":[{"항목":"구동벨트","정비방법":"장력 10~15mm 조정."}],"반년":[{"항목":"연료장치","정비방법":"연료필터 응축수 배출 및 공기 빼기."}]},
           "승용차계열": {"일일":[{"항목":"엔진오일","정비방법":"수위 Max-Min 점검."},{"항목":"타이어 점검","정비방법":"마모한계 1.6mm 및 공기압 확인."}],"월간":[{"항목":"파워스티어링","정비방법":"조향 오일량 점검 및 누유 확인."}],"반년":[{"항목":"점화 플러그","정비방법":"플러그 간극 및 고압 케이블 절연 점검."}]},
           "대형트럭/유조차": {"일일":[{"항목":"엔진오일","정비방법":"대기 후 수위 점검."},{"항목":"특장/밸브","정비방법":"P.T.O 구동 소음 및 밸브 누유 점검."}],"월간":[{"항목":"요소수","정비방법":"잔량 점검 및 찌꺼기 청소 후 보충."}],"반년":[{"항목":"에어카트리지","정비방법":"드레인 밸브 수분 배출 및 카트리지 교환."}]},
-          "트레일러": {"일일":[{"항목":"견인장치","정비방법":"킹핀 및 커플러 결합 상태 육안 검사."},{"항목":"타이어/공기압","정비방법":"복륜 사이 돌 제거 및 규정 공기압 확인."}],"월간":[{"항목":"에어챔버 누출","정비방법":"브레이크 작동 상태에서 에어 누출음 점검."}],"반년":[{"항목":"허브 및 베어링","정비방법":"허브 탈거 후 베어링 구형 구리스 세척 및 신품 주입."}]}
+          "트레일러": {"일일":[{"항목":"견인장치","정비방법":"킹핀 및 커플러 결합 상태 육안 검사."},{"항목":"타이어/공기압","정비방법":"복륜 사이 돌 제거 및 규정 공기압 확인."}],"월간":[{"항목":"에어챔버 누출","정비방법":"브레이크 작동 상태에서 에어 누출음 점검."}],"반년":[{"항목":"허브 및 베어링","정비방법":"허브 탈거 후 베어링 구형 구리스 세척 및 신품 주입."}]},
+          "리프트 자동차용": {"일일":[{"항목":"리프트 상승/하강","정비방법":"무부하 상태에서 상승 및 하강 스위치 작동 점검."},{"항목":"유압유 누유","정비방법":"실린더 및 유압 호스 연결부 누유 확인."}],"월간":[{"항목":"와이어 로프 점검","정비방법":"로프 장력 밸런스 및 표면 마모/단선 상태 점검."},{"항목":"안전장치 록킹","정비방법":"상승 후 록킹 레버 체결 상태 확인."}],"반년":[{"항목":"유압유 점검","정비방법":"유압유 오염도 및 점도 점검 (필요시 교환)."},{"항목":"롤러 구리스 주유","정비방법":"작동 체인 및 가이드 롤러 구리스 급유."}]},
+          "차량오일 수거기": {"일일":[{"항목":"배출 밸브 잠금","정비방법":"하단 폐유 배출 밸브 완벽 잠금 확인."},{"항목":"호스 누유 점검","정비방법":"흡입 호스 및 배출 호스 균열, 파손 부위 육안 확인."}],"월간":[{"항목":"압력 게이지","정비방법":"에어 주입 시 압력 게이지 정상 작동 확인."},{"항목":"캐스터 유동성","정비방법":"바퀴 베어링 상태 점검 및 이물질 제거."}],"반년":[{"항목":"에어 필터 수분","정비방법":"에어 레귤레이터 필터 수분 배출."},{"항목":"내부 찌꺼기 세척","정비방법":"수거통 내부 슬러지 청소."}]},
+          "충전기 전지용": {"일일":[{"항목":"전원 케이블","정비방법":"전원선 피복 손상 및 플러그 접지 상태 점검."},{"항목":"충전 집게 마모","정비방법":"집게발(악어클립) 마모 및 스프링 장력 점검."}],"월간":[{"항목":"게이지 정상작동","정비방법":"충전 전압 및 전류 게이지 지침 확인."},{"항목":"차단기/퓨즈","정비방법":"과전류 차단기 스위치 작동 상태 및 퓨즈 점검."}],"반년":[{"항목":"내부 먼지 제거","정비방법":"기기 커버 개방 후 에어건으로 기판 먼지 제거."},{"항목":"냉각팬 점검","정비방법":"작동 시 쿨링팬 회전 및 소음 확인."}]}
         };
 
         const csvRawData = `품명,호수,예방정비계획일자,점검주기
@@ -393,7 +395,7 @@
         let logs = []; 
         let currentDate = new Date(); 
 
-        const blackList = ["188-1", "190-1", "191-1"];
+        const blackList = ["188-1", "190-1", "191-1", "199"];
         const systemHolidays = [
             "2026-01-01", "2026-02-16", "2026-02-17", "2026-02-18", "2026-03-02", "2026-05-05", "2026-05-25", "2026-08-17", "2026-09-24", "2026-09-25", "2026-10-05", "2026-10-09", "2026-12-25",
             "2027-01-01", "2027-02-05", "2027-02-08", "2027-03-01", "2027-05-05", "2027-05-13", "2027-08-16", "2027-09-14", "2027-09-15", "2027-09-16", "2027-10-04", "2027-10-11", "2027-12-27",
@@ -408,19 +410,22 @@
             return day === 0 || day === 6 || systemHolidays.includes(dateStr) || holidays.includes(dateStr);
         }
 
-        // K-311 완벽 분류 로직
+        // K-311 완벽 분류 및 특수장비 카테고리 추가 로직
         function mapVehicleType(name) {
             if (name.includes("30kw") || name.includes("발전기")) return null;
             if (/K-?311|1 1\/4톤|1¼/.test(name)) return "1¼ 표준차량";
             if (/K-?511/.test(name)) return "2.5톤 표준차량";
             if (/K-?711/.test(name)) return "5톤 표준차량";
-            if (/덤프|유조차|트랙터|11\.5톤|15톤|탱크형/.test(name)) return "대형트럭/유조차";
+            if (/리프트/.test(name)) return "리프트 자동차용";
+            if (/수거기/.test(name)) return "차량오일 수거기";
+            if (/충전기/.test(name)) return "충전기 전지용";
+            if (/덤프|유조차|트랙터|11\.5톤|15톤|9\.5톤|탱크형/.test(name)) return "대형트럭/유조차";
             if (/트레일러|샤시/.test(name)) return "트레일러";
             if (/냉동|부식/.test(name)) return "냉동부식차";
             if (/스타렉스|승합|버스|12인승/.test(name)) return "승합차";
-            if (/코란도|짚|왜곤/.test(name)) return "승용차계열";
-            if (/마이티|5톤|화물용|화물차|화물트럭|픽업형|봉고|2\.5톤/.test(name)) return "상용트럭(1~5톤)";
-            return "상용트럭(1~5톤)";
+            if (/코란도|짚|지프|왜곤/.test(name)) return "승용차계열";
+            if (/마이티|화물용|화물차|화물트럭|픽업형|봉고|상용트럭|2\.5톤/.test(name)) return "상용트럭(1~5톤)";
+            return null;
         }
 
         function cleanUpData() {
@@ -633,12 +638,21 @@
             }
         }
 
-        // --- 새로 추가된 오늘/내일 복사 기능 ---
+        // 스마트 셔플 로직 (날짜+호수 기반 고정 난수 생성)
+        function shuffleItems(items, seed) {
+            let shuffled = [...items];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                let x = Math.sin(seed++) * 10000;
+                let j = Math.floor((x - Math.floor(x)) * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
         function generateDailyReport() {
             const realToday = new Date();
             const y1 = realToday.getFullYear(); const m1 = String(realToday.getMonth()+1).padStart(2,'0'); const d1 = String(realToday.getDate()).padStart(2,'0');
             const t1 = `${y1}-${m1}-${d1}`;
-            
             const realTom = new Date(realToday); realTom.setDate(realTom.getDate() + 1);
             const y2 = realTom.getFullYear(); const m2 = String(realTom.getMonth()+1).padStart(2,'0'); const d2 = String(realTom.getDate()).padStart(2,'0');
             const t2 = `${y2}-${m2}-${d2}`;
@@ -653,9 +667,10 @@
                 const v = vehicles.find(x => x.id === s.vId);
                 if(!v) return;
                 const list = getCascadingItems(s.type, s.cycle);
-                const offset = v.id % Math.max(1, list.length);
-                const picked = [];
-                for(let i=0; i<6 && i<list.length; i++) { picked.push(list[(offset + i) % list.length].항목); }
+                
+                let seed = parseInt(v.plate.replace(/[^0-9]/g, '') || v.id) + new Date(s.assignedDate).getTime();
+                let shuffledList = shuffleItems(list, seed);
+                let picked = shuffledList.slice(0, 6).map(x => x.항목);
                 
                 const dObj = new Date(s.assignedDate);
                 const mmdd = (dObj.getMonth()+1) + '월 ' + dObj.getDate() + '일';
@@ -663,13 +678,12 @@
                 
                 report += `• [${v.plate}호] ${v.type} (${s.cycle} 정비) - ${mmdd} ${dayLabel}\n`;
                 report += `  └ ${picked.slice(0,3).join(', ')} 등 점검\n`;
-                if(picked.length > 3) report += `  └ ${picked.slice(3).join(', ')} 등 점검\n`;
+                if(picked.length > 3) report += `  └ ${picked.slice(3,6).join(', ')} 등 점검\n`;
                 report += '\n';
             });
             showModal(report.trim());
         }
 
-        // --- 수정된 월간 복사 기능 (보고용 멘트 삭제 및 2줄 출력) ---
         function generateMonthlyReport() {
             const y = currentDate.getFullYear();
             const m = currentDate.getMonth();
@@ -687,18 +701,19 @@
             targetScheds.forEach(s => {
                 const v = vehicles.find(x => x.id === s.vId);
                 if(!v) return;
-                
                 const list = getCascadingItems(s.type, s.cycle);
-                const offset = v.id % Math.max(1, list.length);
-                const picked = [];
-                for(let i=0; i<6 && i<list.length; i++) { picked.push(list[(offset + i) % list.length].항목); }
+                
+                // 똑같은 차량이라도 할당된 날짜가 다르면(1주차, 2주차) 다른 시드값이 생성되어 항목이 섞임
+                let seed = parseInt(v.plate.replace(/[^0-9]/g, '') || v.id) + new Date(s.assignedDate).getTime();
+                let shuffledList = shuffleItems(list, seed);
+                let picked = shuffledList.slice(0, 6).map(x => x.항목);
                 
                 const dObj = new Date(s.assignedDate);
                 const mmdd = (dObj.getMonth()+1) + '월 ' + dObj.getDate() + '일';
                 
                 report += `• [${v.plate}호] ${v.type} (${s.cycle} 정비) - ${mmdd} 예정\n`;
                 report += `  └ ${picked.slice(0,3).join(', ')} 등 점검\n`;
-                if(picked.length > 3) report += `  └ ${picked.slice(3).join(', ')} 등 점검\n`;
+                if(picked.length > 3) report += `  └ ${picked.slice(3,6).join(', ')} 등 점검\n`;
                 report += '\n';
             });
             showModal(report.trim());
