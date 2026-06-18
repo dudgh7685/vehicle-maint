@@ -3,77 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>차량 예방/고장정비 통합관리</title>
+    <title>부대 차량 예방/고장정비 관리 시스템</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
     <style>
         body { background-color: #f3f4f6; -webkit-tap-highlight-color: transparent; }
         .tab-content { display: none; padding-bottom: 80px; }
         .tab-content.active { display: block; }
-        /* 5열 모바일 달력 그리드 */
-        .grid-cols-5-mon-fri { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.25rem; }
-        .min-h-day { min-height: 80px; }
-        
-        /* 스크롤바 숨기기 (모바일 깔끔하게) */
+        .grid-cols-5 { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.25rem; }
+        .min-h-day { min-height: 85px; }
         ::-webkit-scrollbar { width: 4px; height: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-
-        /* 하단 탭 고정 */
-        .bottom-nav { env(safe-area-inset-bottom); padding-bottom: max(env(safe-area-inset-bottom), 0px); }
+        .bottom-nav { padding-bottom: env(safe-area-inset-bottom); }
     </style>
 </head>
 <body class="text-gray-800 antialiased h-screen flex flex-col">
-
-    <header class="bg-blue-800 text-white p-4 shadow-md sticky top-0 z-20">
-        <h1 class="text-lg font-bold flex items-center justify-center">
-            <i class="fas fa-truck-medical mr-2"></i> 통합 정비 관리 시스템
-        </h1>
+    <header class="bg-slate-800 text-white p-4 shadow-md sticky top-0 z-20 flex justify-center items-center">
+        <h1 class="text-lg font-bold"><i class="fas fa-truck-wrench mr-2"></i>통합 정비 관리 시스템</h1>
     </header>
 
     <main class="flex-1 overflow-y-auto w-full max-w-3xl mx-auto p-3 relative">
-
         <section id="tab-dashboard" class="tab-content active space-y-4">
-            <div class="flex flex-wrap gap-2 justify-between bg-white p-3 rounded-lg shadow-sm border border-gray-200">
-                <button onclick="changeMonth(-1)" class="p-2 text-gray-500 hover:text-blue-600"><i class="fas fa-chevron-left"></i></button>
-                <h2 id="current-month-display" class="text-lg font-bold self-center">2026년 8월</h2>
-                <button onclick="changeMonth(1)" class="p-2 text-gray-500 hover:text-blue-600"><i class="fas fa-chevron-right"></i></button>
+            <div class="flex flex-wrap gap-2 justify-between bg-white p-3 rounded shadow-sm border border-gray-200 items-center">
+                <button onclick="changeMonth(-1)" class="p-2 text-gray-500 hover:text-slate-800"><i class="fas fa-chevron-left"></i></button>
+                <h2 id="current-month-display" class="text-lg font-bold"></h2>
+                <button onclick="changeMonth(1)" class="p-2 text-gray-500 hover:text-slate-800"><i class="fas fa-chevron-right"></i></button>
             </div>
-            
             <div class="grid grid-cols-2 gap-2">
-                <button onclick="openReportModal('today')" class="bg-indigo-600 active:bg-indigo-700 text-white py-2 rounded shadow text-sm font-semibold"><i class="fas fa-file-signature mr-1"></i> 오늘/내일 보고서</button>
-                <button onclick="openReportModal('month')" class="bg-purple-600 active:bg-purple-700 text-white py-2 rounded shadow text-sm font-semibold"><i class="fas fa-calendar-check mr-1"></i> 월간 보고서 복사</button>
+                <button onclick="openReportModal('today')" class="bg-indigo-600 active:bg-indigo-700 text-white py-2 rounded shadow text-sm font-semibold"><i class="fas fa-file-alt mr-1"></i>오늘/내일 복사</button>
+                <button onclick="openReportModal('month')" class="bg-purple-600 active:bg-purple-700 text-white py-2 rounded shadow text-sm font-semibold"><i class="fas fa-calendar-alt mr-1"></i>월간 보고서 복사</button>
             </div>
-
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                <div class="grid-cols-5-mon-fri bg-gray-100 border-b border-gray-200 text-center text-xs font-bold text-gray-600 py-2">
+            <div class="bg-white rounded shadow-sm border border-gray-200 overflow-hidden">
+                <div class="grid-cols-5 bg-slate-100 border-b border-gray-200 text-center text-xs font-bold text-gray-600 py-2">
                     <div>월</div><div>화</div><div>수</div><div>목</div><div>금</div>
                 </div>
-                <div id="calendar-grid" class="grid-cols-5-mon-fri p-1 bg-gray-50">
-                    </div>
+                <div id="calendar-grid" class="grid-cols-5 p-1 bg-slate-50"></div>
             </div>
-
             <div class="flex flex-wrap gap-2 text-xs justify-center p-2">
-                <span class="flex items-center"><span class="w-2.5 h-2.5 rounded bg-red-600 mr-1"></span> 고장정비</span>
-                <span class="flex items-center"><span class="w-2.5 h-2.5 rounded bg-blue-600 mr-1"></span> 반기(정기)</span>
-                <span class="flex items-center"><span class="w-2.5 h-2.5 rounded bg-yellow-500 mr-1"></span> 월간(일일)</span>
-                <span class="flex items-center"><span class="w-2.5 h-2.5 rounded bg-green-500 mr-1"></span> 자동할당</span>
+                <span class="px-2 py-1 bg-red-600 text-white rounded">고장정비</span>
+                <span class="px-2 py-1 bg-blue-600 text-white rounded">반기(정기)</span>
+                <span class="px-2 py-1 bg-yellow-500 text-black font-bold rounded">월간(일일)</span>
+                <span class="px-2 py-1 bg-green-500 text-white rounded">자동할당</span>
             </div>
         </section>
 
         <section id="tab-breakdown" class="tab-content">
-            <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-                <h2 class="text-lg font-bold border-b pb-2 mb-4 text-red-600"><i class="fas fa-wrench mr-2"></i> 고장정비 신규 접수</h2>
+            <div class="bg-white p-4 rounded shadow-sm border border-gray-200">
+                <h2 class="text-lg font-bold border-b pb-2 mb-4 text-slate-800"><i class="fas fa-wrench mr-2"></i>고장정비 접수</h2>
                 <form id="form-breakdown" class="space-y-4">
                     <div>
                         <label class="block text-xs font-bold text-gray-500 mb-1">대상 차량</label>
-                        <select id="bd-vehicle" required class="w-full border border-gray-300 rounded p-2 text-sm bg-gray-50 focus:ring-2 focus:ring-red-400"></select>
+                        <select id="bd-vehicle" required class="w-full border rounded p-2 text-sm bg-gray-50 focus:ring-2 focus:ring-slate-400"></select>
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-500 mb-1">대분류</label>
-                        <select id="bd-main-cat" onchange="updateSubCat()" required class="w-full border border-gray-300 rounded p-2 text-sm bg-gray-50 focus:ring-2 focus:ring-red-400">
+                        <select id="bd-main-cat" onchange="updateSubCat()" required class="w-full border rounded p-2 text-sm bg-gray-50 focus:ring-2 focus:ring-slate-400">
                             <option value="">선택</option>
                             <option value="엔진">엔진 장치</option>
                             <option value="조향">조향 장치</option>
@@ -85,73 +71,58 @@
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-500 mb-1">소분류</label>
-                        <select id="bd-sub-cat" onchange="toggleCustomSub()" required class="w-full border border-gray-300 rounded p-2 text-sm bg-gray-50 focus:ring-2 focus:ring-red-400 disabled:bg-gray-200" disabled>
-                            <option value="">대분류를 먼저 선택하세요</option>
+                        <select id="bd-sub-cat" onchange="toggleCustomSub()" required class="w-full border rounded p-2 text-sm bg-gray-50 focus:ring-2 focus:ring-slate-400 disabled:bg-gray-200" disabled>
+                            <option value="">대분류를 선택하세요</option>
                         </select>
                     </div>
                     <div id="wrap-bd-custom" class="hidden">
                         <label class="block text-xs font-bold text-gray-500 mb-1">기타 (직접입력)</label>
-                        <input type="text" id="bd-custom" class="w-full border border-gray-300 rounded p-2 text-sm bg-gray-50 focus:ring-2 focus:ring-red-400" placeholder="상세 정비부위 입력">
+                        <input type="text" id="bd-custom" class="w-full border rounded p-2 text-sm bg-gray-50 focus:ring-2 focus:ring-slate-400">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-gray-500 mb-1">고장 내용 (증상)</label>
-                        <textarea id="bd-desc" required class="w-full border border-gray-300 rounded p-2 text-sm bg-gray-50 h-20 focus:ring-2 focus:ring-red-400" placeholder="시동 지연, 브레이크 밀림 등"></textarea>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">고장 내용</label>
+                        <textarea id="bd-desc" required class="w-full border rounded p-2 text-sm bg-gray-50 h-20 focus:ring-2 focus:ring-slate-400"></textarea>
                     </div>
-                    <button type="submit" class="w-full bg-red-600 active:bg-red-700 text-white font-bold py-3 rounded shadow transition">접수 및 최우선 달력 배정</button>
+                    <button type="submit" class="w-full bg-slate-800 text-white font-bold py-3 rounded shadow active:bg-slate-900">접수 및 달력 배정</button>
                 </form>
             </div>
         </section>
 
         <section id="tab-maintenance" class="tab-content">
-            <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-                <h2 class="text-lg font-bold border-b pb-2 mb-4 text-blue-600"><i class="fas fa-clipboard-check mr-2"></i> 정비 수행 및 체크리스트</h2>
-                
+            <div class="bg-white p-4 rounded shadow-sm border border-gray-200">
+                <h2 class="text-lg font-bold border-b pb-2 mb-4 text-slate-800"><i class="fas fa-clipboard-check mr-2"></i>정비 수행</h2>
                 <div class="space-y-3 mb-4">
-                    <select id="mt-vehicle" class="w-full border border-gray-300 rounded p-2 text-sm bg-gray-50" onchange="renderChecklist()"></select>
-                    <select id="mt-cycle" class="w-full border border-gray-300 rounded p-2 text-sm bg-gray-50" onchange="renderChecklist()">
+                    <select id="mt-vehicle" class="w-full border rounded p-2 text-sm bg-gray-50" onchange="renderChecklist()"></select>
+                    <select id="mt-cycle" class="w-full border rounded p-2 text-sm bg-gray-50" onchange="renderChecklist()">
                         <option value="">점검 주기 선택</option>
-                        <option value="일일점검">월간/일일 예방정비 (노랑/초록)</option>
-                        <option value="정기점검">반기 정기점검 (파랑)</option>
+                        <option value="일일점검">월간/일일 예방정비</option>
+                        <option value="정기점검">반기 정기점검</option>
                     </select>
                 </div>
-
                 <div id="checklist-area" class="space-y-2 border-t pt-4 min-h-[150px]">
-                    <p class="text-center text-sm text-gray-400 mt-6">차량과 주기를 선택하면<br>해당 정비 체크리스트가 로드됩니다.</p>
+                    <p class="text-center text-sm text-gray-400 mt-4">차량 및 주기를 선택하세요.</p>
                 </div>
             </div>
         </section>
 
         <section id="tab-settings" class="tab-content">
-            <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 space-y-6">
+            <div class="bg-white p-4 rounded shadow-sm border border-gray-200 space-y-6">
                 <div>
-                    <h2 class="text-lg font-bold text-gray-700 mb-2"><i class="fas fa-file-excel text-green-600 mr-1"></i> 기준 데이터 엑셀 업로드</h2>
-                    <p class="text-xs text-gray-500 mb-3 leading-relaxed">
-                        * 시트 구성: <b>[차량대장], [체크리스트 DB], [예방정비계획]</b><br>
-                        * 시스템이 자동으로 블랙리스트를 차단하고 그룹 매핑을 수행합니다.
-                    </p>
-                    <input type="file" id="excel-upload" accept=".xlsx, .xls" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                    <h2 class="text-lg font-bold text-slate-800 mb-2"><i class="fas fa-file-excel mr-2 text-green-600"></i>엑셀 데이터 연동</h2>
+                    <input type="file" id="excel-upload" accept=".xlsx, .xls" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200">
                 </div>
-
                 <div class="grid grid-cols-2 gap-3 text-center border-y py-4 border-gray-100">
-                    <div>
-                        <p class="text-xs text-gray-400">등록 차량</p>
-                        <p id="stat-veh" class="text-xl font-bold text-gray-700">0대</p>
-                    </div>
-                    <div>
-                        <p class="text-xs text-gray-400">정비 일정</p>
-                        <p id="stat-plan" class="text-xl font-bold text-gray-700">0건</p>
-                    </div>
+                    <div><p class="text-xs text-gray-400">등록 차량</p><p id="stat-veh" class="text-xl font-bold text-slate-800">0대</p></div>
+                    <div><p class="text-xs text-gray-400">정비 계획</p><p id="stat-plan" class="text-xl font-bold text-slate-800">0건</p></div>
                 </div>
-
-                <button onclick="resetSystem()" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-600 font-bold py-3 rounded text-sm"><i class="fas fa-trash-alt mr-1"></i> 시스템 초기화 (Local Storage 삭제)</button>
+                <button onclick="resetSystem()" class="w-full bg-red-100 text-red-600 hover:bg-red-200 font-bold py-3 rounded text-sm"><i class="fas fa-trash-alt mr-1"></i>데이터 전체 초기화</button>
             </div>
         </section>
-
     </main>
 
     <nav class="bottom-nav bg-white border-t border-gray-200 fixed bottom-0 w-full z-30 max-w-3xl left-1/2 transform -translate-x-1/2">
         <ul class="flex justify-between text-xs font-medium text-gray-400">
-            <li class="flex-1 text-center py-3 active-tab text-blue-600" onclick="switchTab('dashboard', this)">
+            <li class="flex-1 text-center py-3 active-tab text-slate-800" onclick="switchTab('dashboard', this)">
                 <i class="fas fa-calendar-alt text-lg block mb-1"></i>대시보드
             </li>
             <li class="flex-1 text-center py-3" onclick="switchTab('breakdown', this)">
@@ -167,26 +138,24 @@
     </nav>
 
     <div id="modal-report" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-md rounded-xl p-4 shadow-xl">
+        <div class="bg-white w-full max-w-md rounded p-4 shadow-xl">
             <div class="flex justify-between items-center mb-3">
-                <h3 class="font-bold text-lg text-indigo-700">📋 생성된 보고서</h3>
+                <h3 class="font-bold text-lg text-slate-800">보고서 복사</h3>
                 <button onclick="closeModal()" class="text-gray-400 hover:text-black"><i class="fas fa-times text-xl"></i></button>
             </div>
-            <textarea id="report-output" class="w-full h-64 border border-gray-300 rounded p-3 text-sm bg-gray-50 focus:outline-none resize-none whitespace-pre-wrap leading-relaxed" readonly></textarea>
-            <div class="mt-3 flex gap-2">
-                <button onclick="copyToClipboard()" class="flex-1 bg-indigo-600 active:bg-indigo-700 text-white py-3 rounded font-bold">전체 텍스트 복사</button>
-            </div>
+            <textarea id="report-output" class="w-full h-64 border rounded p-3 text-sm bg-gray-50 focus:outline-none resize-none whitespace-pre-wrap leading-relaxed" readonly></textarea>
+            <button onclick="copyToClipboard()" class="w-full mt-3 bg-slate-800 text-white py-3 rounded font-bold">텍스트 복사</button>
         </div>
     </div>
 
     <script>
-        // === 1. 상태 및 상수 ===
-        let state = {
-            vehicles: JSON.parse(localStorage.getItem('m_veh') || '[]'),
-            checklist: JSON.parse(localStorage.getItem('m_chk') || '[]'),
-            plans: JSON.parse(localStorage.getItem('m_plan') || '[]'), // 예방정비(엑셀)
-            breakdowns: JSON.parse(localStorage.getItem('m_brk') || '[]'), // 고장정비(직접입력)
-            scheduleMap: {}, // 달력 렌더링용 연산 결과 메모리 (날짜 -> 항목배열)
+        const state = {
+            vehicles: JSON.parse(localStorage.getItem('fm_veh') || '[]'),
+            checklist: JSON.parse(localStorage.getItem('fm_chk') || '[]'),
+            plans: JSON.parse(localStorage.getItem('fm_plan') || '[]'),
+            breakdowns: JSON.parse(localStorage.getItem('fm_brk') || '[]'),
+            history: JSON.parse(localStorage.getItem('fm_hist') || '[]'),
+            scheduleMap: {},
             currentDate: new Date()
         };
 
@@ -201,489 +170,293 @@
 
         const holidays = ['2026-01-01', '2026-03-01', '2026-05-05', '2026-06-06', '2026-08-15', '2026-10-03', '2026-10-09', '2026-12-25'];
 
-        // === 2. 초기화 및 유틸리티 ===
-        function init() {
-            updateStats();
-            populateSelects();
-            calculateSchedule();
-            renderCalendar();
+        function isWorkingDay(dObj) {
+            const day = dObj.getDay();
+            if(day === 0 || day === 6) return false;
+            if(holidays.includes(dObj.toISOString().split('T')[0])) return false;
+            return true;
+        }
+
+        function getNextWorkingDay(dObj) {
+            let d = new Date(dObj);
+            while(!isWorkingDay(d)) d.setDate(d.getDate() + 1);
+            return d.toISOString().split('T')[0];
         }
 
         function switchTab(tabId, el) {
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
             document.querySelectorAll('.bottom-nav li').forEach(l => {
-                l.classList.remove('text-blue-600'); l.classList.add('text-gray-400');
+                l.classList.remove('text-slate-800'); l.classList.add('text-gray-400');
             });
             document.getElementById(`tab-${tabId}`).classList.add('active');
-            el.classList.remove('text-gray-400'); el.classList.add('text-blue-600');
+            el.classList.remove('text-gray-400'); el.classList.add('text-slate-800');
             if(tabId === 'dashboard') { calculateSchedule(); renderCalendar(); }
         }
 
-        function isWorkingDay(dateObj) {
-            const day = dateObj.getDay();
-            if (day === 0 || day === 6) return false; // 주말
-            const dStr = dateObj.toISOString().split('T')[0];
-            if (holidays.includes(dStr)) return false; // 공휴일
-            return true;
-        }
-
-        function getNextWorkingDay(dateObj) {
-            let d = new Date(dateObj);
-            while(!isWorkingDay(d)) { d.setDate(d.getDate() + 1); }
-            return d.toISOString().split('T')[0];
-        }
-
-        // === 3. 엑셀 연동 및 데이터 아키텍처 ===
         function excelDateToJS(serial) {
             if(!serial) return "";
             if(typeof serial === 'string') return serial.replace(/\//g, '-');
-            const utc_days  = Math.floor(serial - 25569);
-            const date_info = new Date(utc_days * 86400 * 1000);
-            return date_info.toISOString().split('T')[0];
+            return new Date((serial - 25569) * 86400 * 1000).toISOString().split('T')[0];
         }
 
-        function autoGroupMapping(name) {
-            if(/1톤|2\.5톤|5톤|마이티|봉고/.test(name)) return "상용트럭";
-            if(/K-?311|1 1\/4톤/.test(name)) return "K311 계열";
-            if(/K-?711/.test(name)) return "K711 계열";
-            if(/덤프|트랙터|8\.5~25톤|대형/.test(name)) return "대형트럭(덤프/트랙터)";
-            if(/유조|급수차/.test(name)) return "유조차(특장)";
-            if(/스타렉스|12인승|AMB|중형버스/.test(name)) return "승합차";
-            if(/코란도|렉스턴|짚/.test(name)) return "소형/승용차";
-            if(/리프트|세척기|수거기/.test(name)) return "특수장비";
+        function autoMapGroup(name) {
+            if(/(1톤|2\.5톤|5톤|마이티|봉고)/.test(name)) return "상용트럭";
+            if(/(K-?311|1 1\/4톤)/.test(name)) return "K311 계열";
+            if(/(K-?711)/.test(name)) return "K711 계열";
+            if(/(덤프|트랙터|8\.5~25톤|대형)/.test(name)) return "대형트럭(덤프/트랙터)";
+            if(/(유조|급수차)/.test(name)) return "유조차(특장)";
+            if(/(스타렉스|12인승|AMB|중형버스)/.test(name)) return "승합차";
+            if(/(코란도|렉스턴|짚)/.test(name)) return "소형/승용차";
+            if(/(리프트|세척기|수거기)/.test(name)) return "특수장비";
             return "기본차량";
         }
 
-        document.getElementById('excel-upload').addEventListener('change', function(e) {
+        document.getElementById('excel-upload').addEventListener('change', e => {
             const file = e.target.files[0];
             if(!file) return;
             const reader = new FileReader();
-            reader.onload = function(evt) {
-                const data = new Uint8Array(evt.target.result);
-                const workbook = XLSX.read(data, {type: 'array'});
+            reader.onload = evt => {
+                const workbook = XLSX.read(new Uint8Array(evt.target.result), {type: 'array'});
                 try {
-                    // 1. 차량대장 파싱 및 필터링
-                    const rawVeh = XLSX.utils.sheet_to_json(workbook.Sheets['차량대장']);
-                    const blacklist = ['188-1', '190-1', '191-1', '197'];
-                    
-                    state.vehicles = rawVeh.filter(v => {
+                    const bl = ['188-1', '190-1', '191-1', '197'];
+                    state.vehicles = XLSX.utils.sheet_to_json(workbook.Sheets['차량대장']).filter(v => {
                         const idStr = String(v.호수);
-                        if(blacklist.includes(idStr)) return false;
-                        if(v.품명 && (v.품명.includes('30kw') || v.품명.includes('발전기'))) return false;
+                        if(bl.includes(idStr) || /(188-1|190-1|191-1|197)/.test(idStr)) return false;
+                        if(v.품명 && /(30kw|발전기)/.test(v.품명)) return false;
                         return true;
-                    }).map(v => ({
-                        id: String(v.호수),
-                        name: v.품명,
-                        group: v.점검그룹 || autoGroupMapping(v.품명)
+                    }).map(v => ({ id: String(v.호수), name: v.품명, group: v.점검그룹 || autoMapGroup(v.품명) }));
+
+                    state.checklist = XLSX.utils.sheet_to_json(workbook.Sheets['체크리스트 DB']).map(c => 
+                        ({ group: c.점검그룹, cycle: c.점검주기, item: c.항목, method: c.정비방법 })
+                    );
+
+                    state.plans = XLSX.utils.sheet_to_json(workbook.Sheets['예방정비계획']).map(p => ({
+                        id: String(p.호수), 
+                        date: excelDateToJS(p.계획일자), 
+                        cycle: String(p.점검주기).replace('반년', '반기'),
+                        uid: Math.random().toString(36).substr(2, 9)
                     }));
-
-                    // 2. 체크리스트 DB 파싱
-                    const rawChk = XLSX.utils.sheet_to_json(workbook.Sheets['체크리스트 DB']);
-                    state.checklist = rawChk.map(c => ({
-                        group: c.점검그룹, cycle: c.점검주기, item: c.항목, method: c.정비방법
-                    }));
-
-                    // 3. 예방정비계획 파싱 및 주기 자동 매핑
-                    const rawPlan = XLSX.utils.sheet_to_json(workbook.Sheets['예방정비계획']);
-                    state.plans = rawPlan.map(p => {
-                        let cycle = String(p.점검주기).replace('반년', '반기');
-                        // 월간 -> 일일점검(로직상 분류), 반기 -> 정기점검 매핑 (UI용으로 원본 유지)
-                        return {
-                            id: String(p.호수),
-                            date: excelDateToJS(p.계획일자),
-                            cycle: cycle, // '월간' or '반기'
-                            type: 'plan'
-                        };
-                    });
-
-                    saveData();
-                    init();
-                    alert('데이터 로드 완료! 대시보드를 확인하세요.');
-                    switchTab('dashboard', document.querySelector('.bottom-nav li:first-child'));
-                } catch(err) {
-                    alert('엑셀 파싱 실패. 시트명 및 열 구조를 확인하세요.');
-                    console.error(err);
-                }
+                    saveData(); init(); alert('연동 성공');
+                } catch(err) { alert('오류가 발생했습니다.'); }
             };
             reader.readAsArrayBuffer(file);
         });
 
-        // === 4. 스마트 스케줄링 (우선순위 & 양보/할당) ===
         function calculateSchedule() {
             state.scheduleMap = {};
-            const year = state.currentDate.getFullYear();
-            const month = state.currentDate.getMonth();
-            const todayStr = new Date().toISOString().split('T')[0];
-
+            const y = state.currentDate.getFullYear(), m = state.currentDate.getMonth(), todayStr = new Date().toISOString().split('T')[0];
             let dateMap = {};
-            
-            // 이 달의 평일 객체 생성
+
             for(let d=1; d<=31; d++) {
-                let temp = new Date(year, month, d);
-                if(temp.getMonth() !== month) break;
-                if(isWorkingDay(temp)) {
-                    dateMap[temp.toISOString().split('T')[0]] = { breakdown: [], plan: [] };
-                }
+                let tmp = new Date(y, m, d);
+                if(tmp.getMonth() !== m) break;
+                if(isWorkingDay(tmp)) dateMap[tmp.toISOString().split('T')[0]] = { breakdown: [], plan: [] };
             }
 
-            // 1순위: 고장정비 (Breakdowns) - 접수 즉시 고정 (오늘부터)
             state.breakdowns.forEach(b => {
-                let target = getNextWorkingDay(b.접수일 < todayStr ? todayStr : b.접수일);
+                let target = getNextWorkingDay(b.date < todayStr ? todayStr : b.date);
                 if(!dateMap[target]) dateMap[target] = { breakdown: [], plan: [] };
-                dateMap[target].breakdown.push({...b, type: 'breakdown'});
+                dateMap[target].breakdown.push(b);
             });
 
-            // 2순위: 예방정비 양보 로직
             state.plans.forEach(p => {
-                // 단순화를 위해 해당 월 스케줄만 처리
-                if(!p.date.startsWith(`${year}-${String(month+1).padStart(2,'0')}`)) return;
+                if(state.history.includes(p.uid)) return;
+                if(!p.date.startsWith(`${y}-${String(m+1).padStart(2,'0')}`)) return;
                 
-                let originalDate = p.date;
-                let attemptDate = new Date(originalDate);
-                
-                // 휴일이면 앞으로 최대 7일간 평일 탐색
-                let isPulled = false;
-                if(!isWorkingDay(attemptDate)) {
+                let attempt = new Date(p.date), pulled = false;
+                if(!isWorkingDay(attempt)) {
                     for(let i=1; i<=7; i++) {
-                        attemptDate.setDate(attemptDate.getDate() - 1);
-                        if(isWorkingDay(attemptDate)) { isPulled = true; break; }
+                        attempt.setDate(attempt.getDate() - 1);
+                        if(isWorkingDay(attempt)) { pulled = true; break; }
                     }
                 }
-                let aStr = attemptDate.toISOString().split('T')[0];
+                let aStr = attempt.toISOString().split('T')[0];
 
-                // 탐색된 날짜가 유효하지 않거나, 그 날에 '고장정비'가 있으면 (양보해야 함)
                 if(!dateMap[aStr] || dateMap[aStr].breakdown.length > 0) {
-                    // 뒤로 밀려나되 원래 계획일(originalDate)보다는 뒤로 안가게 빈 평일 찾기
-                    let found = false;
-                    let cursor = new Date(aStr);
+                    let found = false, cursor = new Date(aStr);
                     cursor.setDate(cursor.getDate() + 1);
-                    while(cursor.toISOString().split('T')[0] <= originalDate) {
+                    while(cursor.toISOString().split('T')[0] <= p.date) {
                         let cStr = cursor.toISOString().split('T')[0];
                         if(isWorkingDay(cursor) && dateMap[cStr] && dateMap[cStr].breakdown.length === 0 && dateMap[cStr].plan.length === 0) {
-                            dateMap[cStr].plan.push(p);
-                            found = true;
-                            break;
+                            dateMap[cStr].plan.push(p); found = true; break;
                         }
                         cursor.setDate(cursor.getDate() + 1);
                     }
-                    if(!found && dateMap[originalDate] && isWorkingDay(new Date(originalDate))) {
-                        dateMap[originalDate].plan.push(p); // 못찾으면 원상복구 시도
-                    } else if (!found && dateMap[aStr]) {
-                        dateMap[aStr].plan.push(p); // 그래도 안되면 그냥 당긴 날짜에 욱여넣기
-                    }
-                } else {
-                    dateMap[aStr].plan.push(p);
-                }
+                    if(!found && dateMap[p.date] && isWorkingDay(new Date(p.date))) dateMap[p.date].plan.push(p);
+                    else if(!found && dateMap[aStr]) dateMap[aStr].plan.push(p);
+                } else dateMap[aStr].plan.push(p);
             });
 
-            // 3순위: 빈 날짜 자동 할당
             if(state.vehicles.length > 0) {
                 Object.keys(dateMap).forEach(dStr => {
                     if(dateMap[dStr].breakdown.length === 0 && dateMap[dStr].plan.length === 0) {
-                        // Seed based calculation
-                        let seed = dStr.replace(/-/g, '');
-                        let randIdx = parseInt(seed) % state.vehicles.length;
-                        dateMap[dStr].plan.push({
-                            id: state.vehicles[randIdx].id,
-                            cycle: '일일점검',
-                            type: 'auto'
-                        });
+                        let seed = parseInt(dStr.replace(/-/g, ''));
+                        dateMap[dStr].plan.push({ id: state.vehicles[seed % state.vehicles.length].id, cycle: '일일점검', type: 'auto' });
                     }
                 });
             }
             state.scheduleMap = dateMap;
         }
 
-        // === 5. 달력 렌더링 (월~금 5열) ===
         function renderCalendar() {
             const grid = document.getElementById('calendar-grid');
             grid.innerHTML = '';
-            const year = state.currentDate.getFullYear();
-            const month = state.currentDate.getMonth();
-            document.getElementById('current-month-display').innerText = `${year}년 ${month + 1}월`;
+            const y = state.currentDate.getFullYear(), m = state.currentDate.getMonth();
+            document.getElementById('current-month-display').innerText = `${y}년 ${m + 1}월`;
 
-            const firstDay = new Date(year, month, 1).getDay(); // 0(일)~6(토)
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const firstDay = new Date(y, m, 1).getDay();
+            const daysInMonth = new Date(y, m + 1, 0).getDate();
+            let startOffset = (firstDay >= 1 && firstDay <= 5) ? firstDay - 1 : 0;
 
-            // 월~금 기준 오프셋 (월=0, 화=1 ... 금=4). 시작일이 1(월)이면 offset=0.
-            // 0(일)이면 월요일부터 시작하므로 빈칸 없음, 토(6)이면 월,화,수,목,금 다 빈칸? (다음주부터 시작)
-            let startOffset = 0;
-            if (firstDay >= 1 && firstDay <= 5) startOffset = firstDay - 1;
-            else if (firstDay === 6) startOffset = 5; // 토요일 시작 (이번주는 패스)
-
-            for(let i=0; i<startOffset; i++) {
-                grid.innerHTML += `<div class="bg-white min-h-day p-1 border border-gray-100 opacity-50"></div>`;
-            }
+            for(let i=0; i<startOffset; i++) grid.innerHTML += `<div class="bg-white min-h-day p-1 border-r border-b border-gray-200 opacity-30"></div>`;
 
             for(let d=1; d<=daysInMonth; d++) {
-                let dateObj = new Date(year, month, d);
-                let dayOfWeek = dateObj.getDay();
-                if(dayOfWeek === 0 || dayOfWeek === 6) continue; // 주말 렌더링 제외
+                let dObj = new Date(y, m, d), dow = dObj.getDay();
+                if(dow === 0 || dow === 6) continue;
 
-                const dStr = dateObj.toISOString().split('T')[0];
-                const sData = state.scheduleMap[dStr];
-                const isHol = holidays.includes(dStr);
-
-                let html = `<div class="bg-white min-h-day p-1 flex flex-col gap-1 border-r border-b border-gray-100 ${isHol ? 'bg-red-50' : ''}">
-                                <div class="text-[10px] text-right font-bold ${isHol ? 'text-red-500' : 'text-gray-400'}">${d}</div>`;
+                let dStr = dObj.toISOString().split('T')[0], sData = state.scheduleMap[dStr];
+                let html = `<div class="bg-white min-h-day p-1 flex flex-col gap-1 border-r border-b border-gray-200">
+                    <div class="text-[10px] text-right font-bold text-gray-400">${d}</div>`;
                 
-                if(sData && !isHol) {
-                    sData.breakdown.forEach(item => {
-                        html += `<div class="bg-red-600 text-white text-[10px] p-1 rounded truncate leading-tight shadow-sm w-full">🔴 [${item.id}] 고장</div>`;
+                if(sData) {
+                    sData.breakdown.forEach(b => html += `<div class="bg-red-600 text-white text-[10px] px-1 py-0.5 rounded truncate">고장: [${b.id}]</div>`);
+                    sData.plan.forEach(p => {
+                        let v = state.vehicles.find(x=>x.id===p.id)||{name:''};
+                        if(p.cycle === '반기') html += `<div class="bg-blue-600 text-white text-[10px] px-1 py-0.5 rounded truncate">[${p.id}] ${v.name}</div>`;
+                        else if(p.cycle === '월간') html += `<div class="bg-yellow-500 text-black font-bold text-[10px] px-1 py-0.5 rounded truncate">[${p.id}] ${v.name}</div>`;
+                        else html += `<div class="bg-green-500 text-white text-[10px] px-1 py-0.5 rounded truncate">일일: [${p.id}]</div>`;
                     });
-                    sData.plan.forEach(item => {
-                        let vName = (state.vehicles.find(v=>v.id === item.id) || {}).name || '';
-                        let vTrunc = vName.substring(0, 4);
-                        if(item.cycle === '반기') {
-                            html += `<div class="bg-blue-600 text-white text-[10px] p-1 rounded truncate leading-tight shadow-sm">🔵 [${item.id}] ${vTrunc}</div>`;
-                        } else if(item.cycle === '월간') {
-                            html += `<div class="bg-yellow-500 text-black text-[10px] font-medium p-1 rounded truncate leading-tight shadow-sm">🟡 [${item.id}] ${vTrunc}</div>`;
-                        } else if(item.type === 'auto') {
-                            html += `<div class="bg-green-500 text-white text-[10px] font-medium p-1 rounded truncate leading-tight shadow-sm">🟢 [${item.id}] 일일</div>`;
-                        }
-                    });
-                } else if (isHol) {
-                     html += `<div class="text-[10px] text-center text-red-300 mt-2">휴일</div>`;
                 }
-                html += `</div>`;
-                grid.innerHTML += html;
+                grid.innerHTML += html + `</div>`;
             }
         }
 
-        function changeMonth(dir) {
-            state.currentDate.setMonth(state.currentDate.getMonth() + dir);
-            calculateSchedule();
-            renderCalendar();
-        }
+        function changeMonth(dir) { state.currentDate.setMonth(state.currentDate.getMonth() + dir); calculateSchedule(); renderCalendar(); }
 
-        // === 6. 고장 접수 로직 ===
         function updateSubCat() {
-            const main = document.getElementById('bd-main-cat').value;
-            const sub = document.getElementById('bd-sub-cat');
+            const main = document.getElementById('bd-main-cat').value, sub = document.getElementById('bd-sub-cat');
             sub.innerHTML = '<option value="">선택</option>';
             document.getElementById('wrap-bd-custom').classList.add('hidden');
-            
-            if(main && subCatDB[main]) {
-                sub.disabled = false;
-                subCatDB[main].forEach(c => {
-                    sub.innerHTML += `<option value="${c}">${c}</option>`;
-                });
-            } else {
-                sub.disabled = true;
-            }
+            if(main && subCatDB[main]) { sub.disabled = false; subCatDB[main].forEach(c => sub.innerHTML += `<option value="${c}">${c}</option>`); }
+            else sub.disabled = true;
         }
 
         function toggleCustomSub() {
-            const sub = document.getElementById('bd-sub-cat').value;
-            const wrap = document.getElementById('wrap-bd-custom');
-            if(sub === '기타') {
-                wrap.classList.remove('hidden');
-                document.getElementById('bd-custom').required = true;
-            } else {
-                wrap.classList.add('hidden');
-                document.getElementById('bd-custom').required = false;
-            }
+            const isCustom = document.getElementById('bd-sub-cat').value === '기타';
+            document.getElementById('wrap-bd-custom').classList[isCustom ? 'remove' : 'add']('hidden');
+            document.getElementById('bd-custom').required = isCustom;
         }
 
-        document.getElementById('form-breakdown').addEventListener('submit', (e) => {
+        document.getElementById('form-breakdown').addEventListener('submit', e => {
             e.preventDefault();
-            const id = document.getElementById('bd-vehicle').value;
-            const main = document.getElementById('bd-main-cat').value;
             let sub = document.getElementById('bd-sub-cat').value;
-            if(sub === '기타') sub = `기타(${document.getElementById('bd-custom').value})`;
-            const desc = document.getElementById('bd-desc').value;
-            const todayStr = new Date().toISOString().split('T')[0];
-
+            if(sub === '기타') sub = document.getElementById('bd-custom').value;
             state.breakdowns.push({
-                id, 접수일: todayStr, main, sub, desc
+                id: document.getElementById('bd-vehicle').value,
+                date: new Date().toISOString().split('T')[0], cycle: '고장정비',
+                main: document.getElementById('bd-main-cat').value, sub, desc: document.getElementById('bd-desc').value
             });
-            saveData();
-            alert('고장정비가 접수되어 가장 빠른 평일에 최우선 할당되었습니다.');
-            e.target.reset();
-            updateSubCat();
-            switchTab('dashboard', document.querySelector('.bottom-nav li:first-child'));
+            saveData(); e.target.reset(); updateSubCat(); switchTab('dashboard', document.querySelector('.bottom-nav li:first-child'));
         });
 
-        // === 7. 정비 수행 로직 (아코디언 UI) ===
         function renderChecklist() {
-            const id = document.getElementById('mt-vehicle').value;
-            const cycle = document.getElementById('mt-cycle').value;
-            const area = document.getElementById('checklist-area');
-            
-            if(!id || !cycle) {
-                area.innerHTML = '<p class="text-center text-sm text-gray-400 mt-6">차량과 주기를 선택하면<br>해당 정비 체크리스트가 로드됩니다.</p>';
-                return;
-            }
-
+            const id = document.getElementById('mt-vehicle').value, cycle = document.getElementById('mt-cycle').value, area = document.getElementById('checklist-area');
+            if(!id || !cycle) { area.innerHTML = '<p class="text-center text-sm text-gray-400 mt-4">차량 및 주기를 선택하세요.</p>'; return; }
             const veh = state.vehicles.find(v => v.id === id);
             const items = state.checklist.filter(c => c.group === veh.group && c.cycle === cycle);
+            if(!items.length) { area.innerHTML = `<p class="text-sm text-red-500 mt-4 text-center">조회된 정비 항목이 없습니다.</p>`; return; }
             
-            if(items.length === 0) {
-                area.innerHTML = `<p class="text-sm text-red-500 mt-4 text-center">해당 차량 그룹(${veh.group})의 ${cycle} DB가 없습니다.</p>`;
-                return;
-            }
-
             let html = `<div class="text-xs font-bold text-gray-500 mb-2">총 ${items.length}개 항목</div>`;
             items.forEach((item, idx) => {
-                html += `
-                <div class="border border-gray-200 rounded mb-2 overflow-hidden">
-                    <button class="w-full bg-gray-50 text-left p-3 text-sm font-semibold text-gray-700 flex justify-between items-center" onclick="this.nextElementSibling.classList.toggle('hidden')">
-                        <span>${idx+1}. ${item.item}</span>
-                        <i class="fas fa-chevron-down text-gray-400"></i>
+                html += `<div class="border rounded mb-2 overflow-hidden">
+                    <button class="w-full bg-slate-50 text-left p-3 text-sm font-semibold flex justify-between" onclick="this.nextElementSibling.classList.toggle('hidden')">
+                        <span>${idx+1}. ${item.item}</span><i class="fas fa-chevron-down"></i>
                     </button>
-                    <div class="hidden p-3 bg-white text-xs text-gray-600 border-t border-gray-100">
-                        ${item.method.replace(/\n/g, '<br>')}
-                    </div>
+                    <div class="hidden p-3 text-xs bg-white border-t border-gray-100">${item.method.replace(/\n/g, '<br>')}</div>
                 </div>`;
             });
-            html += `<button onclick="completeMaintenance('${id}')" class="w-full mt-4 bg-blue-600 text-white font-bold py-3 rounded shadow">정비 완료 및 기록 저장</button>`;
+            const matchingPlan = state.plans.find(p => p.id === id && !state.history.includes(p.uid) && (p.cycle === cycle || (cycle === '일일점검' && p.cycle === '월간')));
+            html += `<button onclick="completeMaintenance('${matchingPlan ? matchingPlan.uid : ''}')" class="w-full mt-4 bg-slate-800 text-white font-bold py-3 rounded">정비 완료 저장</button>`;
             area.innerHTML = html;
         }
 
-        function completeMaintenance(id) {
-            alert(`${id}호 정비가 완료 처리되었습니다.`);
-            // 실제 구현에서는 state.plans 배열에서 해당 계획을 제거하고 히스토리 배열에 저장 로직 추가
-            document.getElementById('mt-vehicle').value = '';
-            document.getElementById('mt-cycle').value = '';
-            renderChecklist();
+        function completeMaintenance(uid) {
+            if(uid) state.history.push(uid);
+            saveData(); alert('완료 처리되었습니다.');
+            document.getElementById('mt-vehicle').value = ''; document.getElementById('mt-cycle').value = '';
+            renderChecklist(); calculateSchedule(); renderCalendar();
         }
 
-        // === 8. 보고서 생성 (핵심 알고리즘) ===
-        function cleanItemName(str) {
-            return str.replace(/(점검|확인|검사|상태|수준|유격|장력|여부|류|량|오염|균열|소음)$/g, '').trim();
+        function cleanItem(str) { return str.replace(/(점검|확인|검사|상태|수준|유격|장력|여부|류|량|오염|균열|소음)$/g, '').trim(); }
+        function seedShuffle(arr, seedStr) {
+            let res = [...arr], seed = [...seedStr].reduce((a,c)=>a+c.charCodeAt(0), 0);
+            for(let i=res.length-1; i>0; i--) { let r = Math.floor((Math.sin(seed++) * 10000 - Math.floor(Math.sin(seed-1)*10000)) * (i+1)); [res[i], res[r]] = [res[r], res[i]]; }
+            return res;
         }
 
-        // 시드 기반 셔플
-        function seededShuffle(array, seedStr) {
-            let arr = [...array];
-            let seed = 0;
-            for(let i=0; i<seedStr.length; i++) { seed += seedStr.charCodeAt(i); }
-            
-            for (let i = arr.length - 1; i > 0; i--) {
-                let x = Math.sin(seed++) * 10000;
-                let r = Math.floor((x - Math.floor(x)) * (i + 1));
-                [arr[i], arr[r]] = [arr[r], arr[i]];
-            }
-            return arr;
-        }
-
-        let groupOffsetTracker = {};
-
+        let offsetMap = {};
         function openReportModal(type) {
-            const today = new Date();
-            let targetDates = [];
-            
+            const today = new Date(), dates = [];
             if(type === 'today') {
-                targetDates.push(today.toISOString().split('T')[0]);
+                dates.push(today.toISOString().split('T')[0]);
                 let tmrw = new Date(today); tmrw.setDate(tmrw.getDate()+1);
-                targetDates.push(tmrw.toISOString().split('T')[0]);
+                dates.push(tmrw.toISOString().split('T')[0]);
             } else {
-                const y = state.currentDate.getFullYear();
-                const m = state.currentDate.getMonth();
-                const days = new Date(y, m+1, 0).getDate();
+                const y = state.currentDate.getFullYear(), m = state.currentDate.getMonth(), days = new Date(y, m+1, 0).getDate();
                 for(let d=1; d<=days; d++) {
-                    targetDates.push(`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`);
+                    let tmp = new Date(y, m, d);
+                    if(tmp.getDay()!==0 && tmp.getDay()!==6) dates.push(`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`);
                 }
             }
 
-            let report = [];
-            groupOffsetTracker = {}; // 리셋
-
-            targetDates.forEach(dStr => {
+            let report = []; offsetMap = {};
+            dates.forEach(dStr => {
                 if(!state.scheduleMap[dStr]) return;
-                const dData = state.scheduleMap[dStr];
-                const [, m, d] = dStr.split('-');
-                const dDisplay = `${parseInt(m)}월 ${parseInt(d)}일`;
-
-                // 1. 고장정비
-                dData.breakdown.forEach(b => {
-                    const veh = state.vehicles.find(v => v.id === b.id) || {name: ''};
-                    report.push(`🔴 [${b.id}] ${veh.name} (고장수리) - ${dDisplay} 예정\n  └ ${b.main}(${b.sub}) 점검 및 수리 (${b.desc})\n`);
+                const sData = state.scheduleMap[dStr];
+                
+                sData.breakdown.forEach(b => {
+                    const veh = state.vehicles.find(v => v.id === b.id) || {name:''};
+                    report.push(`[${b.id}] ${veh.name} (고장수리) - ${dStr} 예정\n  └ ${b.main}(${b.sub}) 점검 및 수리 (${b.desc})\n`);
                 });
 
-                // 2. 예방정비 (계획 & 자동할당)
-                dData.plan.forEach(p => {
-                    const veh = state.vehicles.find(v => v.id === p.id);
-                    if(!veh) return;
-
-                    let isAuto = (p.type === 'auto');
-                    let displayType = isAuto ? '일일 예방정비' : (p.cycle === '반기' ? '반기 예방정비' : '월간 예방정비');
-                    let emoji = isAuto ? '🟢' : (p.cycle === '반기' ? '🔵' : '🟡');
-                    let dbCycle = (p.cycle === '반기') ? '정기점검' : '일일점검';
-
-                    // 아이템 추출 및 셔플링
-                    let items = state.checklist.filter(c => c.group === veh.group && c.cycle === dbCycle).map(c => cleanItemName(c.item));
-                    if(items.length === 0) items = ['엔진오일', '타이어', '제동장치', '배터리', '조향장치', '등화장치']; // Fallback
+                sData.plan.forEach(p => {
+                    const veh = state.vehicles.find(v => v.id === p.id); if(!veh) return;
+                    let typeName = p.type === 'auto' ? '일일 예방정비' : (p.cycle === '반기' ? '반기 예방정비' : '월간 예방정비');
+                    let dbCycle = p.cycle === '반기' ? '정기점검' : '일일점검';
+                    let items = state.checklist.filter(c => c.group === veh.group && c.cycle === dbCycle).map(c => cleanItem(c.item));
+                    if(!items.length) items = ['엔진오일','타이어','브레이크','배터리','등화장치','조향장치'];
                     
-                    items = seededShuffle(items, dStr);
+                    items = seedShuffle(items, dStr);
+                    if(offsetMap[veh.group] === undefined) offsetMap[veh.group] = 0;
+                    let off = offsetMap[veh.group], sel = [];
+                    for(let i=0; i<6; i++) sel.push(items[(off+i)%items.length]);
+                    offsetMap[veh.group] = (off + 3) % items.length;
 
-                    // Offset (밀어내기 로직)
-                    if(groupOffsetTracker[veh.group] === undefined) groupOffsetTracker[veh.group] = 0;
-                    let offset = groupOffsetTracker[veh.group];
-                    
-                    let selected = [];
-                    for(let i=0; i<6; i++) {
-                        selected.push(items[(offset + i) % items.length]);
-                    }
-                    
-                    // 다음 차량을 위해 3칸 밀어내기
-                    groupOffsetTracker[veh.group] = (offset + 3) % items.length;
-
-                    let line1 = selected.slice(0, 3).join(', ');
-                    let line2 = selected.slice(3, 6).join(', ');
-
-                    report.push(`${emoji} [${p.id}] ${veh.name} (${displayType}) - ${dDisplay} 예정\n  └ ${line1} 등 점검\n  └ ${line2} 등 점검\n`);
+                    report.push(`[${p.id}] ${veh.name} (${typeName}) - ${dStr} 예정\n  └ ${sel.slice(0,3).join(', ')} 등 점검\n  └ ${sel.slice(3,6).join(', ')} 등 점검\n`);
                 });
             });
-
-            document.getElementById('report-output').value = report.length ? report.join('\n') : '해당 기간에 계획된 정비가 없습니다.';
+            document.getElementById('report-output').value = report.length ? report.join('\n') : '일정이 없습니다.';
             document.getElementById('modal-report').classList.remove('hidden');
         }
 
-        function closeModal() {
-            document.getElementById('modal-report').classList.add('hidden');
-        }
+        function closeModal() { document.getElementById('modal-report').classList.add('hidden'); }
+        function copyToClipboard() { document.getElementById('report-output').select(); document.execCommand('copy'); alert('복사되었습니다.'); closeModal(); }
 
-        function copyToClipboard() {
-            const ta = document.getElementById('report-output');
-            ta.select();
-            document.execCommand('copy');
-            alert('클립보드에 복사되었습니다. 메신저에 붙여넣기 하세요!');
-            closeModal();
-        }
-
-        // === 9. 기타 유틸 ===
-        function updateStats() {
-            document.getElementById('stat-veh').innerText = `${state.vehicles.length}대`;
-            document.getElementById('stat-plan').innerText = `${state.plans.length}건`;
-        }
-
+        function updateStats() { document.getElementById('stat-veh').innerText = state.vehicles.length+'대'; document.getElementById('stat-plan').innerText = (state.plans.length - state.history.length)+'건'; }
         function populateSelects() {
-            const bVeh = document.getElementById('bd-vehicle');
-            const mVeh = document.getElementById('mt-vehicle');
-            let opts = '<option value="">선택하세요</option>';
-            state.vehicles.forEach(v => {
-                opts += `<option value="${v.id}">[${v.id}] ${v.name}</option>`;
-            });
-            bVeh.innerHTML = opts;
-            mVeh.innerHTML = opts;
+            let opts = '<option value="">선택</option>';
+            state.vehicles.forEach(v => opts += `<option value="${v.id}">[${v.id}] ${v.name}</option>`);
+            document.getElementById('bd-vehicle').innerHTML = opts; document.getElementById('mt-vehicle').innerHTML = opts;
         }
-
         function saveData() {
-            localStorage.setItem('m_veh', JSON.stringify(state.vehicles));
-            localStorage.setItem('m_chk', JSON.stringify(state.checklist));
-            localStorage.setItem('m_plan', JSON.stringify(state.plans));
-            localStorage.setItem('m_brk', JSON.stringify(state.breakdowns));
+            localStorage.setItem('fm_veh', JSON.stringify(state.vehicles)); localStorage.setItem('fm_chk', JSON.stringify(state.checklist));
+            localStorage.setItem('fm_plan', JSON.stringify(state.plans)); localStorage.setItem('fm_brk', JSON.stringify(state.breakdowns));
+            localStorage.setItem('fm_hist', JSON.stringify(state.history));
+            updateStats(); populateSelects();
         }
-
-        function resetSystem() {
-            if(confirm('모든 데이터를 삭제하시겠습니까? (복구 불가)')) {
-                localStorage.clear();
-                location.reload();
-            }
-        }
-
-        // Boot
+        function resetSystem() { if(confirm('모든 데이터를 삭제하시겠습니까?')) { localStorage.clear(); location.reload(); } }
+        function init() { updateStats(); populateSelects(); calculateSchedule(); renderCalendar(); }
+        
         window.onload = init;
     </script>
 </body>
