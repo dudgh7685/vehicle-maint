@@ -35,7 +35,11 @@
         .cal-day.holiday { background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3); }
         .cal-date-num { font-size: 0.875rem; font-weight: bold; margin-bottom: 4px; }
         .cal-day.holiday .cal-date-num { color: #ef4444; }
-        .sched-badge { font-size: 0.75rem; padding: 4px; border-radius: 4px; margin-bottom: 3px; white-space: normal; word-break: break-all; text-align: center; line-height: 1.2; width: 100%; box-sizing: border-box; }
+        /* 뱃지 스타일 수정: 세로 정렬 및 가운데 정렬 보장 */
+        .sched-badge { padding: 4px 2px; border-radius: 6px; margin-bottom: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; cursor: pointer; transition: transform 0.1s ease; line-height: 1.15; box-shadow: 0 2px 4px rgba(0,0,0,0.2); width: 100%; white-space: nowrap; overflow: hidden; }
+        .sched-badge:active { transform: scale(0.95); }
+        .badge-plate { font-size: 0.8rem; font-weight: 900; }
+        .badge-cycle { font-size: 0.7rem; font-weight: bold; margin-top: 2px; }
     </style>
 </head>
 <body>
@@ -183,11 +187,31 @@
     </div>
 
     <script>
-        let db = {};
+        // 군부대 및 범용 차량에 대한 구체적인 표준 점검 가이드라인 (기본값)
+        const detailedDefaultDB = {
+            "기본차량": {
+                "일일점검": [
+                    {항목: "엔진오일량 및 점도 점검", 정비방법: "딥스틱 게이지 F와 L 선 사이에 오일이 위치하는지 확인.\n오일의 끈적임(점도)이 정상적인지 손가락으로 만져 확인하고, 쇳가루 등 이물질 혼입 및 타는 냄새 여부 점검."},
+                    {항목: "타이어 공기압 및 마모상태 점검", 정비방법: "타이어 외관 찢어짐, 균열, 편마모 상태 육안 확인.\n규정 공기압(통상 전륜/후륜 65~75psi 등 차종 매뉴얼 참조)이 적정한지 공기압 게이지로 측정."},
+                    {항목: "휠너트 결합(토크) 상태 점검", 정비방법: "휠너트 풀림 여부를 육안 및 타격음(망치 타격 시 둔탁한 소리 발생 여부)으로 확인.\n필요시 토크렌치를 사용하여 규정 토크(약 50~60kgf·m)로 정확하게 체결 상태 재확인."},
+                    {항목: "브레이크 작동상태 및 브레이크액 점검", 정비방법: "브레이크 페달 유격(약 10~15mm) 및 스펀지 현상(푹 들어감) 여부 확인.\n리저브 탱크의 브레이크액이 MAX와 MIN 사이에 있는지 확인하고 누유 부위가 없는지 하체 점검."},
+                    {항목: "각종 등화장치 및 계기판 점검", 정비방법: "전조등(상/하향), 방향지시등, 제동등, 차폭등, 미등이 정상 점등되는지 확인.\n계기판 내 경고등(엔진경고등, 배터리, 오일압력 등)이 시동 후 정상 소등되는지 확인."}
+                ],
+                "정기점검": [
+                    {항목: "구동벨트(겉벨트) 장력 및 상태 점검", 정비방법: "벨트 중심부를 약 10kg의 힘으로 눌렀을 때 처짐량(약 10~15mm) 확인.\n벨트 안쪽 리브에 균열, 마모, 절단, 오일 묻음 여부 꼼꼼히 점검."},
+                    {항목: "냉각수(부동액) 상태 및 누수 점검", 정비방법: "라디에이터 및 보조탱크 냉각수량(F~L 사이) 확인.\n부동액 비중계로 농도(30~50%) 확인 및 녹물 발생 여부 점검.\n워터펌프, 라디에이터 호스 연결부 등에서 냉각수 누수 여부 점검."},
+                    {항목: "하체 조향 및 현가장치 유격 점검", 정비방법: "차량을 띄우고 타이로드 엔드, 로우암/어퍼암 볼 조인트 유격(흔들림) 확인.\n쇽업소버(쇼바) 주변 오일 누유 여부 및 코일/판스프링 절손 여부 점검."},
+                    {항목: "배터리 전압 및 터미널 결합상태 점검", 정비방법: "멀티테스터기로 시동 전 배터리 전압(12.4V 이상) 및 시동 후 발전기 충전 전압(13.5~14.5V) 측정.\n배터리 터미널 백화현상(황산납) 제거 및 단자 스패너로 조임 상태(유격 없음) 재확인."},
+                    {항목: "각종 오일류(미션/파워/데후) 누유 점검", 정비방법: "변속기(미션), 파워스티어링 펌프, 디퍼렌셜 기어(데후) 케이스 주변 오일 누유 흔적 육안 검사.\n점검창을 열어 오일 색상 및 쇳가루 혼입 상태 확인."}
+                ]
+            }
+        };
+
+        let db = detailedDefaultDB; 
         let vehicles = []; 
-        let schedules = []; // 예방정비
-        let breakdowns = []; // 고장정비
-        let history = []; // 완료된 정비 이력 추적용
+        let schedules = []; 
+        let breakdowns = []; 
+        let history = []; 
         let scheduleMap = {}; 
         let currentDate = new Date(); 
 
@@ -225,11 +249,14 @@
             if (/1톤|2\.5톤|5톤|상용|봉고|마이티/.test(name)) return "상용트럭";
             if (/스타렉스|승합|버스|12인승|AMB/.test(name)) return "승합차";
             if (/코란도|짚|지프|왜곤|렉스턴/.test(name)) return "소형/승용차";
-            return "상용트럭";
+            return "기본차량"; 
         }
 
         function init() {
-            if(localStorage.getItem('vms2_db')) db = JSON.parse(localStorage.getItem('vms2_db'));
+            const storedDb = localStorage.getItem('vms2_db');
+            if(storedDb && Object.keys(JSON.parse(storedDb)).length > 0) {
+                db = JSON.parse(storedDb);
+            }
             if(localStorage.getItem('vms2_veh')) vehicles = JSON.parse(localStorage.getItem('vms2_veh'));
             if(localStorage.getItem('vms2_sch')) schedules = JSON.parse(localStorage.getItem('vms2_sch'));
             if(localStorage.getItem('vms2_brk')) breakdowns = JSON.parse(localStorage.getItem('vms2_brk'));
@@ -276,7 +303,6 @@
             document.getElementById('maint-vehicle').innerHTML = opts;
         }
 
-        // 고장접수 드롭다운 연동
         function updateBdSub() {
             const main = document.getElementById('bd-main').value;
             const sub = document.getElementById('bd-sub');
@@ -338,14 +364,13 @@
             switchTab('dashboard');
         }
 
-        // 스케줄링 핵심 알고리즘
         function recalcAllSchedules() {
             scheduleMap = {};
             const todayStr = new Date().toISOString().split('T')[0];
 
-            // 1순위: 고장정비 (접수일 기준 가장 빠른 평일에 배치)
+            // 1순위: 고장정비
             breakdowns.forEach(b => {
-                if(history.includes(b.id.toString())) return; // 이미 완료된건 스킵
+                if(history.includes(b.id.toString())) return; 
                 
                 let targetDate = new Date(b.receiptDate < todayStr ? todayStr : b.receiptDate);
                 while(!isWorkingDay(targetDate)) {
@@ -364,7 +389,6 @@
 
                 const origDate = new Date(p.originalDate);
                 let candidates = [];
-                // 최대 7일 전 평일 찾기
                 for(let i=0; i<=7; i++) {
                     let d = new Date(origDate);
                     d.setDate(d.getDate() - i);
@@ -376,7 +400,6 @@
 
                 let placedDate = null;
 
-                // 시도 1: 고장정비도 없고, 다른 예방정비도 없는 완전 비어있는 평일
                 for(let c of candidates) {
                     let dayMap = scheduleMap[c] || { brk: [], plan: [] };
                     if(dayMap.brk.length === 0 && dayMap.plan.length === 0) {
@@ -384,7 +407,6 @@
                     }
                 }
 
-                // 시도 2: 고장정비가 없는 평일
                 if(!placedDate) {
                     for(let c of candidates) {
                         let dayMap = scheduleMap[c] || { brk: [], plan: [] };
@@ -394,12 +416,11 @@
                     }
                 }
 
-                // 시도 3: 빈 날짜가 없다면 밀려나되, 당겨진 일정이면 고장정비에게 양보해야 하므로 원래 날짜에 넣음
                 if(!placedDate) {
                     if(isWorkingDay(new Date(p.originalDate))) {
                         placedDate = p.originalDate;
                     } else {
-                        placedDate = candidates[0]; // 원래 날짜가 휴일이면 가장 가까운 평일
+                        placedDate = candidates[0]; 
                     }
                 }
 
@@ -407,6 +428,18 @@
                 if(!scheduleMap[placedDate]) scheduleMap[placedDate] = { brk: [], plan: [] };
                 scheduleMap[placedDate].plan.push(p);
             });
+        }
+
+        function goToMaint(vId, cycle, plate, type) {
+            const labelCycle = cycle === '정기점검' ? '반기' : '월간';
+            if(confirm(`[${plate}] ${type} 차량의 ${labelCycle} 예방정비 점검리스트를 띄우시겠습니까?`)) {
+                switchTab('maintenance');
+                setTimeout(() => {
+                    document.getElementById('maint-vehicle').value = String(vId);
+                    document.getElementById('maint-type').value = cycle;
+                    loadChecklist();
+                }, 100);
+            }
         }
 
         function renderCalendar() {
@@ -428,7 +461,7 @@
             for(let d=1; d<=daysInMonth; d++) {
                 let dObj = new Date(y, m, d);
                 let dow = dObj.getDay();
-                if (dow === 0 || dow === 6) continue; // 주말 제거
+                if (dow === 0 || dow === 6) continue; 
 
                 const dStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
                 const isHol = !isWorkingDay(dObj);
@@ -437,7 +470,6 @@
                 let badges = '';
 
                 if(!isHol) {
-                    // 3순위: 완전 빈 평일 자동 채우기 (렌더링 뷰에만 추가)
                     if(dayMap.brk.length === 0 && dayMap.plan.length === 0 && vehicles.length > 0) {
                         const seed = parseInt(dStr.replace(/-/g, ''));
                         const autoV = vehicles[seed % vehicles.length];
@@ -446,19 +478,30 @@
 
                     dayMap.brk.forEach(b => {
                         const v = vehicles.find(x => String(x.id) === String(b.vId));
-                        if(v) badges += `<div class="bg-red-600 text-white sched-badge font-bold">[${v.plate}] 고장</div>`;
+                        if(v) badges += `<div class="bg-red-600 text-white sched-badge">
+                            <div class="badge-plate">[${v.plate}]</div>
+                            <div class="badge-cycle">고장</div>
+                        </div>`;
                     });
 
                     dayMap.plan.forEach(p => {
                         const v = vehicles.find(x => String(x.id) === String(p.vId));
                         if(v) {
+                            let badgeClass, badgeSub;
                             if(p.type === 'auto') {
-                                badges += `<div class="bg-green-500 text-white sched-badge">[${v.plate}] 자동</div>`;
+                                badgeClass = 'bg-green-500 text-white'; badgeSub = '일일';
                             } else if(p.cycle === '정기점검') {
-                                badges += `<div class="bg-blue-600 text-white sched-badge">[${v.plate}] 반기</div>`;
+                                badgeClass = 'bg-blue-600 text-white'; badgeSub = '반기';
                             } else {
-                                badges += `<div class="bg-yellow-500 text-black font-bold sched-badge">[${v.plate}] 월간</div>`;
+                                badgeClass = 'bg-yellow-500 text-black'; badgeSub = '월간';
                             }
+                            
+                            const clickEvent = p.type !== 'auto' ? `onclick="event.stopPropagation(); goToMaint('${v.id}', '${p.cycle}', '${v.plate}', '${v.type}')"` : '';
+                            
+                            badges += `<div class="${badgeClass} sched-badge" ${clickEvent}>
+                                <div class="badge-plate">[${v.plate}]</div>
+                                <div class="badge-cycle">${badgeSub}</div>
+                            </div>`;
                         }
                     });
                 }
@@ -466,14 +509,13 @@
                 calBody.innerHTML += `
                     <div class="cal-day ${isHol ? 'holiday' : ''}">
                         <div class="cal-date-num">${d}</div>
-                        ${isHol ? '<div class="text-center text-red-500 text-xs mt-2">휴일</div>' : badges}
+                        ${isHol ? '<div class="text-center text-red-500 text-xs mt-2 font-bold">휴무</div>' : badges}
                     </div>`;
             }
         }
 
         function changeMonth(delta) { currentDate.setMonth(currentDate.getMonth() + delta); renderCalendar(); }
 
-        // 예방정비 아코디언 로직
         function loadChecklist() {
             const vId = document.getElementById('maint-vehicle').value;
             const freq = document.getElementById('maint-type').value;
@@ -486,13 +528,16 @@
             }
             
             const v = vehicles.find(x => String(x.id) === String(vId));
-            if(!v || !db[v.type] || !db[v.type][freq]) {
+            
+            let targetDB = (db[v.type] && db[v.type][freq]) ? db[v.type][freq] : (detailedDefaultDB["기본차량"] ? detailedDefaultDB["기본차량"][freq] : null);
+
+            if(!v || !targetDB) {
                 container.innerHTML = `<div class="text-center py-10 font-bold text-red-400">해당 차량의 정비 기준이 없습니다.</div>`;
                 submitBtn.classList.add('hidden'); return;
             }
 
             container.innerHTML = '';
-            db[v.type][freq].forEach((item, idx) => {
+            targetDB.forEach((item, idx) => {
                 container.innerHTML += `
                     <div class="bg-darkcard border border-darkborder rounded-2xl overflow-hidden shadow">
                         <label class="flex items-center p-4 touch-target gap-4 cursor-pointer hover:bg-gray-800">
@@ -501,9 +546,9 @@
                         </label>
                         <div class="border-t border-darkborder">
                             <button onclick="toggleAccordion('chk-acc-${idx}')" class="w-full px-4 py-3 text-left flex justify-between items-center text-blue-400 bg-gray-800 touch-target font-extrabold">
-                                <span>정비방법 보기</span><i class="fa-solid fa-chevron-down" id="icon-chk-acc-${idx}"></i>
+                                <span>상세 정비방법 및 규격 보기</span><i class="fa-solid fa-chevron-down transition-transform" id="icon-chk-acc-${idx}"></i>
                             </button>
-                            <div id="chk-acc-${idx}" class="accordion-content bg-[#121212] px-4"><p class="py-4 text-gray-300 font-bold text-base whitespace-pre-line">${item.정비방법}</p></div>
+                            <div id="chk-acc-${idx}" class="accordion-content bg-[#121212] px-4"><p class="py-4 text-gray-300 font-bold text-base whitespace-pre-line leading-relaxed">${item.정비방법}</p></div>
                         </div>
                     </div>`;
             });
@@ -521,9 +566,7 @@
             const vId = document.getElementById('maint-vehicle').value;
             const freq = document.getElementById('maint-type').value;
             
-            // 일치하는 스케줄(예방)이나 고장정비 완료 처리
             schedules.filter(s => s.vId == vId && s.cycle == freq).forEach(s => history.push(String(s.id)));
-            // 고장정비는 별도 탭이지만 달력 클리어를 위해 모든 고장도 함께 치움 (실무상 묶어 처리)
             breakdowns.filter(b => b.vId == vId).forEach(b => history.push(String(b.id)));
             
             saveData();
@@ -547,11 +590,14 @@
             return arr;
         }
 
-        function cleanItemName(str) {
-            return str.replace(/(점검|확인|검사|상태|수준|유격|장력|여부|류|량|오염|균열|소음)$/g, '').trim();
-        }
-
         let offsetTracker = {};
+        
+        // 예방정비 보고서용 시스템 그룹화 배열 (중복 방지 및 모아서 출력용)
+        const systemCategories = [
+            "엔진 및 파워트레인 계통", "제동 장치 계통", "조향 및 현가 장치 계통", 
+            "전장 및 등화 장치 계통", "동력전달 장치 계통", "타이어 및 휠 결합 상태", "냉각 및 윤활 장치 계통"
+        ];
+
         function buildReportForDates(targetDates, title) {
             let report = `[${title}]\n\n`;
             offsetTracker = {};
@@ -562,30 +608,31 @@
                 const [, m, d] = dStr.split('-');
                 const dDisplay = `${parseInt(m)}월 ${parseInt(d)}일`;
 
-                // 고장정비 보고서
                 sm.brk.forEach(b => {
-                    const v = vehicles.find(x => String(x.id) === b.vId) || {name:''};
+                    const v = vehicles.find(x => String(x.id) === String(b.vId)) || {name:''};
                     report += `[${v.plate}] ${v.name} (고장수리) - ${dDisplay} 예정\n  └ ${b.main}(${b.sub}) 점검 및 수리 (${b.content})\n\n`;
                 });
 
-                // 예방정비 보고서
                 sm.plan.forEach(p => {
                     const v = vehicles.find(x => String(x.id) === String(p.vId));
                     if(!v) return;
 
                     const typeName = p.type === 'auto' ? '일일 예방정비' : (p.cycle === '정기점검' ? '반기 예방정비' : '월간 예방정비');
-                    const dbCycle = p.cycle === '정기점검' ? '정기점검' : '일일점검';
-                    let items = db[v.type] && db[v.type][dbCycle] ? db[v.type][dbCycle].map(c => cleanItemName(c.항목)) : ['엔진오일', '타이어', '제동장치', '조향', '배터리', '등화'];
-
-                    items = seedShuffle(items, dStr);
+                    
+                    // 중복 출력 및 지저분함을 막기 위해, 개별 항목 대신 시스템 범주를 셔플하여 할당
+                    let shuffledSystems = seedShuffle(systemCategories, dStr + v.id);
                     if(offsetTracker[v.type] === undefined) offsetTracker[v.type] = 0;
                     
                     let off = offsetTracker[v.type];
                     let picked = [];
-                    for(let i=0; i<6; i++) picked.push(items[(off + i) % items.length]);
-                    offsetTracker[v.type] = (off + 3) % items.length;
+                    for(let i=0; i<4; i++) {
+                        picked.push(shuffledSystems[(off + i) % shuffledSystems.length]);
+                    }
+                    offsetTracker[v.type] = (off + 2) % shuffledSystems.length;
 
-                    report += `[${v.plate}] ${v.name} (${typeName}) - ${dDisplay} 예정\n  └ ${picked.slice(0,3).join(', ')} 등 점검\n  └ ${picked.slice(3,6).join(', ')} 등 점검\n\n`;
+                    let uniquePicked = [...new Set(picked)]; // 완벽한 중복 제거
+
+                    report += `[${v.plate}] ${v.name} (${typeName}) - ${dDisplay} 예정\n  └ ${uniquePicked.slice(0,2).join(', ')} 등 점검\n  └ ${uniquePicked.slice(2,4).join(', ')} 등 점검\n\n`;
                 });
             });
 
