@@ -29,17 +29,23 @@
         .glove-checkbox:checked::after { content: '\f00c'; font-family: 'Font Awesome 6 Free'; font-weight: 900; position: absolute; color: white; font-size: 32px; top: 50%; left: 50%; transform: translate(-50%, -50%); }
         .accordion-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-in-out; }
         .accordion-content.open { max-height: 1200px; }
-        .exam-highlight { color: #fbbf24; font-weight: 900; background-color: rgba(251, 191, 36, 0.2); padding: 2px 6px; border-radius: 4px; border-bottom: 2px solid #fbbf24; }
         .cal-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); grid-auto-rows: minmax(80px, auto); gap: 4px; }
-        .cal-day { padding: 4px; border-radius: 0.5rem; background: #1e1e1e; border: 1px solid #2d3748; display: flex; flex-direction: column; cursor: pointer; }
+        .cal-day { padding: 4px; border-radius: 0.5rem; background: #1e1e1e; border: 1px solid #2d3748; display: flex; flex-direction: column; cursor: pointer; transition: background-color 0.2s; }
+        .cal-day:active { background: #2d3748; }
         .cal-day.holiday { background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3); }
-        .cal-date-num { font-size: 0.875rem; font-weight: bold; margin-bottom: 4px; }
+        .cal-date-num { font-size: 0.875rem; font-weight: bold; margin-bottom: 4px; pointer-events: none; }
         .cal-day.holiday .cal-date-num { color: #ef4444; }
-        /* 뱃지 스타일 수정: 세로 정렬 및 가운데 정렬 보장 */
-        .sched-badge { padding: 4px 2px; border-radius: 6px; margin-bottom: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; cursor: pointer; transition: transform 0.1s ease; line-height: 1.15; box-shadow: 0 2px 4px rgba(0,0,0,0.2); width: 100%; white-space: nowrap; overflow: hidden; }
+        
+        .sched-badge { 
+            padding: 4px 2px; border-radius: 6px; margin-bottom: 4px; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; 
+            box-sizing: border-box; cursor: pointer; transition: transform 0.1s ease; 
+            line-height: 1.15; box-shadow: 0 2px 4px rgba(0,0,0,0.2); 
+            width: 100%; white-space: nowrap; overflow: hidden; 
+        }
         .sched-badge:active { transform: scale(0.95); }
-        .badge-plate { font-size: 0.8rem; font-weight: 900; }
-        .badge-cycle { font-size: 0.7rem; font-weight: bold; margin-top: 2px; }
+        .badge-plate { font-size: 0.8rem; font-weight: 900; pointer-events: none; }
+        .badge-cycle { font-size: 0.7rem; font-weight: bold; margin-top: 2px; pointer-events: none; display: flex; align-items: center; justify-content: center; }
     </style>
 </head>
 <body>
@@ -187,7 +193,6 @@
     </div>
 
     <script>
-        // 군부대 및 범용 차량에 대한 구체적인 표준 점검 가이드라인 (기본값)
         const detailedDefaultDB = {
             "기본차량": {
                 "일일점검": [
@@ -213,6 +218,7 @@
         let breakdowns = []; 
         let history = []; 
         let scheduleMap = {}; 
+        let customHolidays = [];
         let currentDate = new Date(); 
 
         const bdCategories = {
@@ -233,7 +239,7 @@
             const day = dateObj.getDay();
             if (day === 0 || day === 6) return false;
             const dateStr = dateObj.toISOString().split('T')[0];
-            if (systemHolidays.includes(dateStr)) return false;
+            if (systemHolidays.includes(dateStr) || customHolidays.includes(dateStr)) return false;
             return true;
         }
 
@@ -261,10 +267,44 @@
             if(localStorage.getItem('vms2_sch')) schedules = JSON.parse(localStorage.getItem('vms2_sch'));
             if(localStorage.getItem('vms2_brk')) breakdowns = JSON.parse(localStorage.getItem('vms2_brk'));
             if(localStorage.getItem('vms2_his')) history = JSON.parse(localStorage.getItem('vms2_his'));
+            if(localStorage.getItem('vms2_hol')) customHolidays = JSON.parse(localStorage.getItem('vms2_hol'));
 
+            ensureHardcodedVehicles();
             populateSelects();
             recalcAllSchedules();
             switchTab('dashboard');
+        }
+
+        function ensureHardcodedVehicles() {
+            const hardcoded = [
+                { plate: '85', name: '표준차량', type: '기본차량', day: 5 },
+                { plate: '187', name: '표준차량', type: '기본차량', day: 10 },
+                { plate: '199', name: '표준차량', type: '기본차량', day: 15 }
+            ];
+            const year = currentDate.getFullYear();
+            let changed = false;
+            
+            hardcoded.forEach(hc => {
+                let v = vehicles.find(x => x.plate === hc.plate);
+                if (!v) {
+                    v = { id: Date.now() + Math.random(), plate: hc.plate, name: hc.name, type: hc.type };
+                    vehicles.push(v);
+                    changed = true;
+                }
+                
+                for (let y = year; y <= year + 1; y++) {
+                    for (let m = 1; m <= 12; m++) {
+                        let dStr = `${y}-${String(m).padStart(2,'0')}-${String(hc.day).padStart(2,'0')}`;
+                        let cycle = (m === 5 || m === 11) ? '정기점검' : '일일점검'; 
+                        
+                        if (!schedules.find(s => s.vId === v.id && s.cycle === cycle && s.originalDate.startsWith(`${y}-${String(m).padStart(2,'0')}`))) {
+                            schedules.push({ id: Date.now()+Math.random(), vId: v.id, cycle: cycle, originalDate: dStr });
+                            changed = true;
+                        }
+                    }
+                }
+            });
+            if (changed) saveData();
         }
 
         function saveData() {
@@ -273,6 +313,7 @@
             localStorage.setItem('vms2_sch', JSON.stringify(schedules));
             localStorage.setItem('vms2_brk', JSON.stringify(breakdowns));
             localStorage.setItem('vms2_his', JSON.stringify(history));
+            localStorage.setItem('vms2_hol', JSON.stringify(customHolidays));
         }
 
         function factoryReset() {
@@ -364,11 +405,23 @@
             switchTab('dashboard');
         }
 
+        function toggleHoliday(dStr) {
+            if(systemHolidays.includes(dStr)) {
+                alert('법정 공휴일은 변경할 수 없습니다.');
+                return;
+            }
+            const idx = customHolidays.indexOf(dStr);
+            if(idx > -1) customHolidays.splice(idx, 1);
+            else customHolidays.push(dStr);
+            saveData();
+            recalcAllSchedules();
+            renderCalendar();
+        }
+
         function recalcAllSchedules() {
             scheduleMap = {};
             const todayStr = new Date().toISOString().split('T')[0];
 
-            // 1순위: 고장정비
             breakdowns.forEach(b => {
                 if(history.includes(b.id.toString())) return; 
                 
@@ -383,7 +436,6 @@
                 scheduleMap[targetStr].brk.push(b);
             });
 
-            // 2순위: 예방정비 양보 로직
             schedules.forEach(p => {
                 if(history.includes(p.id.toString())) return;
 
@@ -471,14 +523,32 @@
 
                 if(!isHol) {
                     if(dayMap.brk.length === 0 && dayMap.plan.length === 0 && vehicles.length > 0) {
+                        const targetDateObj = new Date(dStr);
+                        const futurePlans = schedules.filter(s => s.assignedDate > dStr);
+                        
+                        const pool = vehicles.filter(v => {
+                            const nextPlan = futurePlans.find(s => String(s.vId) === String(v.id));
+                            if (!nextPlan) return true; 
+                            const diffDays = (new Date(nextPlan.assignedDate) - targetDateObj) / (1000*60*60*24);
+                            return diffDays >= 30; 
+                        });
+
+                        let candidates = pool.length > 0 ? pool : vehicles; 
+                        let p1 = candidates.filter(v => /상용트럭|기본차량|K311|K711|표준/.test(v.type));
+                        let p2 = candidates.filter(v => /대형트럭/.test(v.type));
+                        let p3 = candidates.filter(v => !/상용트럭|기본차량|K311|K711|표준|대형트럭/.test(v.type));
+
+                        let finalPool = p1.length > 0 ? p1 : (p2.length > 0 ? p2 : p3);
+                        if(finalPool.length === 0) finalPool = candidates; 
+
                         const seed = parseInt(dStr.replace(/-/g, ''));
-                        const autoV = vehicles[seed % vehicles.length];
+                        const autoV = finalPool[seed % finalPool.length];
                         dayMap.plan.push({ vId: autoV.id, cycle: '일일점검', type: 'auto', assignedDate: dStr });
                     }
 
                     dayMap.brk.forEach(b => {
                         const v = vehicles.find(x => String(x.id) === String(b.vId));
-                        if(v) badges += `<div class="bg-red-600 text-white sched-badge">
+                        if(v) badges += `<div class="bg-red-600 text-white sched-badge" onclick="event.stopPropagation();">
                             <div class="badge-plate">[${v.plate}]</div>
                             <div class="badge-cycle">고장</div>
                         </div>`;
@@ -496,20 +566,28 @@
                                 badgeClass = 'bg-yellow-500 text-black'; badgeSub = '월간';
                             }
                             
-                            const clickEvent = p.type !== 'auto' ? `onclick="event.stopPropagation(); goToMaint('${v.id}', '${p.cycle}', '${v.plate}', '${v.type}')"` : '';
+                            let diffText = "";
+                            if (p.originalDate && p.assignedDate && p.type !== 'auto') {
+                                let od = new Date(p.originalDate);
+                                let ad = new Date(p.assignedDate);
+                                let diff = Math.round((od - ad) / (1000*60*60*24));
+                                if (diff > 0) diffText = `<span class="text-[0.6rem] ml-1 opacity-80">-${diff}</span>`;
+                            }
+
+                            const clickEvent = p.type !== 'auto' ? `onclick="event.stopPropagation(); goToMaint('${v.id}', '${p.cycle}', '${v.plate}', '${v.type}')"` : `onclick="event.stopPropagation();"`;
                             
                             badges += `<div class="${badgeClass} sched-badge" ${clickEvent}>
                                 <div class="badge-plate">[${v.plate}]</div>
-                                <div class="badge-cycle">${badgeSub}</div>
+                                <div class="badge-cycle">${badgeSub}${diffText}</div>
                             </div>`;
                         }
                     });
                 }
 
                 calBody.innerHTML += `
-                    <div class="cal-day ${isHol ? 'holiday' : ''}">
+                    <div class="cal-day ${isHol ? 'holiday' : ''}" onclick="toggleHoliday('${dStr}')">
                         <div class="cal-date-num">${d}</div>
-                        ${isHol ? '<div class="text-center text-red-500 text-xs mt-2 font-bold">휴무</div>' : badges}
+                        ${isHol ? '<div class="text-center text-red-500 text-xs mt-2 font-bold pointer-events-none">휴무</div>' : badges}
                     </div>`;
             }
         }
@@ -592,7 +670,6 @@
 
         let offsetTracker = {};
         
-        // 예방정비 보고서용 시스템 그룹화 배열 (중복 방지 및 모아서 출력용)
         const systemCategories = [
             "엔진 및 파워트레인 계통", "제동 장치 계통", "조향 및 현가 장치 계통", 
             "전장 및 등화 장치 계통", "동력전달 장치 계통", "타이어 및 휠 결합 상태", "냉각 및 윤활 장치 계통"
@@ -619,7 +696,6 @@
 
                     const typeName = p.type === 'auto' ? '일일 예방정비' : (p.cycle === '정기점검' ? '반기 예방정비' : '월간 예방정비');
                     
-                    // 중복 출력 및 지저분함을 막기 위해, 개별 항목 대신 시스템 범주를 셔플하여 할당
                     let shuffledSystems = seedShuffle(systemCategories, dStr + v.id);
                     if(offsetTracker[v.type] === undefined) offsetTracker[v.type] = 0;
                     
@@ -630,7 +706,7 @@
                     }
                     offsetTracker[v.type] = (off + 2) % shuffledSystems.length;
 
-                    let uniquePicked = [...new Set(picked)]; // 완벽한 중복 제거
+                    let uniquePicked = [...new Set(picked)]; 
 
                     report += `[${v.plate}] ${v.name} (${typeName}) - ${dDisplay} 예정\n  └ ${uniquePicked.slice(0,2).join(', ')} 등 점검\n  └ ${uniquePicked.slice(2,4).join(', ')} 등 점검\n\n`;
                 });
@@ -701,8 +777,15 @@
                     regData.forEach(r => {
                         let p = String(r['호수'] || r['등록번호'] || '').trim().replace('3139-', '');
                         let n = String(r['품명'] || r['차종'] || '').trim();
-                        let g = String(r['점검그룹'] || r['그룹'] || mapVehicleType(n) || n).trim();
                         
+                        if (p.endsWith('-1')) {
+                            if (p === '136-1') n = '25톤 트레일러';
+                            else n = p.replace('-1', '') + '호 트레일러';
+                        }
+                        
+                        let g = String(r['점검그룹'] || r['그룹'] || mapVehicleType(n) || n).trim();
+                        if (p.endsWith('-1')) g = '트레일러';
+
                         if(!p || !n || blackList.includes(p)) return;
                         if(!newVehicles.find(x => x.plate === p)) newVehicles.push({ id: idc++, plate: p, name: n, type: g });
                     });
@@ -726,6 +809,7 @@
                     vehicles = newVehicles;
                     schedules = newSchedules;
                     
+                    ensureHardcodedVehicles();
                     saveData(); init();
                     alert("✅ 엑셀 데이터가 성공적으로 업로드 되었습니다.");
                 } catch(err) {
