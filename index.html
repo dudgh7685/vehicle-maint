@@ -1,463 +1,701 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="ko" class="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>부대 차량 예방/고장정비 관리 시스템</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>통합 예방/고장정비 관리시스템 V9</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: { extend: { colors: { darkbg: '#121212', darkcard: '#1e1e1e', darkborder: '#2d3748', primary: '#3b82f6', holiday: '#ef4444' } } }
+        }
+    </script>
     <style>
-        body { background-color: #f3f4f6; -webkit-tap-highlight-color: transparent; }
-        .tab-content { display: none; padding-bottom: 80px; }
-        .tab-content.active { display: block; }
-        .grid-cols-5 { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.25rem; }
-        .min-h-day { min-height: 85px; }
-        ::-webkit-scrollbar { width: 4px; height: 4px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        .bottom-nav { padding-bottom: env(safe-area-inset-bottom); }
+        body { font-family: 'Pretendard', 'Malgun Gothic', sans-serif; background-color: #121212; color: #f3f4f6; margin: 0; padding: 0; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+        ::-webkit-scrollbar { display: none; } 
+        header { flex-shrink: 0; z-index: 40; }
+        #app-container { flex-grow: 1; overflow-y: auto; padding: 1rem; padding-bottom: 2rem; width: 100%; max-width: 56rem; margin: 0 auto; }
+        nav { flex-shrink: 0; z-index: 40; padding-bottom: constant(safe-area-inset-bottom); padding-bottom: env(safe-area-inset-bottom); background-color: #1e1e1e; }
+        .touch-target { min-height: 64px; display: flex; align-items: center; }
+        .touch-btn { min-height: 64px; padding: 0 16px; font-size: 1.125rem; border-radius: 0.75rem; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; gap: 0.5rem; font-weight: bold; cursor: pointer; }
+        .touch-btn:active { transform: scale(0.97); }
+        .touch-input { min-height: 64px; font-size: 1.125rem; padding: 0 16px; border-radius: 0.75rem; background-color: #2d3748; color: white; border: 1px solid #4a5568; width: 100%; appearance: none; }
+        .touch-input:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5); }
+        .glove-checkbox { appearance: none; width: 54px; height: 54px; border: 3px solid #718096; border-radius: 0.75rem; background-color: #2d3748; position: relative; cursor: pointer; flex-shrink: 0; transition: all 0.2s; }
+        .glove-checkbox:checked { background-color: #3b82f6; border-color: #3b82f6; }
+        .glove-checkbox:checked::after { content: '\f00c'; font-family: 'Font Awesome 6 Free'; font-weight: 900; position: absolute; color: white; font-size: 32px; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+        .accordion-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-in-out; }
+        .accordion-content.open { max-height: 1200px; }
+        .exam-highlight { color: #fbbf24; font-weight: 900; background-color: rgba(251, 191, 36, 0.2); padding: 2px 6px; border-radius: 4px; border-bottom: 2px solid #fbbf24; }
+        .cal-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); grid-auto-rows: minmax(50px, auto); gap: 4px; }
+        .cal-day { padding: 4px; border-radius: 0.5rem; background: #1e1e1e; border: 1px solid #2d3748; display: flex; flex-direction: column; cursor: pointer; min-height: 60px; overflow: hidden; }
+        .cal-day.holiday { background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3); }
+        .cal-date-num { font-size: 0.875rem; font-weight: bold; margin-bottom: 4px; }
+        .cal-day.holiday .cal-date-num { color: #ef4444; }
+        /* 달력 텍스트 짤림 방지 및 모바일 최적화 CSS */
+        .sched-badge { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.7rem; padding: 3px 4px; border-radius: 4px; margin-bottom: 3px; text-align: left; width: 100%; box-sizing: border-box; font-weight: 800; border: 1px solid rgba(0,0,0,0.2); }
     </style>
 </head>
-<body class="text-gray-800 antialiased h-screen flex flex-col">
-    <header class="bg-slate-800 text-white p-4 shadow-md sticky top-0 z-20 flex justify-center items-center">
-        <h1 class="text-lg font-bold"><i class="fas fa-truck-wrench mr-2"></i>통합 정비 관리 시스템</h1>
+<body>
+    <header class="bg-darkcard border-b border-darkborder shadow-lg touch-target px-5 justify-between">
+        <div class="flex items-center gap-3">
+            <div class="bg-blue-600 w-12 h-12 flex items-center justify-center rounded-xl shadow-md"><i class="fa-solid fa-truck-wrench text-white text-2xl"></i></div>
+            <h1 class="text-2xl font-bold tracking-tight text-white">차량 통합정비 허브</h1>
+        </div>
     </header>
 
-    <main class="flex-1 overflow-y-auto w-full max-w-3xl mx-auto p-3 relative">
-        <section id="tab-dashboard" class="tab-content active space-y-4">
-            <div class="flex flex-wrap gap-2 justify-between bg-white p-3 rounded shadow-sm border border-gray-200 items-center">
-                <button onclick="changeMonth(-1)" class="p-2 text-gray-500 hover:text-slate-800"><i class="fas fa-chevron-left"></i></button>
-                <h2 id="current-month-display" class="text-lg font-bold"></h2>
-                <button onclick="changeMonth(1)" class="p-2 text-gray-500 hover:text-slate-800"><i class="fas fa-chevron-right"></i></button>
-            </div>
-            <div class="grid grid-cols-2 gap-2">
-                <button onclick="openReportModal('today')" class="bg-indigo-600 active:bg-indigo-700 text-white py-2 rounded shadow text-sm font-semibold"><i class="fas fa-file-alt mr-1"></i>오늘/내일 복사</button>
-                <button onclick="openReportModal('month')" class="bg-purple-600 active:bg-purple-700 text-white py-2 rounded shadow text-sm font-semibold"><i class="fas fa-calendar-alt mr-1"></i>월간 보고서 복사</button>
-            </div>
-            <div class="bg-white rounded shadow-sm border border-gray-200 overflow-hidden">
-                <div class="grid-cols-5 bg-slate-100 border-b border-gray-200 text-center text-xs font-bold text-gray-600 py-2">
-                    <div>월</div><div>화</div><div>수</div><div>목</div><div>금</div>
+    <main id="app-container">
+        <!-- 대시보드 탭 -->
+        <section id="sec-dashboard" class="space-y-6">
+            <h2 class="text-2xl font-bold border-l-4 border-blue-500 pl-3">스마트 스케줄러</h2>
+            <div class="bg-darkcard p-4 rounded-xl border border-darkborder shadow-md">
+                <div class="flex justify-between items-end mb-2">
+                    <span class="text-sm font-bold text-gray-400">월간 예방정비 달성률</span>
+                    <span class="text-lg font-extrabold text-blue-400" id="progress-text">0 / 0 대 (0%)</span>
                 </div>
-                <div id="calendar-grid" class="grid-cols-5 p-1 bg-slate-50"></div>
-            </div>
-            <div class="flex flex-wrap gap-2 text-xs justify-center p-2">
-                <span class="px-2 py-1 bg-red-600 text-white rounded">고장정비</span>
-                <span class="px-2 py-1 bg-blue-600 text-white rounded">반기(정기)</span>
-                <span class="px-2 py-1 bg-yellow-500 text-black font-bold rounded">월간(일일)</span>
-                <span class="px-2 py-1 bg-green-500 text-white rounded">자동할당</span>
-            </div>
-        </section>
-
-        <section id="tab-breakdown" class="tab-content">
-            <div class="bg-white p-4 rounded shadow-sm border border-gray-200">
-                <h2 class="text-lg font-bold border-b pb-2 mb-4 text-slate-800"><i class="fas fa-wrench mr-2"></i>고장정비 접수</h2>
-                <form id="form-breakdown" class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-bold text-gray-500 mb-1">대상 차량</label>
-                        <select id="bd-vehicle" required class="w-full border rounded p-2 text-sm bg-gray-50 focus:ring-2 focus:ring-slate-400"></select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-500 mb-1">대분류</label>
-                        <select id="bd-main-cat" onchange="updateSubCat()" required class="w-full border rounded p-2 text-sm bg-gray-50 focus:ring-2 focus:ring-slate-400">
-                            <option value="">선택</option>
-                            <option value="엔진">엔진 장치</option>
-                            <option value="조향">조향 장치</option>
-                            <option value="제동">제동 장치</option>
-                            <option value="구동">구동/현가 장치</option>
-                            <option value="전장">전장/편의 장치</option>
-                            <option value="특장">특장 장치</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-500 mb-1">소분류</label>
-                        <select id="bd-sub-cat" onchange="toggleCustomSub()" required class="w-full border rounded p-2 text-sm bg-gray-50 focus:ring-2 focus:ring-slate-400 disabled:bg-gray-200" disabled>
-                            <option value="">대분류를 선택하세요</option>
-                        </select>
-                    </div>
-                    <div id="wrap-bd-custom" class="hidden">
-                        <label class="block text-xs font-bold text-gray-500 mb-1">기타 (직접입력)</label>
-                        <input type="text" id="bd-custom" class="w-full border rounded p-2 text-sm bg-gray-50 focus:ring-2 focus:ring-slate-400">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-500 mb-1">고장 내용</label>
-                        <textarea id="bd-desc" required class="w-full border rounded p-2 text-sm bg-gray-50 h-20 focus:ring-2 focus:ring-slate-400"></textarea>
-                    </div>
-                    <button type="submit" class="w-full bg-slate-800 text-white font-bold py-3 rounded shadow active:bg-slate-900">접수 및 달력 배정</button>
-                </form>
-            </div>
-        </section>
-
-        <section id="tab-maintenance" class="tab-content">
-            <div class="bg-white p-4 rounded shadow-sm border border-gray-200">
-                <h2 class="text-lg font-bold border-b pb-2 mb-4 text-slate-800"><i class="fas fa-clipboard-check mr-2"></i>정비 수행</h2>
-                <div class="space-y-3 mb-4">
-                    <select id="mt-vehicle" class="w-full border rounded p-2 text-sm bg-gray-50" onchange="renderChecklist()"></select>
-                    <select id="mt-cycle" class="w-full border rounded p-2 text-sm bg-gray-50" onchange="renderChecklist()">
-                        <option value="">점검 주기 선택</option>
-                        <option value="일일점검">월간/일일 예방정비</option>
-                        <option value="정기점검">반기 정기점검</option>
-                    </select>
+                <div class="w-full bg-gray-700 rounded-full h-3.5 overflow-hidden">
+                    <div class="bg-blue-500 h-full rounded-full transition-all duration-700" id="progress-bar" style="width: 0%"></div>
                 </div>
-                <div id="checklist-area" class="space-y-2 border-t pt-4 min-h-[150px]">
-                    <p class="text-center text-sm text-gray-400 mt-4">차량 및 주기를 선택하세요.</p>
+            </div>
+            
+            <div class="flex gap-3">
+                <button onclick="generateDailyReport()" class="flex-1 touch-btn bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg flex-col !items-start p-4 h-auto py-5">
+                    <span class="text-sm font-normal text-emerald-200"><i class="fa-solid fa-clock mr-1"></i>오늘/내일 기준</span>
+                    <span class="text-xl md:text-2xl font-extrabold mt-1">일일 보고서</span>
+                </button>
+                <button onclick="generateMonthlyReport()" class="flex-1 touch-btn bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg flex-col !items-start p-4 h-auto py-5">
+                    <span class="text-sm font-normal text-indigo-200"><i class="fa-solid fa-calendar-check mr-1"></i>현재 달력 기준</span>
+                    <span class="text-xl md:text-2xl font-extrabold mt-1" id="btn-report-title">월간 보고서</span>
+                </button>
+            </div>
+
+            <div class="bg-darkcard rounded-2xl border border-darkborder shadow-md overflow-hidden mt-4">
+                <div class="p-4 border-b border-darkborder flex justify-between items-center touch-target bg-gray-800">
+                    <button onclick="changeMonth(-1)" class="px-5 py-2 text-2xl"><i class="fa-solid fa-chevron-left"></i></button>
+                    <h3 class="font-extrabold text-2xl text-white tracking-widest" id="cal-title"></h3>
+                    <button onclick="changeMonth(1)" class="px-5 py-2 text-2xl"><i class="fa-solid fa-chevron-right"></i></button>
+                </div>
+                <div class="p-3 bg-gray-900 border-b border-darkborder text-xs text-gray-300 grid grid-cols-2 gap-2 shadow-inner font-bold">
+                    <span class="flex items-center"><i class="fa-solid fa-square text-red-600 mr-2"></i>고장정비</span>
+                    <span class="flex items-center"><i class="fa-solid fa-square text-blue-600 mr-2"></i>반기 예방정비</span>
+                    <span class="flex items-center"><i class="fa-solid fa-square text-yellow-500 mr-2"></i>월간 예방정비</span>
+                    <span class="flex items-center"><i class="fa-solid fa-square text-green-500 mr-2"></i>빈 날짜 자동할당</span>
+                </div>
+                <div class="p-2">
+                    <div class="cal-grid mb-2 text-center text-sm font-bold text-gray-300 pt-2"><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div></div>
+                    <div id="cal-body" class="cal-grid"></div>
                 </div>
             </div>
         </section>
 
-        <section id="tab-settings" class="tab-content">
-            <div class="bg-white p-4 rounded shadow-sm border border-gray-200 space-y-6">
+        <!-- 정비수행 탭 (기존 유지, 완료/저장 기능용) -->
+        <section id="sec-maintenance" class="hidden space-y-6">
+            <h2 class="text-2xl font-bold border-l-4 border-green-500 pl-3">예방정비 체크리스트</h2>
+            <div class="bg-darkcard p-5 rounded-2xl border border-darkborder shadow-md space-y-5">
+                <select id="maint-vehicle" class="touch-input font-bold text-white" onchange="loadChecklist()"><option value="">대상 차량 (호수) 선택</option></select>
+                <select id="maint-type" class="touch-input font-bold text-green-300" onchange="loadChecklist()">
+                    <option value="일일점검">일일점검 (월간 계획 대상)</option>
+                    <option value="정기점검">정기점검 (반기 계획 대상)</option>
+                </select>
+            </div>
+            <div id="checklist-container" class="space-y-4">
+                <div class="text-center text-gray-500 py-20 bg-darkcard rounded-2xl border border-darkborder">
+                    <i class="fa-solid fa-clipboard-check text-6xl mb-4 opacity-30"></i><br><span class="font-bold text-lg">차량과 정비 주기를 선택해 주세요.</span>
+                </div>
+            </div>
+            <div id="btn-submit-maint-container" class="hidden pt-2 pb-6">
+                <button onclick="submitMaintenance()" class="touch-btn bg-green-600 hover:bg-green-500 text-white w-full shadow-[0_10px_20px_rgba(22,163,74,0.4)] text-2xl py-6 rounded-2xl border border-green-400">
+                    <i class="fa-solid fa-check-double mr-2 text-3xl"></i> 정비 일지 내부저장
+                </button>
+            </div>
+        </section>
+
+        <!-- 신규: 고장정비 접수 탭 -->
+        <section id="sec-fault" class="hidden space-y-6">
+            <h2 class="text-2xl font-bold border-l-4 border-red-500 pl-3">고장정비 접수</h2>
+            <div class="bg-darkcard p-5 rounded-2xl border border-darkborder shadow-md space-y-5">
                 <div>
-                    <h2 class="text-lg font-bold text-slate-800 mb-2"><i class="fas fa-file-excel mr-2 text-green-600"></i>엑셀 데이터 연동</h2>
-                    <input type="file" id="excel-upload" accept=".xlsx, .xls" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200">
+                    <label class="block text-sm font-bold text-gray-400 mb-2">1. 대상 차량 선택</label>
+                    <select id="fault-vehicle" class="touch-input font-bold text-white"></select>
                 </div>
-                <div class="grid grid-cols-2 gap-3 text-center border-y py-4 border-gray-100">
-                    <div><p class="text-xs text-gray-400">등록 차량</p><p id="stat-veh" class="text-xl font-bold text-slate-800">0대</p></div>
-                    <div><p class="text-xs text-gray-400">정비 계획</p><p id="stat-plan" class="text-xl font-bold text-slate-800">0건</p></div>
+                
+                <div>
+                    <label class="block text-sm font-bold text-gray-400 mb-2">2. 정비 개소 (계통 선택)</label>
+                    <div class="flex gap-2">
+                        <select id="fault-main-cat" class="touch-input flex-1 font-bold text-red-300" onchange="updateSubCat()">
+                            <option value="">대분류 선택</option>
+                            <option value="엔진계통">엔진계통</option>
+                            <option value="조향계통">조향계통</option>
+                            <option value="제동계통">제동계통</option>
+                            <option value="구동/현가계통">구동/현가계통</option>
+                            <option value="전장계통">전장계통</option>
+                            <option value="특장계통">특장계통</option>
+                        </select>
+                        <select id="fault-sub-cat" class="touch-input flex-1 font-bold text-white" onchange="checkCustomSubCat()">
+                            <option value="">소분류 선택</option>
+                        </select>
+                    </div>
+                    <input type="text" id="fault-custom-sub" class="touch-input text-white mt-3 hidden" placeholder="기타 정비개소 직접 입력">
                 </div>
-                <button onclick="resetSystem()" class="w-full bg-red-100 text-red-600 hover:bg-red-200 font-bold py-3 rounded text-sm"><i class="fas fa-trash-alt mr-1"></i>데이터 전체 초기화</button>
+
+                <div>
+                    <label class="block text-sm font-bold text-gray-400 mb-2">3. 고장 내용 상세</label>
+                    <input type="text" id="fault-desc" class="touch-input text-white" placeholder="증상 입력 (예: 주행 중 시동꺼짐)">
+                </div>
+
+                <div class="pt-4">
+                    <button onclick="submitFault()" class="touch-btn bg-red-600 hover:bg-red-500 text-white w-full shadow-[0_10px_20px_rgba(220,38,38,0.4)] text-2xl py-6 rounded-2xl border border-red-400">
+                        <i class="fa-solid fa-triangle-exclamation mr-2 text-3xl"></i> 접수 및 달력 추가
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 설정 탭 -->
+        <section id="sec-settings" class="hidden space-y-6">
+            <h2 class="text-2xl font-bold border-l-4 border-purple-500 pl-3">설정 및 차량대장 관리</h2>
+            
+            <div class="bg-blue-900/30 p-5 rounded-2xl border border-blue-800 shadow-md space-y-3">
+                <div class="flex justify-between items-center mb-2">
+                    <div>
+                        <h3 class="font-bold text-xl text-white"><i class="fa-solid fa-file-excel mr-2 text-green-400"></i>통합 엑셀 업로드</h3>
+                        <p class="text-xs text-gray-300 mt-1">파일 하나로 [대장/DB/계획]을 덮어씁니다.</p>
+                    </div>
+                    <label class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-3 rounded-xl cursor-pointer flex items-center text-base font-bold shadow-lg transition">
+                        <i class="fa-solid fa-upload mr-2"></i>업로드
+                        <input type="file" id="excel-upload" accept=".xlsx, .xls" class="hidden" onchange="handleExcelUpload(event)">
+                    </label>
+                </div>
+                <p class="text-[11px] text-blue-300 bg-blue-950/50 p-3 rounded-lg leading-relaxed">
+                    <b class="text-white">※ 엑셀 필수 작성 규칙 (시트 3개)</b><br>
+                    - 1시트(차량대장): <b>호수</b>, <b>품명</b>, <b>점검그룹</b><br>
+                    - 2시트(체크리스트): <b>점검그룹</b>, <b>점검주기</b>(일일/정기), <b>항목</b>, <b>정비방법</b><br>
+                    - 3시트(정비계획): <b>호수</b>, <b>계획일자</b>(YYYY-MM-DD), <b>점검주기</b>(월간/반기)
+                </p>
+            </div>
+            
+            <div class="bg-darkcard p-5 rounded-2xl border border-darkborder shadow-md space-y-4">
+                <h3 class="font-bold text-lg text-red-400 mb-2">시스템 데이터 리셋</h3>
+                <button onclick="factoryReset()" class="touch-btn bg-red-900/40 text-red-400 border border-red-800 w-full"><i class="fa-solid fa-trash-can mr-2"></i> 모든 데이터 초기화 (초기세팅용)</button>
+            </div>
+            
+            <div class="bg-darkcard p-5 rounded-2xl border border-darkborder shadow-md space-y-4">
+                <div class="flex justify-between items-center mb-2"><h3 class="font-bold text-lg text-white">차량 대장 현황</h3></div>
+                <div class="relative mb-3">
+                    <i class="fa-solid fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 text-lg"></i>
+                    <input type="text" id="veh-search" class="touch-input pl-12 h-12 min-h-0 text-base" placeholder="차량번호 검색" onkeyup="renderRegistry()">
+                </div>
+                <div class="space-y-3" id="vehicle-list"></div>
             </div>
         </section>
     </main>
 
-    <nav class="bottom-nav bg-white border-t border-gray-200 fixed bottom-0 w-full z-30 max-w-3xl left-1/2 transform -translate-x-1/2">
-        <ul class="flex justify-between text-xs font-medium text-gray-400">
-            <li class="flex-1 text-center py-3 active-tab text-slate-800" onclick="switchTab('dashboard', this)">
-                <i class="fas fa-calendar-alt text-lg block mb-1"></i>대시보드
-            </li>
-            <li class="flex-1 text-center py-3" onclick="switchTab('breakdown', this)">
-                <i class="fas fa-wrench text-lg block mb-1"></i>고장접수
-            </li>
-            <li class="flex-1 text-center py-3" onclick="switchTab('maintenance', this)">
-                <i class="fas fa-clipboard-list text-lg block mb-1"></i>정비수행
-            </li>
-            <li class="flex-1 text-center py-3" onclick="switchTab('settings', this)">
-                <i class="fas fa-cog text-lg block mb-1"></i>설정
-            </li>
-        </ul>
+    <!-- 4탭 하단 네비게이션 -->
+    <nav class="border-t border-darkborder w-full flex justify-around items-center h-[80px] shadow-[0_-5px_20px_rgba(0,0,0,0.5)]">
+        <button onclick="switchTab('dashboard')" class="flex-1 flex flex-col items-center justify-center h-full text-blue-500" id="tab-dashboard"><i class="fa-solid fa-calendar-check text-2xl mb-1"></i><span class="text-[11px] font-extrabold">대시보드</span></button>
+        <button onclick="switchTab('fault')" class="flex-1 flex flex-col items-center justify-center h-full text-gray-500 hover:text-red-400" id="tab-fault"><i class="fa-solid fa-triangle-exclamation text-2xl mb-1"></i><span class="text-[11px] font-extrabold">고장접수</span></button>
+        <button onclick="switchTab('maintenance')" class="flex-1 flex flex-col items-center justify-center h-full text-gray-500 hover:text-green-500" id="tab-maintenance"><i class="fa-solid fa-clipboard-list text-2xl mb-1"></i><span class="text-[11px] font-extrabold">예방정비</span></button>
+        <button onclick="switchTab('settings')" class="flex-1 flex flex-col items-center justify-center h-full text-gray-500 hover:text-purple-400" id="tab-settings"><i class="fa-solid fa-gear text-2xl mb-1"></i><span class="text-[11px] font-extrabold">설정/데이터</span></button>
     </nav>
 
-    <div id="modal-report" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-md rounded p-4 shadow-xl">
-            <div class="flex justify-between items-center mb-3">
-                <h3 class="font-bold text-lg text-slate-800">보고서 복사</h3>
-                <button onclick="closeModal()" class="text-gray-400 hover:text-black"><i class="fas fa-times text-xl"></i></button>
+    <!-- 모달창 -->
+    <div id="modal-result" class="fixed inset-0 bg-black/90 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="bg-darkcard w-full max-w-lg rounded-2xl border border-darkborder shadow-2xl overflow-hidden flex flex-col">
+            <div class="bg-blue-600 p-5 flex justify-between items-center touch-target">
+                <h3 class="font-bold text-white text-xl"><i class="fa-solid fa-file-lines mr-2"></i>자동생성 보고서</h3>
+                <button onclick="closeModal()" class="text-white text-4xl px-4 h-full">&times;</button>
             </div>
-            <textarea id="report-output" class="w-full h-64 border rounded p-3 text-sm bg-gray-50 focus:outline-none resize-none whitespace-pre-wrap leading-relaxed" readonly></textarea>
-            <button onclick="copyToClipboard()" class="w-full mt-3 bg-slate-800 text-white py-3 rounded font-bold">텍스트 복사</button>
+            <div class="p-6"><textarea id="modal-text" class="w-full bg-[#121212] text-gray-100 border border-darkborder rounded-xl p-5 min-h-[300px] font-mono text-base leading-relaxed focus:outline-none focus:border-blue-500 resize-none" readonly></textarea></div>
+            <div class="p-5 border-t border-darkborder bg-gray-800"><button onclick="copyModalText()" class="touch-btn bg-blue-600 hover:bg-blue-500 text-white w-full shadow-lg text-xl"><i class="fa-solid fa-copy text-2xl"></i> 클립보드 복사</button></div>
         </div>
     </div>
 
     <script>
-        const state = {
-            vehicles: JSON.parse(localStorage.getItem('fm_veh') || '[]'),
-            checklist: JSON.parse(localStorage.getItem('fm_chk') || '[]'),
-            plans: JSON.parse(localStorage.getItem('fm_plan') || '[]'),
-            breakdowns: JSON.parse(localStorage.getItem('fm_brk') || '[]'),
-            history: JSON.parse(localStorage.getItem('fm_hist') || '[]'),
-            scheduleMap: {},
-            currentDate: new Date()
+        let db = {};
+        let vehicles = []; 
+        let schedules = []; 
+        let autoSchedules = []; // 달력 빈칸 채우기용 동적 배열 (저장안함)
+        let holidays = []; 
+        let currentDate = new Date(); 
+
+        const faultCategories = {
+            "엔진계통": ["시동불량", "출력저하", "오일누유", "냉각수누수", "소음/진동", "기타"],
+            "조향계통": ["핸들무거움", "쏠림현상", "타이로드엔드 유격", "오일누유", "기타"],
+            "제동계통": ["밀림현상", "소음발생", "페달스펀지", "제동력저하", "기타"],
+            "구동/현가계통": ["변속충격", "클러치슬립", "하부소음", "쇼바누유/파손", "기타"],
+            "전장계통": ["배터리방전", "등화류점등불량", "계기판경고등", "기타"],
+            "특장계통": ["PTO작동불량", "밸브누유", "유압펌프불량", "기타"]
         };
 
-        const subCatDB = {
-            "엔진": ["윤활계통", "냉각계통", "연료계통", "흡배기계통", "구동벨트", "기타"],
-            "조향": ["타이로드엔드", "스티어링기어", "파워펌프/오일", "기타"],
-            "제동": ["브레이크패드", "디스크/드럼", "브레이크오일", "캘리퍼", "기타"],
-            "구동": ["쇽업소버", "스프링/암", "미션오일", "등속조인트", "타이어", "기타"],
-            "전장": ["배터리", "알터네이터", "전조등/제동등", "에어컨/히터", "기타"],
-            "특장": ["유압라인", "펌프", "와이어/실린더", "기타"]
-        };
+        const blackList = ["188-1", "190-1", "191-1", "197"];
+        const systemHolidays = [
+            "2026-01-01", "2026-02-16", "2026-02-17", "2026-02-18", "2026-03-02", "2026-05-05", "2026-05-25", "2026-08-17", "2026-09-24", "2026-09-25", "2026-10-05", "2026-10-09", "2026-12-25",
+            "2027-01-01", "2027-02-05", "2027-02-08", "2027-03-01", "2027-05-05", "2027-05-13", "2027-08-16", "2027-09-14", "2027-09-15", "2027-09-16", "2027-10-04", "2027-10-11", "2027-12-27"
+        ];
 
-        const holidays = ['2026-01-01', '2026-03-01', '2026-05-05', '2026-06-06', '2026-08-15', '2026-10-03', '2026-10-09', '2026-12-25'];
-
-        function isWorkingDay(dObj) {
-            const day = dObj.getDay();
-            if(day === 0 || day === 6) return false;
-            if(holidays.includes(dObj.toISOString().split('T')[0])) return false;
-            return true;
+        function isSystemHoliday(dateStr) { return systemHolidays.includes(dateStr); }
+        function isHolidayOrWeekend(dateStr) {
+            const parts = dateStr.split('-');
+            const d = new Date(parts[0], parts[1] - 1, parts[2]);
+            const day = d.getDay();
+            return day === 0 || day === 6 || systemHolidays.includes(dateStr) || holidays.includes(dateStr);
         }
 
-        function getNextWorkingDay(dObj) {
-            let d = new Date(dObj);
-            while(!isWorkingDay(d)) d.setDate(d.getDate() + 1);
-            return d.toISOString().split('T')[0];
-        }
-
-        function switchTab(tabId, el) {
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            document.querySelectorAll('.bottom-nav li').forEach(l => {
-                l.classList.remove('text-slate-800'); l.classList.add('text-gray-400');
-            });
-            document.getElementById(`tab-${tabId}`).classList.add('active');
-            el.classList.remove('text-gray-400'); el.classList.add('text-slate-800');
-            if(tabId === 'dashboard') { calculateSchedule(); renderCalendar(); }
-        }
-
-        function excelDateToJS(serial) {
-            if(!serial) return "";
-            if(typeof serial === 'string') return serial.replace(/\//g, '-');
-            return new Date((serial - 25569) * 86400 * 1000).toISOString().split('T')[0];
-        }
-
-        function autoMapGroup(name) {
-            if(/(1톤|2\.5톤|5톤|마이티|봉고)/.test(name)) return "상용트럭";
-            if(/(K-?311|1 1\/4톤)/.test(name)) return "K311 계열";
-            if(/(K-?711)/.test(name)) return "K711 계열";
-            if(/(덤프|트랙터|8\.5~25톤|대형)/.test(name)) return "대형트럭(덤프/트랙터)";
-            if(/(유조|급수차)/.test(name)) return "유조차(특장)";
-            if(/(스타렉스|12인승|AMB|중형버스)/.test(name)) return "승합차";
-            if(/(코란도|렉스턴|짚)/.test(name)) return "소형/승용차";
-            if(/(리프트|세척기|수거기)/.test(name)) return "특수장비";
-            return "기본차량";
-        }
-
-        document.getElementById('excel-upload').addEventListener('change', e => {
-            const file = e.target.files[0];
-            if(!file) return;
-            const reader = new FileReader();
-            reader.onload = evt => {
-                const workbook = XLSX.read(new Uint8Array(evt.target.result), {type: 'array'});
-                try {
-                    const bl = ['188-1', '190-1', '191-1', '197'];
-                    state.vehicles = XLSX.utils.sheet_to_json(workbook.Sheets['차량대장']).filter(v => {
-                        const idStr = String(v.호수);
-                        if(bl.includes(idStr) || /(188-1|190-1|191-1|197)/.test(idStr)) return false;
-                        if(v.품명 && /(30kw|발전기)/.test(v.품명)) return false;
-                        return true;
-                    }).map(v => ({ id: String(v.호수), name: v.품명, group: v.점검그룹 || autoMapGroup(v.품명) }));
-
-                    state.checklist = XLSX.utils.sheet_to_json(workbook.Sheets['체크리스트 DB']).map(c => 
-                        ({ group: c.점검그룹, cycle: c.점검주기, item: c.항목, method: c.정비방법 })
-                    );
-
-                    state.plans = XLSX.utils.sheet_to_json(workbook.Sheets['예방정비계획']).map(p => ({
-                        id: String(p.호수), 
-                        date: excelDateToJS(p.계획일자), 
-                        cycle: String(p.점검주기).replace('반년', '반기'),
-                        uid: Math.random().toString(36).substr(2, 9)
-                    }));
-                    saveData(); init(); alert('연동 성공');
-                } catch(err) { alert('오류가 발생했습니다.'); }
-            };
-            reader.readAsArrayBuffer(file);
-        });
-
-        function calculateSchedule() {
-            state.scheduleMap = {};
-            const y = state.currentDate.getFullYear(), m = state.currentDate.getMonth(), todayStr = new Date().toISOString().split('T')[0];
-            let dateMap = {};
-
-            for(let d=1; d<=31; d++) {
-                let tmp = new Date(y, m, d);
-                if(tmp.getMonth() !== m) break;
-                if(isWorkingDay(tmp)) dateMap[tmp.toISOString().split('T')[0]] = { breakdown: [], plan: [] };
-            }
-
-            state.breakdowns.forEach(b => {
-                let target = getNextWorkingDay(b.date < todayStr ? todayStr : b.date);
-                if(!dateMap[target]) dateMap[target] = { breakdown: [], plan: [] };
-                dateMap[target].breakdown.push(b);
-            });
-
-            state.plans.forEach(p => {
-                if(state.history.includes(p.uid)) return;
-                if(!p.date.startsWith(`${y}-${String(m+1).padStart(2,'0')}`)) return;
-                
-                let attempt = new Date(p.date), pulled = false;
-                if(!isWorkingDay(attempt)) {
-                    for(let i=1; i<=7; i++) {
-                        attempt.setDate(attempt.getDate() - 1);
-                        if(isWorkingDay(attempt)) { pulled = true; break; }
-                    }
-                }
-                let aStr = attempt.toISOString().split('T')[0];
-
-                if(!dateMap[aStr] || dateMap[aStr].breakdown.length > 0) {
-                    let found = false, cursor = new Date(aStr);
-                    cursor.setDate(cursor.getDate() + 1);
-                    while(cursor.toISOString().split('T')[0] <= p.date) {
-                        let cStr = cursor.toISOString().split('T')[0];
-                        if(isWorkingDay(cursor) && dateMap[cStr] && dateMap[cStr].breakdown.length === 0 && dateMap[cStr].plan.length === 0) {
-                            dateMap[cStr].plan.push(p); found = true; break;
-                        }
-                        cursor.setDate(cursor.getDate() + 1);
-                    }
-                    if(!found && dateMap[p.date] && isWorkingDay(new Date(p.date))) dateMap[p.date].plan.push(p);
-                    else if(!found && dateMap[aStr]) dateMap[aStr].plan.push(p);
-                } else dateMap[aStr].plan.push(p);
-            });
-
-            if(state.vehicles.length > 0) {
-                Object.keys(dateMap).forEach(dStr => {
-                    if(dateMap[dStr].breakdown.length === 0 && dateMap[dStr].plan.length === 0) {
-                        let seed = parseInt(dStr.replace(/-/g, ''));
-                        dateMap[dStr].plan.push({ id: state.vehicles[seed % state.vehicles.length].id, cycle: '일일점검', type: 'auto' });
-                    }
+        // 고장정비 드롭다운 연동
+        function updateSubCat() {
+            const main = document.getElementById('fault-main-cat').value;
+            const subSel = document.getElementById('fault-sub-cat');
+            subSel.innerHTML = '<option value="">소분류 선택</option>';
+            document.getElementById('fault-custom-sub').classList.add('hidden');
+            document.getElementById('fault-custom-sub').value = '';
+            
+            if(main && faultCategories[main]) {
+                faultCategories[main].forEach(c => {
+                    subSel.innerHTML += `<option value="${c}">${c}</option>`;
                 });
             }
-            state.scheduleMap = dateMap;
         }
+
+        function checkCustomSubCat() {
+            const sub = document.getElementById('fault-sub-cat').value;
+            if(sub === '기타') document.getElementById('fault-custom-sub').classList.remove('hidden');
+            else document.getElementById('fault-custom-sub').classList.add('hidden');
+        }
+
+        function init() {
+            const lsCustomDB = localStorage.getItem('vms_custom_db');
+            if(lsCustomDB) db = JSON.parse(lsCustomDB);
+            const lsHolidays = localStorage.getItem('vms_holidays');
+            if(lsHolidays) holidays = JSON.parse(lsHolidays);
+
+            let lsVehicles = localStorage.getItem('vms_vehicles');
+            let lsSchedules = localStorage.getItem('vms_schedules');
+
+            if(lsVehicles && lsSchedules) {
+                vehicles = JSON.parse(lsVehicles);
+                schedules = JSON.parse(lsSchedules);
+                recalcAllSchedules();
+            }
+
+            switchTab('dashboard');
+
+            if (vehicles.length === 0) {
+                setTimeout(() => { alert("등록된 데이터가 없습니다.\n[설정] 탭에서 마스터 엑셀 파일을 업로드 해주세요."); switchTab('settings'); }, 500);
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem('vms_custom_db', JSON.stringify(db));
+            localStorage.setItem('vms_vehicles', JSON.stringify(vehicles));
+            localStorage.setItem('vms_schedules', JSON.stringify(schedules));
+            localStorage.setItem('vms_holidays', JSON.stringify(holidays));
+        }
+
+        function factoryReset() {
+            if(confirm("모든 데이터를 초기화하고 텅 빈 상태로 되돌리시겠습니까?")) {
+                localStorage.clear(); location.reload();
+            }
+        }
+
+        function switchTab(tabId) {
+            ['dashboard', 'fault', 'maintenance', 'settings'].forEach(t => {
+                document.getElementById(`sec-${t}`).classList.add('hidden');
+                document.getElementById(`tab-${t}`).classList.remove('text-blue-500', 'text-green-500', 'text-purple-500', 'text-red-400', 'text-yellow-400');
+                document.getElementById(`tab-${t}`).classList.add('text-gray-500');
+            });
+            document.getElementById(`sec-${tabId}`).classList.remove('hidden');
+            
+            const colors = { 'dashboard':'text-blue-500', 'fault':'text-red-400', 'maintenance':'text-green-500', 'settings':'text-purple-500' };
+            document.getElementById(`tab-${tabId}`).classList.remove('text-gray-500');
+            document.getElementById(`tab-${tabId}`).classList.add(colors[tabId].split(' ')[0]);
+            
+            if(tabId === 'dashboard') { renderCalendar(); }
+            if(tabId === 'fault') { renderFaultOptions(); }
+            if(tabId === 'maintenance') { renderMaintenanceOptions(); }
+            if(tabId === 'settings') { renderRegistry(); }
+            document.getElementById('app-container').scrollTop = 0;
+        }
+
+        // 고장정비 접수 로직
+        function renderFaultOptions() {
+            const sel = document.getElementById('fault-vehicle');
+            sel.innerHTML = '<option value="">대상 차량 (호수) 선택</option>';
+            vehicles.forEach(v => { sel.innerHTML += `<option value="${v.id}">[${v.plate}호] ${v.name}</option>`; });
+        }
+
+        function submitFault() {
+            const vId = document.getElementById('fault-vehicle').value;
+            const desc = document.getElementById('fault-desc').value;
+            const main = document.getElementById('fault-main-cat').value;
+            let sub = document.getElementById('fault-sub-cat').value;
+            if(sub === '기타') sub = document.getElementById('fault-custom-sub').value;
+
+            if(!vId || !desc || !main || !sub) return alert("차량, 고장내용, 정비개소를 모두 입력해주세요.");
+
+            // 고장정비는 가장 빠른 평일(오늘부터)에 배치
+            let dt = new Date();
+            let targetDate = '';
+            for(let i=0; i<7; i++) {
+                let s = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+                if(!isHolidayOrWeekend(s)) { targetDate = s; break; }
+                dt.setDate(dt.getDate()+1);
+            }
+
+            const v = vehicles.find(x => String(x.id) === String(vId));
+            schedules.push({
+                id_s: Date.now(),
+                vId: v.id,
+                type: v.type,
+                cycle: '고장정비',
+                originalDate: targetDate,
+                assignedDate: targetDate,
+                faultDesc: desc,
+                faultPart: `${main}(${sub})`
+            });
+
+            saveData();
+            recalcAllSchedules(); // 스케줄 재조정 (우선순위 양보 및 자동할당 계산)
+            alert("✅ 고장 정비가 접수되어 달력에 최우선 배치되었습니다.");
+            
+            document.getElementById('fault-desc').value = '';
+            document.getElementById('fault-main-cat').value = '';
+            updateSubCat();
+            switchTab('dashboard');
+        }
+
+        // 핵심 스케줄링 엔진 (우선순위 및 자동할당)
+        function recalcAllSchedules() {
+            autoSchedules = [];
+            let assignedCount = {};
+            
+            // 1. 고장정비 우선 배치
+            let faults = schedules.filter(s => s.cycle === '고장정비');
+            let prevs = schedules.filter(s => s.cycle !== '고장정비');
+
+            faults.forEach(f => {
+                 assignedCount[f.assignedDate] = (assignedCount[f.assignedDate] || 0) + 1;
+            });
+
+            // 2. 예방정비 배치 (고장정비가 있는 날은 피해서 양보)
+            prevs.sort((a,b) => a.originalDate.localeCompare(b.originalDate));
+            prevs.forEach(s => {
+                const parts = s.originalDate.split('-');
+                const origDate = new Date(parts[0], parts[1] - 1, parts[2]);
+                let targetStr = null;
+                let dt = new Date(origDate);
+                
+                // 해당일이 비어있는지 7일전까지 탐색
+                for(let i=0; i<=7; i++) {
+                    let str = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+                    // 원래 날짜(i==0)면 고장정비가 있어도 겹쳐서 진행 허용(최대2대), 당겨진 일정(i>0)이면 고장없는 빈날 찾기
+                    let maxAllowed = (i === 0) ? 2 : 0; 
+                    if(!isHolidayOrWeekend(str) && (assignedCount[str] || 0) <= maxAllowed) { 
+                        targetStr = str; break; 
+                    }
+                    dt.setDate(dt.getDate() - 1); 
+                }
+                
+                // 위에서 못찾으면 그냥 가장 스케줄 적은 평일로
+                if(!targetStr) {
+                    dt = new Date(origDate);
+                    while(true) {
+                        let str = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+                        if(!isHolidayOrWeekend(str)) { targetStr = str; break; }
+                        dt.setDate(dt.getDate() - 1);
+                    }
+                }
+                
+                s.assignedDate = targetStr;
+                assignedCount[targetStr] = (assignedCount[targetStr] || 0) + 1;
+            });
+
+            // 3. 빈 날짜 1일 1대 랜덤 자동 채우기 (현재달 ~ 다음달)
+            let startDt = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+            let endDt = new Date(currentDate.getFullYear(), currentDate.getMonth()+2, 0); 
+            
+            while(startDt <= endDt) {
+                let s = `${startDt.getFullYear()}-${String(startDt.getMonth()+1).padStart(2,'0')}-${String(startDt.getDate()).padStart(2,'0')}`;
+                if(!isHolidayOrWeekend(s) && !assignedCount[s]) {
+                    // 고정된 난수 시드로 차량 1대 선정
+                    let seed = parseInt(s.replace(/-/g,''));
+                    let randIdx = seed % vehicles.length;
+                    if(vehicles[randIdx]) {
+                        autoSchedules.push({
+                            vId: vehicles[randIdx].id,
+                            type: vehicles[randIdx].type,
+                            cycle: '자동할당', // 보고서에선 일일정비로 표출
+                            assignedDate: s
+                        });
+                    }
+                }
+                startDt.setDate(startDt.getDate()+1);
+            }
+        }
+
+        function toggleHoliday(dateStr) {
+            if(isSystemHoliday(dateStr)) { alert("해당일은 법정 공휴일이므로 해제할 수 없습니다."); return; }
+            const isAlreadyHoliday = holidays.includes(dateStr);
+            if(confirm(isAlreadyHoliday ? "수동 휴무를 해제하시겠습니까?" : "이 날짜를 휴무로 지정하시겠습니까?")) {
+                if(isAlreadyHoliday) { holidays.splice(holidays.indexOf(dateStr), 1); } else { holidays.push(dateStr); }
+                recalcAllSchedules(); saveData(); renderCalendar();
+            }
+        }
+
+        function changeMonth(delta) { currentDate.setMonth(currentDate.getMonth() + delta); recalcAllSchedules(); renderCalendar(); }
 
         function renderCalendar() {
-            const grid = document.getElementById('calendar-grid');
-            grid.innerHTML = '';
-            const y = state.currentDate.getFullYear(), m = state.currentDate.getMonth();
-            document.getElementById('current-month-display').innerText = `${y}년 ${m + 1}월`;
+            const y = currentDate.getFullYear();
+            const m = currentDate.getMonth();
+            document.getElementById('cal-title').innerText = `${y}년 ${m+1}월`;
+            document.getElementById('btn-report-title').innerText = `${m+1}월 보고서`;
 
-            const firstDay = new Date(y, m, 1).getDay();
-            const daysInMonth = new Date(y, m + 1, 0).getDate();
-            let startOffset = (firstDay >= 1 && firstDay <= 5) ? firstDay - 1 : 0;
-
-            for(let i=0; i<startOffset; i++) grid.innerHTML += `<div class="bg-white min-h-day p-1 border-r border-b border-gray-200 opacity-30"></div>`;
+            const daysInMonth = new Date(y, m+1, 0).getDate();
+            const calBody = document.getElementById('cal-body');
+            let calBodyHtml = '';
+            
+            const monthPrefix = `${y}-${String(m+1).padStart(2,'0')}`;
+            // 캘린더 통합 데이터 (실제 스케줄 + 자동할당 스케줄)
+            let combinedSchedules = [...schedules, ...autoSchedules];
+            
+            let totalPrevs = schedules.filter(s => s.assignedDate.startsWith(monthPrefix) && s.cycle !== '고장정비').length;
+            document.getElementById('progress-text').innerText = `계획 대비 초과 달성중 🚀`;
+            document.getElementById('progress-bar').style.width = `100%`;
 
             for(let d=1; d<=daysInMonth; d++) {
-                let dObj = new Date(y, m, d), dow = dObj.getDay();
-                if(dow === 0 || dow === 6) continue;
-
-                let dStr = dObj.toISOString().split('T')[0], sData = state.scheduleMap[dStr];
-                let html = `<div class="bg-white min-h-day p-1 flex flex-col gap-1 border-r border-b border-gray-200">
-                    <div class="text-[10px] text-right font-bold text-gray-400">${d}</div>`;
+                let dateObj = new Date(y, m, d);
+                let dayOfWeek = dateObj.getDay();
+                if (dayOfWeek === 0 || dayOfWeek === 6) continue;
+                const dateStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                if (calBodyHtml === '') { for (let i = 0; i < dayOfWeek - 1; i++) { calBodyHtml += `<div></div>`; } }
                 
-                if(sData) {
-                    sData.breakdown.forEach(b => html += `<div class="bg-red-600 text-white text-[10px] px-1 py-0.5 rounded truncate">고장: [${b.id}]</div>`);
-                    sData.plan.forEach(p => {
-                        let v = state.vehicles.find(x=>x.id===p.id)||{name:''};
-                        if(p.cycle === '반기') html += `<div class="bg-blue-600 text-white text-[10px] px-1 py-0.5 rounded truncate">[${p.id}] ${v.name}</div>`;
-                        else if(p.cycle === '월간') html += `<div class="bg-yellow-500 text-black font-bold text-[10px] px-1 py-0.5 rounded truncate">[${p.id}] ${v.name}</div>`;
-                        else html += `<div class="bg-green-500 text-white text-[10px] px-1 py-0.5 rounded truncate">일일: [${p.id}]</div>`;
-                    });
-                }
-                grid.innerHTML += html + `</div>`;
-            }
-        }
-
-        function changeMonth(dir) { state.currentDate.setMonth(state.currentDate.getMonth() + dir); calculateSchedule(); renderCalendar(); }
-
-        function updateSubCat() {
-            const main = document.getElementById('bd-main-cat').value, sub = document.getElementById('bd-sub-cat');
-            sub.innerHTML = '<option value="">선택</option>';
-            document.getElementById('wrap-bd-custom').classList.add('hidden');
-            if(main && subCatDB[main]) { sub.disabled = false; subCatDB[main].forEach(c => sub.innerHTML += `<option value="${c}">${c}</option>`); }
-            else sub.disabled = true;
-        }
-
-        function toggleCustomSub() {
-            const isCustom = document.getElementById('bd-sub-cat').value === '기타';
-            document.getElementById('wrap-bd-custom').classList[isCustom ? 'remove' : 'add']('hidden');
-            document.getElementById('bd-custom').required = isCustom;
-        }
-
-        document.getElementById('form-breakdown').addEventListener('submit', e => {
-            e.preventDefault();
-            let sub = document.getElementById('bd-sub-cat').value;
-            if(sub === '기타') sub = document.getElementById('bd-custom').value;
-            state.breakdowns.push({
-                id: document.getElementById('bd-vehicle').value,
-                date: new Date().toISOString().split('T')[0], cycle: '고장정비',
-                main: document.getElementById('bd-main-cat').value, sub, desc: document.getElementById('bd-desc').value
-            });
-            saveData(); e.target.reset(); updateSubCat(); switchTab('dashboard', document.querySelector('.bottom-nav li:first-child'));
-        });
-
-        function renderChecklist() {
-            const id = document.getElementById('mt-vehicle').value, cycle = document.getElementById('mt-cycle').value, area = document.getElementById('checklist-area');
-            if(!id || !cycle) { area.innerHTML = '<p class="text-center text-sm text-gray-400 mt-4">차량 및 주기를 선택하세요.</p>'; return; }
-            const veh = state.vehicles.find(v => v.id === id);
-            const items = state.checklist.filter(c => c.group === veh.group && c.cycle === cycle);
-            if(!items.length) { area.innerHTML = `<p class="text-sm text-red-500 mt-4 text-center">조회된 정비 항목이 없습니다.</p>`; return; }
-            
-            let html = `<div class="text-xs font-bold text-gray-500 mb-2">총 ${items.length}개 항목</div>`;
-            items.forEach((item, idx) => {
-                html += `<div class="border rounded mb-2 overflow-hidden">
-                    <button class="w-full bg-slate-50 text-left p-3 text-sm font-semibold flex justify-between" onclick="this.nextElementSibling.classList.toggle('hidden')">
-                        <span>${idx+1}. ${item.item}</span><i class="fas fa-chevron-down"></i>
-                    </button>
-                    <div class="hidden p-3 text-xs bg-white border-t border-gray-100">${item.method.replace(/\n/g, '<br>')}</div>
-                </div>`;
-            });
-            const matchingPlan = state.plans.find(p => p.id === id && !state.history.includes(p.uid) && (p.cycle === cycle || (cycle === '일일점검' && p.cycle === '월간')));
-            html += `<button onclick="completeMaintenance('${matchingPlan ? matchingPlan.uid : ''}')" class="w-full mt-4 bg-slate-800 text-white font-bold py-3 rounded">정비 완료 저장</button>`;
-            area.innerHTML = html;
-        }
-
-        function completeMaintenance(uid) {
-            if(uid) state.history.push(uid);
-            saveData(); alert('완료 처리되었습니다.');
-            document.getElementById('mt-vehicle').value = ''; document.getElementById('mt-cycle').value = '';
-            renderChecklist(); calculateSchedule(); renderCalendar();
-        }
-
-        function cleanItem(str) { return str.replace(/(점검|확인|검사|상태|수준|유격|장력|여부|류|량|오염|균열|소음)$/g, '').trim(); }
-        function seedShuffle(arr, seedStr) {
-            let res = [...arr], seed = [...seedStr].reduce((a,c)=>a+c.charCodeAt(0), 0);
-            for(let i=res.length-1; i>0; i--) { let r = Math.floor((Math.sin(seed++) * 10000 - Math.floor(Math.sin(seed-1)*10000)) * (i+1)); [res[i], res[r]] = [res[r], res[i]]; }
-            return res;
-        }
-
-        let offsetMap = {};
-        function openReportModal(type) {
-            const today = new Date(), dates = [];
-            if(type === 'today') {
-                dates.push(today.toISOString().split('T')[0]);
-                let tmrw = new Date(today); tmrw.setDate(tmrw.getDate()+1);
-                dates.push(tmrw.toISOString().split('T')[0]);
-            } else {
-                const y = state.currentDate.getFullYear(), m = state.currentDate.getMonth(), days = new Date(y, m+1, 0).getDate();
-                for(let d=1; d<=days; d++) {
-                    let tmp = new Date(y, m, d);
-                    if(tmp.getDay()!==0 && tmp.getDay()!==6) dates.push(`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`);
-                }
-            }
-
-            let report = []; offsetMap = {};
-            dates.forEach(dStr => {
-                if(!state.scheduleMap[dStr]) return;
-                const sData = state.scheduleMap[dStr];
+                const isHol = isSystemHoliday(dateStr) || holidays.includes(dateStr);
+                const dayScheds = combinedSchedules.filter(s => s.assignedDate === dateStr);
                 
-                sData.breakdown.forEach(b => {
-                    const veh = state.vehicles.find(v => v.id === b.id) || {name:''};
-                    report.push(`[${b.id}] ${veh.name} (고장수리) - ${dStr} 예정\n  └ ${b.main}(${b.sub}) 점검 및 수리 (${b.desc})\n`);
-                });
-
-                sData.plan.forEach(p => {
-                    const veh = state.vehicles.find(v => v.id === p.id); if(!veh) return;
-                    let typeName = p.type === 'auto' ? '일일 예방정비' : (p.cycle === '반기' ? '반기 예방정비' : '월간 예방정비');
-                    let dbCycle = p.cycle === '반기' ? '정기점검' : '일일점검';
-                    let items = state.checklist.filter(c => c.group === veh.group && c.cycle === dbCycle).map(c => cleanItem(c.item));
-                    if(!items.length) items = ['엔진오일','타이어','브레이크','배터리','등화장치','조향장치'];
+                let badges = '';
+                dayScheds.forEach(s => {
+                    const v = vehicles.find(x => x.id === s.vId);
+                    if(!v) return;
                     
-                    items = seedShuffle(items, dStr);
-                    if(offsetMap[veh.group] === undefined) offsetMap[veh.group] = 0;
-                    let off = offsetMap[veh.group], sel = [];
-                    for(let i=0; i<6; i++) sel.push(items[(off+i)%items.length]);
-                    offsetMap[veh.group] = (off + 3) % items.length;
-
-                    report.push(`[${p.id}] ${veh.name} (${typeName}) - ${dStr} 예정\n  └ ${sel.slice(0,3).join(', ')} 등 점검\n  └ ${sel.slice(3,6).join(', ')} 등 점검\n`);
+                    // 4색 컬러 코딩 규칙 적용
+                    let color = '';
+                    if(s.cycle === '고장정비') color = 'bg-red-600 text-white border-red-800';
+                    else if(s.cycle === '정기점검') color = 'bg-blue-600 text-white border-blue-800';
+                    else if(s.cycle === '자동할당') color = 'bg-green-500 text-white border-green-700';
+                    else color = 'bg-yellow-500 text-black border-yellow-600'; // 일일점검(월간)
+                    
+                    const avoidTag = (s.originalDate && s.assignedDate !== s.originalDate) ? `<i class="fa-solid fa-angles-left text-xs opacity-70"></i> ` : '';
+                    let displayName = v.name.split('(')[0].trim().substring(0,5); // 너무 긴 이름 짤림 방지용 축약
+                    
+                    badges += `<div class="${color} sched-badge" onclick="event.stopPropagation();">${avoidTag}[${v.plate}] ${displayName}</div>`;
                 });
+                calBodyHtml += `<div class="cal-day ${isHol ? 'holiday' : ''}" onclick="toggleHoliday('${dateStr}')"><div class="cal-date-num">${d}</div>${badges}</div>`;
+            }
+            calBody.innerHTML = calBodyHtml;
+        }
+
+        // 보고서 출력 텍스트 필터
+        function cleanItemName(name) {
+            return name.replace(/(점검|확인|검사|상태|수준|유격|장력|여부|류|량|오염|균열|소음)$/g, '').trim();
+        }
+
+        function generateDailyReport() {
+            const realToday = new Date();
+            const y1 = realToday.getFullYear(); const m1 = String(realToday.getMonth()+1).padStart(2,'0'); const d1 = String(realToday.getDate()).padStart(2,'0');
+            const t1 = `${y1}-${m1}-${d1}`;
+            const realTom = new Date(realToday); realTom.setDate(realTom.getDate() + 1);
+            const y2 = realTom.getFullYear(); const m2 = String(realTom.getMonth()+1).padStart(2,'0'); const d2 = String(realTom.getDate()).padStart(2,'0');
+            const t2 = `${y2}-${m2}-${d2}`;
+
+            let combined = [...schedules, ...autoSchedules];
+            let targetScheds = combined.filter(s => s.assignedDate === t1 || s.assignedDate === t2);
+            targetScheds.sort((a,b) => a.assignedDate.localeCompare(b.assignedDate));
+
+            if(targetScheds.length === 0) { alert(`오늘(${m1}/${d1})과 내일(${m2}/${d2}) 배정된 정비 일정이 없습니다.`); return; }
+
+            let report = `[오늘/내일 차량정비 예정사항]\n\n`;
+            let typeTracker = {};
+
+            targetScheds.forEach(s => {
+                const v = vehicles.find(x => x.id === s.vId);
+                if(!v) return;
+                
+                const dObj = new Date(s.assignedDate);
+                const mmdd = (dObj.getMonth()+1) + '월 ' + dObj.getDate() + '일';
+                const dayLabel = s.assignedDate === t1 ? '(오늘)' : '(내일)';
+                
+                if(s.cycle === '고장정비') {
+                    report += `🔴 [${v.plate}호] ${v.name} (고장수리) - ${mmdd} ${dayLabel}\n`;
+                    report += `  └ ${s.faultPart} 점검 및 수리 (${s.faultDesc})\n\n`;
+                } else {
+                    // 예방정비 & 자동할당 로직
+                    let fetchCycle = s.cycle === '정기점검' ? '정기점검' : '일일점검';
+                    const list = db[v.type] && db[v.type][fetchCycle] ? db[v.type][fetchCycle] : [];
+                    
+                    let tKey = v.type + "_" + fetchCycle;
+                    if(!typeTracker[tKey]) { typeTracker[tKey] = { shuffled: shuffleItems(list, new Date().getDate()), offset: 0 }; }
+                    
+                    let trk = typeTracker[tKey];
+                    let picked = [];
+                    for(let i=0; i<6 && i<trk.shuffled.length; i++) {
+                        picked.push(cleanItemName(trk.shuffled[(trk.offset + i) % trk.shuffled.length].항목));
+                    }
+                    trk.offset = (trk.offset + 3) % trk.shuffled.length; // 밀어내기
+                    
+                    const displayCycle = s.cycle === '정기점검' ? '반기 정비' : (s.cycle === '자동할당' ? '일일 예방정비' : '월간 정비');
+                    const icon = s.cycle === '자동할당' ? '🟢' : (s.cycle === '정기점검' ? '🔵' : '🟡');
+
+                    report += `${icon} [${v.plate}호] ${v.name} (${displayCycle}) - ${mmdd} ${dayLabel}\n`;
+                    if(picked.length > 0) report += `  └ ${picked.slice(0,3).join(', ')} 등 점검\n`;
+                    if(picked.length > 3) report += `  └ ${picked.slice(3,6).join(', ')} 등 점검\n`;
+                    report += '\n';
+                }
             });
-            document.getElementById('report-output').value = report.length ? report.join('\n') : '일정이 없습니다.';
-            document.getElementById('modal-report').classList.remove('hidden');
+            showModal(report.trim());
         }
 
-        function closeModal() { document.getElementById('modal-report').classList.add('hidden'); }
-        function copyToClipboard() { document.getElementById('report-output').select(); document.execCommand('copy'); alert('복사되었습니다.'); closeModal(); }
+        function generateMonthlyReport() {
+            const y = currentDate.getFullYear();
+            const m = currentDate.getMonth();
+            const startDate = new Date(y, m, 1);
+            const endDate = new Date(y, m + 1, 0);
+            const tStart = startDate.toISOString().split('T')[0];
+            const tEnd = endDate.toISOString().split('T')[0];
 
-        function updateStats() { document.getElementById('stat-veh').innerText = state.vehicles.length+'대'; document.getElementById('stat-plan').innerText = (state.plans.length - state.history.length)+'건'; }
-        function populateSelects() {
-            let opts = '<option value="">선택</option>';
-            state.vehicles.forEach(v => opts += `<option value="${v.id}">[${v.id}] ${v.name}</option>`);
-            document.getElementById('bd-vehicle').innerHTML = opts; document.getElementById('mt-vehicle').innerHTML = opts;
+            let combined = [...schedules, ...autoSchedules];
+            let targetScheds = combined.filter(s => s.assignedDate >= tStart && s.assignedDate <= tEnd);
+            targetScheds.sort((a,b) => a.assignedDate.localeCompare(b.assignedDate));
+
+            if(targetScheds.length === 0) { alert(`${m+1}월에 배정된 정비 일정이 없습니다.`); return; }
+
+            let report = `[${y}년 ${m+1}월 통합정비 예정사항]\n\n`;
+            let typeTracker = {};
+
+            targetScheds.forEach(s => {
+                const v = vehicles.find(x => x.id === s.vId);
+                if(!v) return;
+                
+                const dObj = new Date(s.assignedDate);
+                const mmdd = (dObj.getMonth()+1) + '월 ' + dObj.getDate() + '일';
+                
+                if(s.cycle === '고장정비') {
+                    report += `🔴 [${v.plate}호] ${v.name} (고장수리) - ${mmdd} 예정\n`;
+                    report += `  └ ${s.faultPart} 점검 및 수리 (${s.faultDesc})\n\n`;
+                } else {
+                    let fetchCycle = s.cycle === '정기점검' ? '정기점검' : '일일점검';
+                    const list = db[v.type] && db[v.type][fetchCycle] ? db[v.type][fetchCycle] : [];
+                    
+                    let tKey = v.type + "_" + fetchCycle;
+                    if(!typeTracker[tKey]) { typeTracker[tKey] = { shuffled: shuffleItems(list, m*100), offset: 0 }; }
+                    
+                    let trk = typeTracker[tKey];
+                    let picked = [];
+                    for(let i=0; i<6 && i<trk.shuffled.length; i++) {
+                        picked.push(cleanItemName(trk.shuffled[(trk.offset + i) % trk.shuffled.length].항목));
+                    }
+                    trk.offset = (trk.offset + 3) % trk.shuffled.length;
+                    
+                    const displayCycle = s.cycle === '정기점검' ? '반기 정비' : (s.cycle === '자동할당' ? '일일 예방정비' : '월간 정비');
+                    const icon = s.cycle === '자동할당' ? '🟢' : (s.cycle === '정기점검' ? '🔵' : '🟡');
+
+                    report += `${icon} [${v.plate}호] ${v.name} (${displayCycle}) - ${mmdd} 예정\n`;
+                    if(picked.length > 0) report += `  └ ${picked.slice(0,3).join(', ')} 등 점검\n`;
+                    if(picked.length > 3) report += `  └ ${picked.slice(3,6).join(', ')} 등 점검\n`;
+                    report += '\n';
+                }
+            });
+            showModal(report.trim());
         }
-        function saveData() {
-            localStorage.setItem('fm_veh', JSON.stringify(state.vehicles)); localStorage.setItem('fm_chk', JSON.stringify(state.checklist));
-            localStorage.setItem('fm_plan', JSON.stringify(state.plans)); localStorage.setItem('fm_brk', JSON.stringify(state.breakdowns));
-            localStorage.setItem('fm_hist', JSON.stringify(state.history));
-            updateStats(); populateSelects();
+
+        // 기존 엑셀 파싱 및 설정 부분
+        function handleExcelUpload(event) {
+            const file = event.target.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    
+                    if(workbook.SheetNames.length < 3) throw new Error("시트가 3개 필요합니다.");
+
+                    const regData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+                    const dbData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[1]]);
+                    const schedData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[2]]);
+
+                    let newDB = {};
+                    dbData.forEach(row => {
+                        let group = String(row['점검그룹'] || '').trim();
+                        let cycle = String(row['점검주기'] || '').trim();
+                        let item = String(row['항목'] || '').trim();
+                        let method = String(row['정비방법'] || '').trim();
+                        if(group && cycle && item) {
+                            if(!newDB[group]) newDB[group] = {};
+                            if(!newDB[group][cycle]) newDB[group][cycle] = [];
+                            newDB[group][cycle].push({ 항목: item, 정비방법: method });
+                        }
+                    });
+
+                    let newVehicles = [];
+                    let uniquePlates = new Set();
+                    regData.forEach((row, i) => {
+                        let plate = String(row['호수'] || '').trim().replace('3139-', '');
+                        let name = String(row['품명'] || '').trim();
+                        let group = String(row['점검그룹'] || '').trim();
+                        
+                        if(!plate || !name || blackList.includes(plate) || uniquePlates.has(plate)) return;
+                        uniquePlates.add(plate);
+                        newVehicles.push({ id: Date.now()+i, plate: plate, name: name, type: group });
+                    });
+
+                    let newSchedules = [];
+                    schedData.forEach((row, i) => {
+                        let plate = String(row['호수'] || '').trim().replace('3139-', '');
+                        let dateStr = String(row['계획일자'] || '').trim();
+                        let rawCycle = String(row['점검주기'] || '').trim();
+                        if(!plate || !dateStr) return;
+
+                        const dMatch = dateStr.match(/(\d{4})[-.\/년\s]+(\d{1,2})[-.\/월\s]+(\d{1,2})/);
+                        const origDate = dMatch ? `${dMatch[1]}-${dMatch[2].padStart(2,'0')}-${dMatch[3].padStart(2,'0')}` : new Date().toISOString().split('T')[0];
+                        const cycle = (rawCycle.includes("반기") || rawCycle.includes("반년")) ? "정기점검" : "일일점검";
+
+                        let v = newVehicles.find(x => x.plate === plate);
+                        if(v) newSchedules.push({ id_s: Date.now()+i+1000, vId: v.id, type: v.type, cycle: cycle, originalDate: origDate, assignedDate: origDate });
+                    });
+
+                    if(Object.keys(newDB).length > 0) db = newDB;
+                    vehicles = newVehicles;
+                    schedules = newSchedules;
+                    
+                    recalcAllSchedules();
+                    saveData();
+                    renderRegistry();
+                    
+                    alert(`✅ 통합 세팅 완료!\n- 차량: ${vehicles.length}대\n- 스케줄: ${schedules.length}건`);
+                    switchTab('dashboard');
+
+                } catch(err) { alert("엑셀 업로드 실패! 양식을 확인하세요.\n" + err.message); }
+                event.target.value = '';
+            };
+            reader.readAsArrayBuffer(file);
         }
-        function resetSystem() { if(confirm('모든 데이터를 삭제하시겠습니까?')) { localStorage.clear(); location.reload(); } }
-        function init() { updateStats(); populateSelects(); calculateSchedule(); renderCalendar(); }
-        
-        window.onload = init;
+
+        function renderRegistry() {
+            const list = document.getElementById('vehicle-list');
+            const q = document.getElementById('veh-search').value.toLowerCase();
+            list.innerHTML = '';
+            vehicles.filter(v => v.plate.toLowerCase().includes(q) || v.name.toLowerCase().includes(q)).forEach(v => {
+                list.innerHTML += `<div class="bg-gray-800 border border-darkborder p-4 rounded-xl shadow-md"><h4 class="font-extrabold text-xl text-white">${v.plate}</h4><p class="text-sm text-green-400 font-bold mb-2">${v.name} <span class="text-gray-400 text-xs">(${v.type})</span></p></div>`;
+            });
+        }
+
+        function showModal(text) { document.getElementById('modal-text').value = text; document.getElementById('modal-result').classList.remove('hidden'); document.getElementById('modal-result').classList.add('flex'); }
+        function closeModal() { document.getElementById('modal-result').classList.add('hidden'); document.getElementById('modal-result').classList.remove('flex'); }
+        function copyModalText() { document.getElementById('modal-text').select(); document.execCommand('copy'); alert("✅ 복사되었습니다."); closeModal(); }
+
+        window.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
 </html>
