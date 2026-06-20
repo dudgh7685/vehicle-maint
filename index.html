@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>차량 통합 정비 관리 시스템 V11</title>
+    <title>부대 차량 통합 정비 관리 시스템 V12</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -31,6 +31,7 @@
         .accordion-content.open { max-height: 1200px; }
         .exam-highlight { color: #fbbf24; font-weight: 900; background-color: rgba(251, 191, 36, 0.2); padding: 2px 6px; border-radius: 4px; border-bottom: 2px solid #fbbf24; }
         
+        /* 5일제(월~금) 달력 그리드 */
         .cal-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
         .cal-grid-days { grid-auto-rows: minmax(75px, auto); }
         .cal-day { padding: 4px; border-radius: 0.5rem; background: #1e1e1e; border: 1px solid #2d3748; display: flex; flex-direction: column; cursor: pointer; transition: background-color 0.2s; }
@@ -39,6 +40,7 @@
         .cal-date-num { font-size: 0.875rem; font-weight: bold; margin-bottom: 4px; pointer-events: none; }
         .cal-day.holiday .cal-date-num { color: #ef4444; }
         
+        /* 달력 뱃지 - 색깔 동그라미 없이 깔끔하게 */
         .sched-badge { 
             padding: 4px; border-radius: 6px; margin-bottom: 4px; 
             display: flex; flex-direction: column; align-items: flex-start; justify-content: center; 
@@ -169,6 +171,12 @@
                         <input type="file" id="excel-upload" accept=".xlsx, .xls" class="hidden" onchange="handleExcelUpload(event)">
                     </label>
                 </div>
+                <p class="text-[11px] text-blue-300 bg-blue-950/50 p-3 rounded-lg leading-relaxed">
+                    <b class="text-white">※ 엑셀 작성 규칙 (시트 3개 필수)</b><br>
+                    - 1시트(차량대장): <b>호수</b>, <b>품명</b>, <b>점검그룹</b><br>
+                    - 2시트(체크리스트): <b>점검그룹</b>, <b>점검주기</b>(일일/정기), <b>항목</b>(점검개소), <b>정비방법</b><br>
+                    - 3시트(정비계획): <b>호수</b>, <b>계획일자</b>(YYYY-MM-DD), <b>점검주기</b>(월간/반기)
+                </p>
             </div>
 
             <div class="bg-darkcard p-5 rounded-2xl border border-darkborder shadow-md space-y-4">
@@ -276,10 +284,10 @@
         }
 
         function init() {
-            if(localStorage.getItem('vms11_db')) db = JSON.parse(localStorage.getItem('vms11_db'));
-            if(localStorage.getItem('vms11_veh')) vehicles = JSON.parse(localStorage.getItem('vms11_veh'));
-            if(localStorage.getItem('vms11_sch')) schedules = JSON.parse(localStorage.getItem('vms11_sch'));
-            if(localStorage.getItem('vms11_his')) history = JSON.parse(localStorage.getItem('vms11_his'));
+            if(localStorage.getItem('vms12_db')) db = JSON.parse(localStorage.getItem('vms12_db'));
+            if(localStorage.getItem('vms12_veh')) vehicles = JSON.parse(localStorage.getItem('vms12_veh'));
+            if(localStorage.getItem('vms12_sch')) schedules = JSON.parse(localStorage.getItem('vms12_sch'));
+            if(localStorage.getItem('vms12_his')) history = JSON.parse(localStorage.getItem('vms12_his'));
 
             populateSelects();
             recalcAllSchedules();
@@ -291,10 +299,10 @@
         }
 
         function saveData() {
-            localStorage.setItem('vms11_db', JSON.stringify(db));
-            localStorage.setItem('vms11_veh', JSON.stringify(vehicles));
-            localStorage.setItem('vms11_sch', JSON.stringify(schedules));
-            localStorage.setItem('vms11_his', JSON.stringify(history));
+            localStorage.setItem('vms12_db', JSON.stringify(db));
+            localStorage.setItem('vms12_veh', JSON.stringify(vehicles));
+            localStorage.setItem('vms12_sch', JSON.stringify(schedules));
+            localStorage.setItem('vms12_his', JSON.stringify(history));
         }
 
         function factoryReset() {
@@ -322,9 +330,10 @@
 
         function populateSelects() {
             let opts = '<option value="">대상 차량 (호수) 선택</option>';
+            // 호수 숫자 오름차순 정렬
             let sortedVehicles = [...vehicles].sort((a,b) => {
-                let numA = parseInt(a.plate.replace(/[^0-9]/g, '')) || 0;
-                let numB = parseInt(b.plate.replace(/[^0-9]/g, '')) || 0;
+                let numA = parseInt(a.plate.replace(/[^0-9]/g, ''), 10) || 0;
+                let numB = parseInt(b.plate.replace(/[^0-9]/g, ''), 10) || 0;
                 return numA - numB;
             });
             sortedVehicles.forEach(v => { opts += `<option value="${v.id}">[${v.plate}] ${v.name}</option>`; });
@@ -443,6 +452,7 @@
             });
         }
 
+        // 고장정비 클릭 시 뜨는 모달 (날짜 수정 기능 포함)
         function openBrkModal(bId, plate, main, sub, content, aDate) {
             const contentDiv = document.getElementById('brk-detail-content');
             contentDiv.innerHTML = `
@@ -453,7 +463,7 @@
                 <div class="bg-gray-800 p-4 rounded-xl border border-darkborder shadow-inner">
                     <p class="text-sm text-gray-400 mb-1">접수/예정 일자 수정</p>
                     <input type="date" id="brk-edit-date" class="touch-input text-white bg-gray-900 w-full mb-2" value="${aDate}">
-                    <button onclick="updateBrkDate(${bId})" class="w-full touch-btn bg-blue-600 hover:bg-blue-500 text-white py-2 text-sm rounded-lg">날짜 변경 적용</button>
+                    <button onclick="updateBrkDate('${bId}')" class="w-full touch-btn bg-blue-600 hover:bg-blue-500 text-white py-2 text-sm rounded-lg">날짜 변경 적용</button>
                 </div>
                 <div class="bg-gray-800 p-4 rounded-xl border border-darkborder shadow-inner">
                     <p class="text-sm text-gray-400 mb-1">정비 개소</p>
@@ -488,7 +498,7 @@
                 recalcAllSchedules();
                 renderCalendar();
                 closeModal('modal-brk-detail');
-                alert('날짜가 수정되었습니다.');
+                alert('날짜가 성공적으로 수정되었습니다.');
             }
         }
 
@@ -527,6 +537,7 @@
                 let dayMap = scheduleMap[dStr] || { brk: [], plan: [] };
                 let viewPlans = [...dayMap.plan];
 
+                // 빈날짜 자동할당 (-1 트레일러 제외)
                 if(!isHol && dayMap.brk.length === 0 && dayMap.plan.length === 0 && vehicles.length > 0) {
                     const seed = parseInt(dStr.replace(/-/g, ''));
                     const pool = vehicles.filter(v => !v.plate.endsWith('-1'));
@@ -693,19 +704,22 @@
                 const [, m, d] = safeString(s.assignedDate).split('-');
                 const dDisplay = `${parseInt(m)}월 ${parseInt(d)}일`;
 
+                // 고장 정비
                 if(s.cycle === '고장정비') {
                     let parts = s.faultPart.split('(');
                     let mPart = parts[0] ? parts[0].trim() : '';
                     let sPart = parts[1] ? parts[1].replace(')','').trim() : '';
                     report += `[${v.plate}] ${v.name} (고장수리) - ${dDisplay} 예정\n  └ ${mPart}(${sPart}) 점검 및 수리 (${s.faultDesc})\n\n`;
                 } else {
+                    // 예방정비 (엑셀의 '정비방법'을 직접 노출)
                     const typeName = s.type === 'auto' ? '일일 예방정비' : (s.cycle === '정기점검' ? '반기 예방정비' : '월간 예방정비');
                     const dbCycle = s.cycle === '정기점검' ? '정기점검' : '일일점검';
                     
                     let sourceDB = db[v.type] ? db[v.type] : null;
                     let rawItems = [];
                     if(sourceDB && sourceDB[dbCycle]) {
-                        rawItems = sourceDB[dbCycle].map(c => (c.정비방법 && c.정비방법.length > 3) ? c.정비방법 : c.항목);
+                        // 엑셀에서 추출한 '정비방법'이 있으면 우선 사용, 없으면 항목 이름 사용
+                        rawItems = sourceDB[dbCycle].map(c => (c.정비방법 && c.정비방법.length > 2) ? c.정비방법 : c.항목);
                     }
                     if(rawItems.length === 0) rawItems = ['엔진오일 점검', '타이어 점검', '제동장치 점검', '조향장치 점검'];
 
@@ -714,14 +728,18 @@
                     
                     let off = offsetTracker[v.type];
                     let picked = [];
-                    const maxPick = Math.min(2, items.length); 
+                    const maxPick = Math.min(3, items.length); // 깔끔하게 3개 출력
                     for(let i=0; i<maxPick; i++) {
                         picked.push(items[(off + i) % items.length]);
                     }
-                    offsetTracker[v.type] = (off + 2) % items.length; 
+                    offsetTracker[v.type] = (off + 3) % items.length; // 동일차종 연속일 시 밀어내기
 
                     report += `[${v.plate}] ${v.name} (${typeName}) - ${dDisplay} 예정\n`;
-                    picked.forEach(p => { report += `  └ ${p}\n`; });
+                    picked.forEach(p => { 
+                        // 불필요한 줄바꿈 제거, 깔끔하게 한 줄로 출력
+                        let singleLine = p.replace(/\n/g, ' ').trim();
+                        report += `  └ ${singleLine}\n`; 
+                    });
                     report += '\n';
                 }
             });
