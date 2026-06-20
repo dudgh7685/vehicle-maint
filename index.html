@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>부대 차량 통합 정비 관리 시스템 V13</title>
+    <title>부대 차량 통합 정비 관리 시스템 V14</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -39,9 +39,10 @@
         .cal-date-num { font-size: 0.875rem; font-weight: bold; margin-bottom: 4px; pointer-events: none; }
         .cal-day.holiday .cal-date-num { color: #ef4444; }
         
+        /* 뱃지 중앙 정렬로 수정 */
         .sched-badge { 
             padding: 4px; border-radius: 6px; margin-bottom: 4px; 
-            display: flex; flex-direction: column; align-items: flex-start; justify-content: center; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
             box-sizing: border-box; cursor: pointer; transition: transform 0.1s ease; 
             line-height: 1.2; box-shadow: 0 2px 4px rgba(0,0,0,0.2); 
             width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -205,6 +206,7 @@
         </div>
     </div>
 
+    <!-- 고장 상세 모달창 -->
     <div id="modal-brk-detail" class="fixed inset-0 bg-black/95 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
         <div class="bg-darkcard w-full max-w-lg rounded-2xl border border-red-900 shadow-2xl overflow-hidden flex flex-col">
             <div class="bg-red-600 p-5 flex justify-between items-center touch-target">
@@ -258,28 +260,29 @@
             return true;
         }
 
+        // 강력한 정규식 기반 차종 매핑
         function mapVehicleType(name) {
-            const n = safeString(name);
+            const n = safeString(name).replace(/\s/g, ''); // 공백 무시 비교
             if (/(30kw|발전기)/.test(n)) return null;
-            if (/K-?311|1 1\/4톤|1¼/i.test(n)) return "K311 계열";
-            if (/K-?711/i.test(n)) return "K711 계열";
-            if (/K-?511|2 1\/2톤|두돈반/i.test(n)) return "K511 계열";
+            if (/K-?311|11\/4톤|1¼/i.test(n)) return "K-311 계열";
+            if (/K-?711/i.test(n)) return "K-711 계열";
+            if (/K-?511|21\/2톤|두돈반/i.test(n)) return "K-511 계열";
             if (/리프트/.test(n)) return "리프트 자동차용";
             if (/수거기|주입기/.test(n)) return "차량오일 수거기";
             if (/세척기/.test(n)) return "고압 세척기";
-            if (/유조차/.test(n)) return "유조차(특장)";
-            if (/덤프|트랙터|8\.5톤|9\.5톤|10톤|11\.5톤|15톤|25톤|대형/.test(n)) return "대형트럭(덤프/트랙터)";
-            if (/1톤|2\.5톤|5톤|상용|봉고|마이티/.test(n)) return "상용트럭";
-            if (/스타렉스|승합|버스|12인승|AMB/.test(n)) return "승합차";
-            if (/코란도|짚|지프|왜곤|렉스턴/.test(n)) return "소형/승용차";
-            return "상용트럭"; 
+            if (/유조|급수차/.test(n)) return "대형트럭/유조차"; // 엑셀명과 통일
+            if (/덤프|트랙터|8\.5톤|9\.5톤|10톤|11\.5톤|15톤|25톤|대형/.test(n)) return "대형트럭/유조차";
+            if (/1톤|2\.5톤|5톤|상용|봉고|마이티/.test(n)) return "상용트럭(1~5톤)";
+            if (/스타렉스|승합|버스|12인승|AMB/.test(n)) return "승합차(6~25인승)";
+            if (/코란도|짚|지프|왜곤|렉스턴|승용/.test(n)) return "승용차 계열";
+            return "상용트럭(1~5톤)"; 
         }
 
         function init() {
-            if(localStorage.getItem('vms13_db')) db = JSON.parse(localStorage.getItem('vms13_db'));
-            if(localStorage.getItem('vms13_veh')) vehicles = JSON.parse(localStorage.getItem('vms13_veh'));
-            if(localStorage.getItem('vms13_sch')) schedules = JSON.parse(localStorage.getItem('vms13_sch'));
-            if(localStorage.getItem('vms13_his')) history = JSON.parse(localStorage.getItem('vms13_his'));
+            if(localStorage.getItem('vms14_db')) db = JSON.parse(localStorage.getItem('vms14_db'));
+            if(localStorage.getItem('vms14_veh')) vehicles = JSON.parse(localStorage.getItem('vms14_veh'));
+            if(localStorage.getItem('vms14_sch')) schedules = JSON.parse(localStorage.getItem('vms14_sch'));
+            if(localStorage.getItem('vms14_his')) history = JSON.parse(localStorage.getItem('vms14_his'));
 
             populateSelects();
             recalcAllSchedules();
@@ -291,10 +294,10 @@
         }
 
         function saveData() {
-            localStorage.setItem('vms13_db', JSON.stringify(db));
-            localStorage.setItem('vms13_veh', JSON.stringify(vehicles));
-            localStorage.setItem('vms13_sch', JSON.stringify(schedules));
-            localStorage.setItem('vms13_his', JSON.stringify(history));
+            localStorage.setItem('vms14_db', JSON.stringify(db));
+            localStorage.setItem('vms14_veh', JSON.stringify(vehicles));
+            localStorage.setItem('vms14_sch', JSON.stringify(schedules));
+            localStorage.setItem('vms14_his', JSON.stringify(history));
         }
 
         function factoryReset() {
@@ -322,7 +325,6 @@
 
         function populateSelects() {
             let opts = '<option value="">대상 차량 (호수) 선택</option>';
-            // 호수 숫자 오름차순 정렬
             let sortedVehicles = [...vehicles].sort((a,b) => {
                 let numA = parseInt(a.plate.replace(/[^0-9]/g, ''), 10) || 0;
                 let numB = parseInt(b.plate.replace(/[^0-9]/g, ''), 10) || 0;
@@ -422,8 +424,8 @@
                     d.setDate(d.getDate() - i);
                     let cStr = toDateStr(d);
                     
-                    // 핵심 수정: 예방정비는 과거(오늘 이전)로 절대 당겨지지 않음!
-                    if (cStr < todayStr) continue; 
+                    // 과거 당김 절대 금지: 최소 오늘 날짜까지만 당기기 허용
+                    if (cStr < todayStr) continue;
 
                     if(isWorkingDayStr(cStr)) candidates.push(cStr);
                 }
@@ -448,6 +450,7 @@
             });
         }
 
+        // 고장 상세 모달 (날짜 변경 기능 포함)
         function openBrkModal(bId, plate, main, sub, content, aDate) {
             const contentDiv = document.getElementById('brk-detail-content');
             contentDiv.innerHTML = `
@@ -586,20 +589,12 @@
             }
         }
 
-        // 강력한 그룹 DB 매칭 (오타, 특수문자 방어)
+        // DB 매퍼 (공백 제거 후 엑셀 키와 100% 매칭)
         function getDBForVehicle(v) {
-            if (db[v.type]) return db[v.type];
-            if (db[v.name]) return db[v.name];
-            
-            let mapped = mapVehicleType(v.name);
-            if (mapped && db[mapped]) return db[mapped];
-            
+            let cleanType = v.type.replace(/\s/g, '');
             for (let key in db) {
-                let cleanKey = key.replace(/[-\s]/g, '');
-                let cleanType = v.type.replace(/[-\s]/g, '');
-                let cleanName = v.name.replace(/[-\s]/g, '');
-                if (cleanKey === cleanType || cleanKey === cleanName) return db[key];
-                if (cleanName.includes(cleanKey) || cleanKey.includes(cleanType)) return db[key];
+                let cleanKey = key.replace(/\s/g, '');
+                if (cleanKey === cleanType) return db[key];
             }
             return null;
         }
@@ -633,7 +628,7 @@
 
             container.innerHTML = '';
             items.forEach((item, idx) => {
-                const desc = highlightExamText(safeString(item.정비방법));
+                const desc = item.정비방법 || '상세 내용 없음';
                 container.innerHTML += `
                     <div class="bg-darkcard border border-darkborder rounded-2xl overflow-hidden shadow">
                         <label class="flex items-center p-4 touch-target gap-4 cursor-pointer hover:bg-gray-800">
@@ -649,11 +644,6 @@
                     </div>`;
             });
             submitBtn.classList.remove('hidden');
-        }
-
-        function highlightExamText(text) {
-            const regex = /(1만Km|12개월|최고점\s*\(?F\)?|\d+개소|\d+(?:\.\d+)?(?:~\d+(?:\.\d+)?)?(?:mm|cm|kg|F|점|V|A|%|Km|개소|개월)|[A-Za-z]+)/gi;
-            return text.replace(regex, '<span class="exam-highlight">$&</span>');
         }
 
         function toggleAccordion(id) {
@@ -731,10 +721,10 @@
                     let sourceDB = getDBForVehicle(v);
                     let rawItems = [];
                     if(sourceDB && sourceDB[dbCycle]) {
-                        // 엑셀의 '정비방법' 내용을 100% 우선으로 가져와서 보고서에 그대로 출력
+                        // 엑셀의 '정비방법' 내용을 아무런 필터링 없이 100% 그대로 노출
                         rawItems = sourceDB[dbCycle].map(c => (c.정비방법 && c.정비방법.length > 2) ? c.정비방법 : c.항목);
                     }
-                    if(rawItems.length === 0) rawItems = ['엔진오일 점검', '타이어 점검', '제동장치 점검', '조향장치 점검'];
+                    if(rawItems.length === 0) rawItems = ['해당 차량의 정비 방법이 DB에 등록되지 않았습니다.'];
 
                     let items = seedShuffle(rawItems, s.assignedDate + v.id);
                     if(offsetTracker[v.type] === undefined) offsetTracker[v.type] = 0;
@@ -749,7 +739,7 @@
 
                     report += `[${v.plate}] ${v.name} (${typeName}) - ${dDisplay} 예정\n`;
                     picked.forEach(p => { 
-                        let singleLine = p.replace(/\n/g, ' ').trim();
+                        let singleLine = p.replace(/\n/g, ' ').trim(); // 줄바꿈만 가독성 위해 공백 처리
                         report += `  └ ${singleLine}\n`; 
                     });
                     report += '\n';
@@ -822,20 +812,15 @@
             reader.onload = function(e) {
                 try {
                     const workbook = XLSX.read(new Uint8Array(e.target.result), {type: 'array'});
-                    if(workbook.SheetNames.length < 3) throw new Error("시트가 3개 필요합니다.");
-
-                    let dbSheetName = workbook.SheetNames.find(n => n.includes('예방정비') && !n.includes('계획')) || workbook.SheetNames.find(n => n.includes('체크리스트')) || workbook.SheetNames[1];
-
+                    
+                    // 시트 순서에 의존하여 100% 매칭
                     const regData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], {defval: ""});
-                    const dbData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[dbSheetName]], {defval: ""});
-                    const schedData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames.find(n => n.includes('계획')) || workbook.SheetNames[2]], {raw: false, dateNF: "yyyy-mm-dd", defval: ""});
+                    const dbData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[1]], {defval: ""});
+                    const schedData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[2]], {raw: false, dateNF: "yyyy-mm-dd", defval: ""});
 
                     let newDB = {};
                     dbData.forEach(r => {
                         let g = String(r['차종'] || r['점검그룹'] || r['분류'] || r['그룹'] || '').trim();
-                        let mappedG = mapVehicleType(g);
-                        if (mappedG && mappedG !== "상용트럭" && mappedG !== "기본차량") g = mappedG;
-
                         let cRaw = String(r['점검주기'] || '').trim();
                         let c = (cRaw.includes('일일') || cRaw.includes('월간')) ? '일일점검' : '정기점검';
                         let i = String(r['점검개소'] || r['항목'] || '').trim();
