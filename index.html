@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>부대 차량 통합 정비 관리 시스템 V18-Final</title>
+    <title>부대 차량 통합 정비 관리 시스템 V19</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -168,12 +168,6 @@
                         <input type="file" id="excel-upload" accept=".xlsx, .xls" class="hidden" onchange="handleExcelUpload(event)">
                     </label>
                 </div>
-                <p class="text-[11px] text-blue-300 bg-blue-950/50 p-3 rounded-lg leading-relaxed">
-                    <b class="text-white">※ 엑셀 작성 규칙 (시트 3개 필수)</b><br>
-                    - 1시트(차량대장): <b>호수</b>, <b>품명</b>, <b>점검그룹</b><br>
-                    - 2시트(체크리스트): <b>차종</b>(점검그룹), <b>점검주기</b>, <b>점검개소</b>, <b>점검/정비방법</b><br>
-                    - 3시트(정비계획): <b>호수</b>, <b>계획일자</b>(YYYY-MM-DD), <b>점검주기</b>(월간/반기)
-                </p>
             </div>
 
             <div class="bg-darkcard p-5 rounded-2xl border border-darkborder shadow-md space-y-4">
@@ -264,10 +258,10 @@
         }
 
         function init() {
-            if(localStorage.getItem('vms18_db')) db = JSON.parse(localStorage.getItem('vms18_db'));
-            if(localStorage.getItem('vms18_veh')) vehicles = JSON.parse(localStorage.getItem('vms18_veh'));
-            if(localStorage.getItem('vms18_sch')) schedules = JSON.parse(localStorage.getItem('vms18_sch'));
-            if(localStorage.getItem('vms18_his')) history = JSON.parse(localStorage.getItem('vms18_his'));
+            if(localStorage.getItem('vms19_db')) db = JSON.parse(localStorage.getItem('vms19_db'));
+            if(localStorage.getItem('vms19_veh')) vehicles = JSON.parse(localStorage.getItem('vms19_veh'));
+            if(localStorage.getItem('vms19_sch')) schedules = JSON.parse(localStorage.getItem('vms19_sch'));
+            if(localStorage.getItem('vms19_his')) history = JSON.parse(localStorage.getItem('vms19_his'));
 
             populateSelects();
             recalcAllSchedules();
@@ -279,10 +273,10 @@
         }
 
         function saveData() {
-            localStorage.setItem('vms18_db', JSON.stringify(db));
-            localStorage.setItem('vms18_veh', JSON.stringify(vehicles));
-            localStorage.setItem('vms18_sch', JSON.stringify(schedules));
-            localStorage.setItem('vms18_his', JSON.stringify(history));
+            localStorage.setItem('vms19_db', JSON.stringify(db));
+            localStorage.setItem('vms19_veh', JSON.stringify(vehicles));
+            localStorage.setItem('vms19_sch', JSON.stringify(schedules));
+            localStorage.setItem('vms19_his', JSON.stringify(history));
         }
 
         function factoryReset() {
@@ -409,6 +403,7 @@
                     d.setDate(d.getDate() - i);
                     let cStr = toDateStr(d);
                     
+                    // 과거 당김 절대 금지
                     if (cStr < todayStr) continue;
 
                     if(isWorkingDayStr(cStr)) candidates.push(cStr);
@@ -508,8 +503,8 @@
             }
 
             window.renderedSchedules = [];
-            
-            // 블랙리스트 수집: 이번 달에 예방정비 배정된 차량 ID 모두 색출
+
+            // 1. 이번 달 기배정자 블랙리스트 작성
             let monthlyAssignedSet = new Set();
             schedules.forEach(s => {
                 if(s.cycle !== '고장정비' && !history.includes(String(s.id))) {
@@ -528,17 +523,17 @@
                 let dayMap = scheduleMap[dStr] || { brk: [], plan: [] };
                 let viewPlans = [...dayMap.plan];
 
+                // === 일일점검 자동 할당 알고리즘 및 우선순위 (V19) ===
                 if(!isHol && dayMap.brk.length === 0 && dayMap.plan.length === 0 && vehicles.length > 0) {
                     const seed = parseInt(dStr.replace(/-/g, ''));
-                    
-                    // 필터: 트레일러 제외 + 블랙리스트 등록된 놈 제외
+
+                    // 트레일러 제외, 이번달 기배정자 완전 컷
                     let pool = vehicles.filter(v => {
                         if(v.plate.endsWith('-1')) return false; 
                         if(monthlyAssignedSet.has(String(v.id))) return false; 
                         return true;
                     });
 
-                    // 우선순위 1~4순위 배분 (K711 -> K311 -> 대형/유조/덤프 -> 나머지)
                     if(pool.length > 0) {
                         let p1 = pool.filter(v => v.type.includes('K-711') || v.type.includes('K711') || v.name.includes('K-711') || v.name.includes('K711'));
                         let p2 = pool.filter(v => v.type.includes('K-311') || v.type.includes('K311') || v.name.includes('K-311') || v.name.includes('K311'));
@@ -550,8 +545,7 @@
                         const autoV = candidates[seed % candidates.length];
                         viewPlans.push({ vId: autoV.id, cycle: '일일점검', type: 'auto', assignedDate: dStr });
                         
-                        // 당첨된 차량은 블랙리스트에 추가하여 남은 기간 등장 금지
-                        monthlyAssignedSet.add(String(autoV.id));
+                        monthlyAssignedSet.add(String(autoV.id)); // 당첨자는 블랙리스트 등록
                     }
                 }
 
@@ -599,21 +593,14 @@
             }
         }
 
-        // DB 부분일치 검색 개선 (공백 및 괄호 특수문자 완벽 무시)
-        function getDBForVehicle(vType, vName) {
-            let cleanType = safeString(vType).replace(/[-\s()]/g, '').toLowerCase();
-            let cleanName = safeString(vName).replace(/[-\s()]/g, '').toLowerCase();
-            
+        // === 핵심 변경: 오지랖 검색 100% 폐지 (엄격한 1:1 매칭만 허용) ===
+        function getDBForVehicle(vType) {
+            let cleanType = safeString(vType).replace(/\s/g, ''); // 공백만 무시하고 텍스트는 완벽 일치해야 함
             for (let key in db) {
-                let cleanKey = key.replace(/[-\s()]/g, '').toLowerCase();
-                if (cleanKey === cleanType || cleanKey === cleanName) return db[key];
+                let cleanKey = key.replace(/\s/g, '');
+                if (cleanKey === cleanType) return db[key];
             }
-            for (let key in db) {
-                let cleanKey = key.replace(/[-\s()]/g, '').toLowerCase();
-                if (cleanType && (cleanType.includes(cleanKey) || cleanKey.includes(cleanType))) return db[key];
-                if (cleanName && (cleanName.includes(cleanKey) || cleanKey.includes(cleanName))) return db[key];
-            }
-            return null;
+            return null; // 부분일치(Includes) 로직 전면 삭제 (덤프트럭/유조차 섞임 방지)
         }
 
         function loadChecklist() {
@@ -631,11 +618,26 @@
             if(!v) return;
             
             let items = [];
-            let sourceDB = getDBForVehicle(v.type, v.name);
+            let sourceDB = getDBForVehicle(v.type);
 
+            // === 핵심 변경: 반기/월간 불일치 시 Fallback 로직 추가 ===
             if(sourceDB) {
-                if(freq === '일일점검' || freq === '정기점검') items = items.concat((sourceDB['일일점검']||[]).map(x => ({...x, badge:'일일', color:'bg-blue-600'})));
-                if(freq === '정기점검') items = items.concat((sourceDB['정기점검']||[]).map(x => ({...x, badge:'정기', color:'bg-red-600'})));
+                if(freq === '일일점검') {
+                    // 일일점검 선택 시: 일일점검 항목만 노출
+                    if (sourceDB['일일점검']) {
+                        items = items.concat((sourceDB['일일점검']).map(x => ({...x, badge:'일일', color:'bg-blue-600'})));
+                    } else if (sourceDB['정기점검']) { // 일일점검 내용이 아예 없으면 땜빵
+                        items = items.concat((sourceDB['정기점검']).map(x => ({...x, badge:'정기', color:'bg-red-600'})));
+                    }
+                } else {
+                    // 정기점검 선택 시: 일일점검 + 정기점검 항목 통합 노출
+                    if (sourceDB['일일점검']) {
+                        items = items.concat((sourceDB['일일점검']).map(x => ({...x, badge:'일일', color:'bg-blue-600'})));
+                    }
+                    if (sourceDB['정기점검']) {
+                        items = items.concat((sourceDB['정기점검']).map(x => ({...x, badge:'정기', color:'bg-red-600'})));
+                    }
+                }
             }
             
             if(items.length === 0) {
@@ -740,11 +742,18 @@
                     const typeName = s.type === 'auto' ? '일일 예방정비' : (s.cycle === '정기점검' ? '반기 예방정비' : '월간 예방정비');
                     const dbCycle = s.cycle === '정기점검' ? '정기점검' : '일일점검';
                     
-                    let sourceDB = getDBForVehicle(v.type, v.name);
+                    let sourceDB = getDBForVehicle(v.type); // 부분 매칭 삭제
                     let rawItems = [];
-                    if(sourceDB && sourceDB[dbCycle]) {
-                        rawItems = sourceDB[dbCycle].map(c => (c.정비방법 && c.정비방법.length > 0) ? c.정비방법 : c.항목);
+                    
+                    // Fallback 로직 적용: 정기점검인데 DB에 정기점검 항목이 없으면 일일점검 내용이라도 끌어옴
+                    if (sourceDB) {
+                        if (sourceDB[dbCycle]) {
+                            rawItems = sourceDB[dbCycle].map(c => (c.정비방법 && c.정비방법.length > 0) ? c.정비방법 : c.항목);
+                        } else if (dbCycle === '정기점검' && sourceDB['일일점검']) {
+                            rawItems = sourceDB['일일점검'].map(c => (c.정비방법 && c.정비방법.length > 0) ? c.정비방법 : c.항목);
+                        }
                     }
+
                     rawItems = [...new Set(rawItems)]; 
 
                     if(rawItems.length === 0) rawItems = ['해당 차량의 정비 방법이 DB에 등록되지 않았습니다.'];
@@ -835,14 +844,11 @@
             reader.onload = function(e) {
                 try {
                     const workbook = XLSX.read(new Uint8Array(e.target.result), {type: 'array'});
-                    
-                    const regSheetName = workbook.SheetNames[0];
-                    const dbSheetName = workbook.SheetNames[1];
-                    const schedSheetName = workbook.SheetNames[2];
+                    if(workbook.SheetNames.length < 3) throw new Error("시트가 3개 필요합니다.");
 
-                    const regData = XLSX.utils.sheet_to_json(workbook.Sheets[regSheetName], {defval: ""});
-                    const dbData = XLSX.utils.sheet_to_json(workbook.Sheets[dbSheetName], {defval: ""});
-                    const schedData = XLSX.utils.sheet_to_json(workbook.Sheets[schedSheetName], {raw: false, dateNF: "yyyy-mm-dd", defval: ""});
+                    const regData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], {defval: ""});
+                    const dbData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[1]], {defval: ""});
+                    const schedData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[2]], {raw: false, dateNF: "yyyy-mm-dd", defval: ""});
 
                     let newDB = {};
                     dbData.forEach(r => {
