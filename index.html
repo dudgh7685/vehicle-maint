@@ -168,6 +168,12 @@
                         <input type="file" id="excel-upload" accept=".xlsx, .xls" class="hidden" onchange="handleExcelUpload(event)">
                     </label>
                 </div>
+                <p class="text-[11px] text-blue-300 bg-blue-950/50 p-3 rounded-lg leading-relaxed">
+                    <b class="text-white">※ 엑셀 작성 규칙 (시트 3개 필수)</b><br>
+                    - 1시트(차량대장): <b>호수</b>, <b>품명</b>, <b>점검그룹</b><br>
+                    - 2시트(체크리스트): <b>차종</b>(점검그룹), <b>점검주기</b>, <b>점검개소</b>, <b>점검/정비방법</b><br>
+                    - 3시트(정비계획): <b>호수</b>, <b>계획일자</b>(YYYY-MM-DD), <b>점검주기</b>(월간/반기)
+                </p>
             </div>
 
             <div class="bg-darkcard p-5 rounded-2xl border border-darkborder shadow-md space-y-4">
@@ -204,7 +210,6 @@
         </div>
     </div>
 
-    <!-- 고장 상세 모달창 -->
     <div id="modal-brk-detail" class="fixed inset-0 bg-black/95 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
         <div class="bg-darkcard w-full max-w-lg rounded-2xl border border-red-900 shadow-2xl overflow-hidden flex flex-col">
             <div class="bg-red-600 p-5 flex justify-between items-center touch-target">
@@ -430,6 +435,7 @@
             });
         }
 
+        // 고장 상세 모달 (날짜 변경 기능 포함)
         function openBrkModal(bId, plate, main, sub, content, aDate) {
             const contentDiv = document.getElementById('brk-detail-content');
             contentDiv.innerHTML = `
@@ -505,7 +511,7 @@
 
             window.renderedSchedules = [];
 
-            // 이번 달에 이미 배정된 차량 기록 (중복 자동할당 방지용 블랙리스트)
+            // 1. 이번 달에 이미 배정된 놈들 싹 다 블랙리스트에 올림
             let monthlyAssignedSet = new Set();
             schedules.forEach(s => {
                 if(s.cycle !== '고장정비' && !history.includes(String(s.id))) {
@@ -524,10 +530,11 @@
                 let dayMap = scheduleMap[dStr] || { brk: [], plan: [] };
                 let viewPlans = [...dayMap.plan];
 
-                // 빈날짜 자동할당 (-1 트레일러 제외, 이번달 기배정자 완전 컷)
+                // === 일일점검 자동 할당 알고리즘 및 우선순위 ===
                 if(!isHol && dayMap.brk.length === 0 && dayMap.plan.length === 0 && vehicles.length > 0) {
                     const seed = parseInt(dStr.replace(/-/g, ''));
-                    
+
+                    // 트레일러 빼고, 이번달 스케줄 1개라도 있는 놈들 싹 다 제외
                     let pool = vehicles.filter(v => {
                         if(v.plate.endsWith('-1')) return false; 
                         if(monthlyAssignedSet.has(String(v.id))) return false; 
@@ -542,12 +549,11 @@
                         let p4 = pool.filter(v => !p1.includes(v) && !p2.includes(v) && !p3.includes(v));
 
                         let candidates = p1.length > 0 ? p1 : (p2.length > 0 ? p2 : (p3.length > 0 ? p3 : p4));
-                        if(candidates.length === 0) candidates = pool;
 
                         const autoV = candidates[seed % candidates.length];
                         viewPlans.push({ vId: autoV.id, cycle: '일일점검', type: 'auto', assignedDate: dStr });
                         
-                        // 자동 할당된 놈도 블랙리스트 등록 (한 달에 두 번 뺑뺑이 당첨 불가)
+                        // 자동 할당된 놈도 블랙리스트 등록 (한 달에 두 번 자동당첨 금지)
                         monthlyAssignedSet.add(String(autoV.id));
                     }
                 }
@@ -596,6 +602,7 @@
             }
         }
 
+        // 부분 매칭 강화
         function getDBForVehicle(vType, vName) {
             let cleanType = safeString(vType).replace(/[-\s()]/g, '').toLowerCase();
             let cleanName = safeString(vName).replace(/[-\s()]/g, '').toLowerCase();
@@ -644,6 +651,7 @@
                 const rawDesc = safeString(item.정비방법) || '상세 내용 없음';
                 const displayDesc = rawDesc.replace(/\n/g, '<br>');
                 
+                // 체크리스트에 일일/정기 뱃지 표출
                 container.innerHTML += `
                     <div class="bg-darkcard border border-darkborder rounded-2xl overflow-hidden shadow">
                         <label class="flex items-center p-4 touch-target gap-4 cursor-pointer hover:bg-gray-800">
@@ -845,7 +853,7 @@
                         let cRaw = String(r['점검주기'] || '').trim();
                         
                         let c = '정기점검';
-                        if (cRaw.includes('일일') || cRaw.includes('월간') || cRaw.includes('운행') || cRaw.includes('주간')) {
+                        if (cRaw.includes('일일') || cRaw.includes('월간') || cRaw.includes('운행') || cRaw.includes('주간') || cRaw.includes('일간')) {
                             c = '일일점검';
                         }
                         
