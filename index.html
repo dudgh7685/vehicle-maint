@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>부대 차량 통합 정비 관리 시스템 V15</title>
+    <title>부대 차량 통합 정비 관리 시스템 V16</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -29,9 +29,7 @@
         .glove-checkbox:checked::after { content: '\f00c'; font-family: 'Font Awesome 6 Free'; font-weight: 900; position: absolute; color: white; font-size: 32px; top: 50%; left: 50%; transform: translate(-50%, -50%); }
         .accordion-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-in-out; }
         .accordion-content.open { max-height: 1200px; }
-        .exam-highlight { color: #fbbf24; font-weight: 900; background-color: rgba(251, 191, 36, 0.2); padding: 2px 6px; border-radius: 4px; border-bottom: 2px solid #fbbf24; }
         
-        /* 5일제(월~금) 달력 그리드 */
         .cal-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
         .cal-grid-days { grid-auto-rows: minmax(75px, auto); }
         .cal-day { padding: 4px; border-radius: 0.5rem; background: #1e1e1e; border: 1px solid #2d3748; display: flex; flex-direction: column; cursor: pointer; transition: background-color 0.2s; }
@@ -171,12 +169,6 @@
                         <input type="file" id="excel-upload" accept=".xlsx, .xls" class="hidden" onchange="handleExcelUpload(event)">
                     </label>
                 </div>
-                <p class="text-[11px] text-blue-300 bg-blue-950/50 p-3 rounded-lg leading-relaxed">
-                    <b class="text-white">※ 엑셀 작성 규칙 (시트 3개 필수)</b><br>
-                    - 1시트(차량대장): <b>호수</b>, <b>품명</b>, <b>점검그룹</b><br>
-                    - 2시트(체크리스트): <b>차종</b>(점검그룹), <b>점검주기</b>, <b>점검개소</b>, <b>점검/정비방법</b><br>
-                    - 3시트(정비계획): <b>호수</b>, <b>계획일자</b>(YYYY-MM-DD), <b>점검주기</b>(월간/반기)
-                </p>
             </div>
 
             <div class="bg-darkcard p-5 rounded-2xl border border-darkborder shadow-md space-y-4">
@@ -267,10 +259,10 @@
         }
 
         function init() {
-            if(localStorage.getItem('vms15_db')) db = JSON.parse(localStorage.getItem('vms15_db'));
-            if(localStorage.getItem('vms15_veh')) vehicles = JSON.parse(localStorage.getItem('vms15_veh'));
-            if(localStorage.getItem('vms15_sch')) schedules = JSON.parse(localStorage.getItem('vms15_sch'));
-            if(localStorage.getItem('vms15_his')) history = JSON.parse(localStorage.getItem('vms15_his'));
+            if(localStorage.getItem('vms16_db')) db = JSON.parse(localStorage.getItem('vms16_db'));
+            if(localStorage.getItem('vms16_veh')) vehicles = JSON.parse(localStorage.getItem('vms16_veh'));
+            if(localStorage.getItem('vms16_sch')) schedules = JSON.parse(localStorage.getItem('vms16_sch'));
+            if(localStorage.getItem('vms16_his')) history = JSON.parse(localStorage.getItem('vms16_his'));
 
             populateSelects();
             recalcAllSchedules();
@@ -282,10 +274,10 @@
         }
 
         function saveData() {
-            localStorage.setItem('vms15_db', JSON.stringify(db));
-            localStorage.setItem('vms15_veh', JSON.stringify(vehicles));
-            localStorage.setItem('vms15_sch', JSON.stringify(schedules));
-            localStorage.setItem('vms15_his', JSON.stringify(history));
+            localStorage.setItem('vms16_db', JSON.stringify(db));
+            localStorage.setItem('vms16_veh', JSON.stringify(vehicles));
+            localStorage.setItem('vms16_sch', JSON.stringify(schedules));
+            localStorage.setItem('vms16_his', JSON.stringify(history));
         }
 
         function factoryReset() {
@@ -577,12 +569,21 @@
             }
         }
 
-        // DB에서 정확한 그룹명을 찾아오는 100% 매칭 함수 (공백제거 비교)
-        function getDBForVehicle(vType) {
-            let cleanType = safeString(vType).replace(/\s/g, '');
+        // 부분 일치 매칭 로직 탑재 (트레일러, 냉동부식차 누락 완벽 해결)
+        function getDBForVehicle(vType, vName) {
+            let cleanType = safeString(vType).replace(/[-\s()]/g, '').toLowerCase();
+            let cleanName = safeString(vName).replace(/[-\s()]/g, '').toLowerCase();
+            
+            // 1. 정확한 매칭
             for (let key in db) {
-                let cleanKey = key.replace(/\s/g, '');
-                if (cleanKey === cleanType) return db[key];
+                let cleanKey = key.replace(/[-\s()]/g, '').toLowerCase();
+                if (cleanKey === cleanType || cleanKey === cleanName) return db[key];
+            }
+            // 2. 부분 포함 매칭 
+            for (let key in db) {
+                let cleanKey = key.replace(/[-\s()]/g, '').toLowerCase();
+                if (cleanType && (cleanType.includes(cleanKey) || cleanKey.includes(cleanType))) return db[key];
+                if (cleanName && (cleanName.includes(cleanKey) || cleanKey.includes(cleanName))) return db[key];
             }
             return null;
         }
@@ -602,7 +603,7 @@
             if(!v) return;
             
             let items = [];
-            let sourceDB = getDBForVehicle(v.type);
+            let sourceDB = getDBForVehicle(v.type, v.name);
 
             if(sourceDB) {
                 if(freq === '일일점검' || freq === '정기점검') items = items.concat((sourceDB['일일점검']||[]).map(x => ({...x, badge:'일일', color:'bg-blue-600'})));
@@ -619,11 +620,15 @@
                 const rawDesc = safeString(item.정비방법) || '상세 내용 없음';
                 const displayDesc = rawDesc.replace(/\n/g, '<br>');
                 
+                // HTML 내부에 일일/정기 뱃지 포함
                 container.innerHTML += `
                     <div class="bg-darkcard border border-darkborder rounded-2xl overflow-hidden shadow">
                         <label class="flex items-center p-4 touch-target gap-4 cursor-pointer hover:bg-gray-800">
                             <input type="checkbox" class="glove-checkbox chk-item" value="${item.항목}">
-                            <div class="flex-1 font-bold text-xl text-white">${item.항목}</div>
+                            <div class="flex-1">
+                                <span class="${item.color} text-[11px] px-2 py-1 rounded text-white font-extrabold mb-1 inline-block">${item.badge}</span>
+                                <div class="font-bold text-xl text-white leading-tight">${item.항목}</div>
+                            </div>
                         </label>
                         <div class="border-t border-darkborder">
                             <button onclick="toggleAccordion('chk-acc-${idx}')" class="w-full px-4 py-3 text-left flex justify-between items-center text-blue-400 bg-gray-800 touch-target font-extrabold">
@@ -708,24 +713,27 @@
                     const typeName = s.type === 'auto' ? '일일 예방정비' : (s.cycle === '정기점검' ? '반기 예방정비' : '월간 예방정비');
                     const dbCycle = s.cycle === '정기점검' ? '정기점검' : '일일점검';
                     
-                    let sourceDB = getDBForVehicle(v.type);
+                    let sourceDB = getDBForVehicle(v.type, v.name);
                     let rawItems = [];
                     if(sourceDB && sourceDB[dbCycle]) {
-                        // 엑셀의 '정비방법' 내용을 필터 없이 100% 그대로 추출
                         rawItems = sourceDB[dbCycle].map(c => (c.정비방법 && c.정비방법.length > 0) ? c.정비방법 : c.항목);
                     }
+                    rawItems = [...new Set(rawItems)]; // 중복 텍스트 제거
+
                     if(rawItems.length === 0) rawItems = ['해당 차량의 정비 방법이 DB에 등록되지 않았습니다.'];
 
-                    let items = seedShuffle(rawItems, s.assignedDate + v.id);
+                    // 동일 차종 연속 시 다른 아이템 추출 로직
+                    let items = seedShuffle(rawItems, s.assignedDate + v.type); // 날짜+차종으로 시드 고정
                     if(offsetTracker[v.type] === undefined) offsetTracker[v.type] = 0;
                     
                     let off = offsetTracker[v.type];
                     let picked = [];
-                    const maxPick = Math.min(3, items.length); 
+                    // 미등록 상태면 1개만, 정상이면 최대 3개 출력
+                    const maxPick = (rawItems.length === 1 && rawItems[0].includes('등록되지')) ? 1 : Math.min(3, items.length); 
                     for(let i=0; i<maxPick; i++) {
                         picked.push(items[(off + i) % items.length]);
                     }
-                    offsetTracker[v.type] = (off + 3) % items.length; 
+                    offsetTracker[v.type] = off + maxPick; // 읽은 개수만큼 offset 밀어내기
 
                     report += `[${v.plate}] ${v.name} (${typeName}) - ${dDisplay} 예정\n`;
                     picked.forEach(p => { 
@@ -804,14 +812,14 @@
                     const workbook = XLSX.read(new Uint8Array(e.target.result), {type: 'array'});
                     if(workbook.SheetNames.length < 3) throw new Error("시트가 3개 필요합니다.");
 
-                    // 1번 시트: 차량대장, 2번 시트: DB, 3번 시트: 계획
+                    let dbSheetName = workbook.SheetNames.find(n => n.includes('예방정비') && !n.includes('계획')) || workbook.SheetNames.find(n => n.includes('체크리스트')) || workbook.SheetNames[1];
+
                     const regData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], {defval: ""});
-                    const dbData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[1]], {defval: ""});
-                    const schedData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[2]], {raw: false, dateNF: "yyyy-mm-dd", defval: ""});
+                    const dbData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[dbSheetName]], {defval: ""});
+                    const schedData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames.find(n => n.includes('계획')) || workbook.SheetNames[2]], {raw: false, dateNF: "yyyy-mm-dd", defval: ""});
 
                     let newDB = {};
                     dbData.forEach(r => {
-                        // 엑셀의 '차종' 또는 '점검그룹'을 있는 그대로 받아옴 (공백 무시)
                         let g = String(r['차종'] || r['점검그룹'] || r['분류'] || r['그룹'] || '').trim();
                         let cRaw = String(r['점검주기'] || '').trim();
                         
@@ -836,7 +844,6 @@
                         let p = (r['호수'] ? String(r['호수']) : (r['등록번호'] ? String(r['등록번호']) : '')).trim().replace('3139-', '');
                         let n = String(r['품명'] || r['차종'] || '').trim();
                         
-                        // 차량의 그룹명도 엑셀에 적힌 그대로 가져옴. 빈칸일 때만 땜빵.
                         let g = String(r['점검그룹'] || r['그룹'] || '').trim();
                         if (!g) g = n; 
                         
