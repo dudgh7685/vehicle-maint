@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>부대 차량 통합 정비 관리 시스템 V18</title>
+    <title>부대 차량 통합 정비 관리 시스템 V18-Final</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -409,7 +409,6 @@
                     d.setDate(d.getDate() - i);
                     let cStr = toDateStr(d);
                     
-                    // 과거 당김 절대 금지
                     if (cStr < todayStr) continue;
 
                     if(isWorkingDayStr(cStr)) candidates.push(cStr);
@@ -435,7 +434,6 @@
             });
         }
 
-        // 고장 상세 모달 (날짜 변경 기능 포함)
         function openBrkModal(bId, plate, main, sub, content, aDate) {
             const contentDiv = document.getElementById('brk-detail-content');
             contentDiv.innerHTML = `
@@ -510,8 +508,8 @@
             }
 
             window.renderedSchedules = [];
-
-            // 1. 이번 달에 이미 배정된 놈들 싹 다 블랙리스트에 올림
+            
+            // 블랙리스트 수집: 이번 달에 예방정비 배정된 차량 ID 모두 색출
             let monthlyAssignedSet = new Set();
             schedules.forEach(s => {
                 if(s.cycle !== '고장정비' && !history.includes(String(s.id))) {
@@ -530,18 +528,17 @@
                 let dayMap = scheduleMap[dStr] || { brk: [], plan: [] };
                 let viewPlans = [...dayMap.plan];
 
-                // === 일일점검 자동 할당 알고리즘 및 우선순위 ===
                 if(!isHol && dayMap.brk.length === 0 && dayMap.plan.length === 0 && vehicles.length > 0) {
                     const seed = parseInt(dStr.replace(/-/g, ''));
-
-                    // 트레일러 빼고, 이번달 스케줄 1개라도 있는 놈들 싹 다 제외
+                    
+                    // 필터: 트레일러 제외 + 블랙리스트 등록된 놈 제외
                     let pool = vehicles.filter(v => {
                         if(v.plate.endsWith('-1')) return false; 
                         if(monthlyAssignedSet.has(String(v.id))) return false; 
                         return true;
                     });
 
-                    // 2차 필터링: K711 -> K311 -> 대형/유조/덤프 -> 나머지 순
+                    // 우선순위 1~4순위 배분 (K711 -> K311 -> 대형/유조/덤프 -> 나머지)
                     if(pool.length > 0) {
                         let p1 = pool.filter(v => v.type.includes('K-711') || v.type.includes('K711') || v.name.includes('K-711') || v.name.includes('K711'));
                         let p2 = pool.filter(v => v.type.includes('K-311') || v.type.includes('K311') || v.name.includes('K-311') || v.name.includes('K311'));
@@ -553,7 +550,7 @@
                         const autoV = candidates[seed % candidates.length];
                         viewPlans.push({ vId: autoV.id, cycle: '일일점검', type: 'auto', assignedDate: dStr });
                         
-                        // 자동 할당된 놈도 블랙리스트 등록 (한 달에 두 번 자동당첨 금지)
+                        // 당첨된 차량은 블랙리스트에 추가하여 남은 기간 등장 금지
                         monthlyAssignedSet.add(String(autoV.id));
                     }
                 }
@@ -602,7 +599,7 @@
             }
         }
 
-        // 부분 매칭 강화
+        // DB 부분일치 검색 개선 (공백 및 괄호 특수문자 완벽 무시)
         function getDBForVehicle(vType, vName) {
             let cleanType = safeString(vType).replace(/[-\s()]/g, '').toLowerCase();
             let cleanName = safeString(vName).replace(/[-\s()]/g, '').toLowerCase();
@@ -651,7 +648,6 @@
                 const rawDesc = safeString(item.정비방법) || '상세 내용 없음';
                 const displayDesc = rawDesc.replace(/\n/g, '<br>');
                 
-                // 체크리스트에 일일/정기 뱃지 표출
                 container.innerHTML += `
                     <div class="bg-darkcard border border-darkborder rounded-2xl overflow-hidden shadow">
                         <label class="flex items-center p-4 touch-target gap-4 cursor-pointer hover:bg-gray-800">
@@ -839,13 +835,14 @@
             reader.onload = function(e) {
                 try {
                     const workbook = XLSX.read(new Uint8Array(e.target.result), {type: 'array'});
-                    if(workbook.SheetNames.length < 3) throw new Error("시트가 3개 필요합니다.");
+                    
+                    const regSheetName = workbook.SheetNames[0];
+                    const dbSheetName = workbook.SheetNames[1];
+                    const schedSheetName = workbook.SheetNames[2];
 
-                    let dbSheetName = workbook.SheetNames.find(n => n.includes('예방정비') && !n.includes('계획')) || workbook.SheetNames.find(n => n.includes('체크리스트')) || workbook.SheetNames[1];
-
-                    const regData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], {defval: ""});
-                    const dbData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[dbSheetName]], {defval: ""});
-                    const schedData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames.find(n => n.includes('계획')) || workbook.SheetNames[2]], {raw: false, dateNF: "yyyy-mm-dd", defval: ""});
+                    const regData = XLSX.utils.sheet_to_json(workbook.Sheets[regSheetName], {defval: ""});
+                    const dbData = XLSX.utils.sheet_to_json(workbook.Sheets[dbSheetName], {defval: ""});
+                    const schedData = XLSX.utils.sheet_to_json(workbook.Sheets[schedSheetName], {raw: false, dateNF: "yyyy-mm-dd", defval: ""});
 
                     let newDB = {};
                     dbData.forEach(r => {
