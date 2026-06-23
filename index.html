@@ -38,6 +38,7 @@
         .cal-date-num { font-size: 0.875rem; font-weight: bold; margin-bottom: 4px; pointer-events: none; }
         .cal-day.holiday .cal-date-num { color: #ef4444; }
         
+        /* 뱃지 중앙 정렬 고정 */
         .sched-badge { 
             padding: 4px; border-radius: 6px; margin-bottom: 4px; 
             display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
@@ -161,7 +162,7 @@
                 <div class="flex justify-between items-center mb-2">
                     <div>
                         <h3 class="font-bold text-xl text-white"><i class="fa-solid fa-file-excel mr-2 text-green-400"></i>통합 엑셀 업로드</h3>
-                        <p class="text-xs text-gray-300 mt-1">파일 하나로 [대장/DB/계획]을 모두 덮어씁니다.</p>
+                        <p class="text-xs text-gray-300 mt-1">이전에 다운받은 [최종_통합_데이터_마스터_V19.xlsx]를 올려주세요.</p>
                     </div>
                     <label class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-3 rounded-xl cursor-pointer flex items-center text-base font-bold shadow-lg transition">
                         <i class="fa-solid fa-upload mr-2"></i>업로드
@@ -268,7 +269,7 @@
             switchTab('dashboard');
 
             if (vehicles.length === 0) {
-                setTimeout(() => { alert("등록된 차량 데이터가 없습니다.\n[설정] 탭에서 엑셀 파일을 업로드 해주세요."); switchTab('settings'); }, 500);
+                setTimeout(() => { alert("등록된 차량 데이터가 없습니다.\n[설정] 탭에서 제공받으신 엑셀을 업로드 해주세요."); switchTab('settings'); }, 500);
             }
         }
 
@@ -402,10 +403,7 @@
                     let d = new Date(origDateObj);
                     d.setDate(d.getDate() - i);
                     let cStr = toDateStr(d);
-                    
-                    // 과거 당김 절대 금지
                     if (cStr < todayStr) continue;
-
                     if(isWorkingDayStr(cStr)) candidates.push(cStr);
                 }
                 if(candidates.length === 0) candidates.push(p.originalDate);
@@ -503,8 +501,7 @@
             }
 
             window.renderedSchedules = [];
-
-            // 1. 이번 달 기배정자 블랙리스트 작성
+            
             let monthlyAssignedSet = new Set();
             schedules.forEach(s => {
                 if(s.cycle !== '고장정비' && !history.includes(String(s.id))) {
@@ -523,17 +520,17 @@
                 let dayMap = scheduleMap[dStr] || { brk: [], plan: [] };
                 let viewPlans = [...dayMap.plan];
 
-                // === 일일점검 자동 할당 알고리즘 및 우선순위 (V19) ===
+                // === 일일점검 자동 할당 알고리즘 ===
                 if(!isHol && dayMap.brk.length === 0 && dayMap.plan.length === 0 && vehicles.length > 0) {
                     const seed = parseInt(dStr.replace(/-/g, ''));
-
-                    // 트레일러 제외, 이번달 기배정자 완전 컷
+                    
                     let pool = vehicles.filter(v => {
-                        if(v.plate.endsWith('-1')) return false; 
-                        if(monthlyAssignedSet.has(String(v.id))) return false; 
+                        if(v.plate.endsWith('-1')) return false; // 트레일러 제외
+                        if(monthlyAssignedSet.has(String(v.id))) return false; // 이번달 기배정자 제외
                         return true;
                     });
 
+                    // 우선순위 1~4순위 배분 (K711 -> K311 -> 대형/유조/덤프 -> 나머지)
                     if(pool.length > 0) {
                         let p1 = pool.filter(v => v.type.includes('K-711') || v.type.includes('K711') || v.name.includes('K-711') || v.name.includes('K711'));
                         let p2 = pool.filter(v => v.type.includes('K-311') || v.type.includes('K311') || v.name.includes('K-311') || v.name.includes('K311'));
@@ -541,11 +538,10 @@
                         let p4 = pool.filter(v => !p1.includes(v) && !p2.includes(v) && !p3.includes(v));
 
                         let candidates = p1.length > 0 ? p1 : (p2.length > 0 ? p2 : (p3.length > 0 ? p3 : p4));
-
                         const autoV = candidates[seed % candidates.length];
-                        viewPlans.push({ vId: autoV.id, cycle: '일일점검', type: 'auto', assignedDate: dStr });
                         
-                        monthlyAssignedSet.add(String(autoV.id)); // 당첨자는 블랙리스트 등록
+                        viewPlans.push({ vId: autoV.id, cycle: '일일점검', type: 'auto', assignedDate: dStr });
+                        monthlyAssignedSet.add(String(autoV.id));
                     }
                 }
 
@@ -593,14 +589,14 @@
             }
         }
 
-        // === 핵심 변경: 오지랖 검색 100% 폐지 (엄격한 1:1 매칭만 허용) ===
+        // DB 매퍼 (공백만 제거하고 무조건 100% 매칭)
         function getDBForVehicle(vType) {
-            let cleanType = safeString(vType).replace(/\s/g, ''); // 공백만 무시하고 텍스트는 완벽 일치해야 함
+            let cleanType = safeString(vType).replace(/\s/g, '');
             for (let key in db) {
                 let cleanKey = key.replace(/\s/g, '');
                 if (cleanKey === cleanType) return db[key];
             }
-            return null; // 부분일치(Includes) 로직 전면 삭제 (덤프트럭/유조차 섞임 방지)
+            return null;
         }
 
         function loadChecklist() {
@@ -620,23 +616,13 @@
             let items = [];
             let sourceDB = getDBForVehicle(v.type);
 
-            // === 핵심 변경: 반기/월간 불일치 시 Fallback 로직 추가 ===
             if(sourceDB) {
                 if(freq === '일일점검') {
-                    // 일일점검 선택 시: 일일점검 항목만 노출
-                    if (sourceDB['일일점검']) {
-                        items = items.concat((sourceDB['일일점검']).map(x => ({...x, badge:'일일', color:'bg-blue-600'})));
-                    } else if (sourceDB['정기점검']) { // 일일점검 내용이 아예 없으면 땜빵
-                        items = items.concat((sourceDB['정기점검']).map(x => ({...x, badge:'정기', color:'bg-red-600'})));
-                    }
+                    if (sourceDB['일일점검']) items = items.concat((sourceDB['일일점검']).map(x => ({...x, badge:'일일', color:'bg-blue-600'})));
+                    else if (sourceDB['정기점검']) items = items.concat((sourceDB['정기점검']).map(x => ({...x, badge:'정기', color:'bg-red-600'})));
                 } else {
-                    // 정기점검 선택 시: 일일점검 + 정기점검 항목 통합 노출
-                    if (sourceDB['일일점검']) {
-                        items = items.concat((sourceDB['일일점검']).map(x => ({...x, badge:'일일', color:'bg-blue-600'})));
-                    }
-                    if (sourceDB['정기점검']) {
-                        items = items.concat((sourceDB['정기점검']).map(x => ({...x, badge:'정기', color:'bg-red-600'})));
-                    }
+                    if (sourceDB['일일점검']) items = items.concat((sourceDB['일일점검']).map(x => ({...x, badge:'일일', color:'bg-blue-600'})));
+                    if (sourceDB['정기점검']) items = items.concat((sourceDB['정기점검']).map(x => ({...x, badge:'정기', color:'bg-red-600'})));
                 }
             }
             
@@ -742,10 +728,10 @@
                     const typeName = s.type === 'auto' ? '일일 예방정비' : (s.cycle === '정기점검' ? '반기 예방정비' : '월간 예방정비');
                     const dbCycle = s.cycle === '정기점검' ? '정기점검' : '일일점검';
                     
-                    let sourceDB = getDBForVehicle(v.type); // 부분 매칭 삭제
+                    let sourceDB = getDBForVehicle(v.type);
                     let rawItems = [];
                     
-                    // Fallback 로직 적용: 정기점검인데 DB에 정기점검 항목이 없으면 일일점검 내용이라도 끌어옴
+                    // Fallback 로직 적용: 정기점검인데 DB에 없으면 일일점검 내용 끌어옴
                     if (sourceDB) {
                         if (sourceDB[dbCycle]) {
                             rawItems = sourceDB[dbCycle].map(c => (c.정비방법 && c.정비방법.length > 0) ? c.정비방법 : c.항목);
@@ -755,9 +741,9 @@
                     }
 
                     rawItems = [...new Set(rawItems)]; 
-
                     if(rawItems.length === 0) rawItems = ['해당 차량의 정비 방법이 DB에 등록되지 않았습니다.'];
 
+                    // 동일 차종 연속시 항목 안 겹치게 밀어내기 (셔플 + offset)
                     let items = seedShuffle(rawItems, s.assignedDate + v.type); 
                     if(offsetTracker[v.type] === undefined) offsetTracker[v.type] = 0;
                     
@@ -846,22 +832,17 @@
                     const workbook = XLSX.read(new Uint8Array(e.target.result), {type: 'array'});
                     if(workbook.SheetNames.length < 3) throw new Error("시트가 3개 필요합니다.");
 
+                    // 확실한 인덱스 기반 파싱 (첫번째: 차량대장, 두번째: DB, 세번째: 계획)
                     const regData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], {defval: ""});
                     const dbData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[1]], {defval: ""});
                     const schedData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[2]], {raw: false, dateNF: "yyyy-mm-dd", defval: ""});
 
                     let newDB = {};
                     dbData.forEach(r => {
-                        let g = String(r['차종'] || r['점검그룹'] || r['분류'] || r['그룹'] || '').trim();
-                        let cRaw = String(r['점검주기'] || '').trim();
-                        
-                        let c = '정기점검';
-                        if (cRaw.includes('일일') || cRaw.includes('월간') || cRaw.includes('운행') || cRaw.includes('주간') || cRaw.includes('일간')) {
-                            c = '일일점검';
-                        }
-                        
-                        let i = String(r['점검개소'] || r['항목'] || '').trim();
-                        let m = String(r['점검/정비방법'] || r['정비방법'] || '').trim();
+                        let g = String(r['점검그룹'] || r['차종'] || '').trim();
+                        let c = String(r['점검주기'] || '').trim();
+                        let i = String(r['항목'] || r['점검개소'] || '').trim();
+                        let m = String(r['정비방법'] || r['점검/정비방법'] || '').trim();
                         if(g && c && i) {
                             if(!newDB[g]) newDB[g] = {};
                             if(!newDB[g][c]) newDB[g][c] = [];
@@ -873,11 +854,9 @@
                     let uniquePlates = new Set();
                     let idc = 1;
                     regData.forEach(r => {
-                        let p = (r['호수'] ? String(r['호수']) : (r['등록번호'] ? String(r['등록번호']) : '')).trim().replace('3139-', '');
+                        let p = (r['호수'] ? String(r['호수']) : '').trim().replace('3139-', '');
                         let n = String(r['품명'] || r['차종'] || '').trim();
-                        
                         let g = String(r['점검그룹'] || r['그룹'] || '').trim();
-                        if (!g) g = n; 
                         
                         if(!p || !n || blackList.includes(p) || uniquePlates.has(p)) return;
                         uniquePlates.add(p);
@@ -905,10 +884,8 @@
                             }
                         }
 
-                        let cycle = (c.includes("반기") || c.includes("반년") || c.includes("정기")) ? "정기점검" : "일일점검";
-
                         let v = newVehicles.find(x => x.plate === p);
-                        if(v) newSchedules.push({ id: Date.now()+Math.random(), vId: v.id, cycle: cycle, originalDate: od });
+                        if(v) newSchedules.push({ id: Date.now()+Math.random(), vId: v.id, cycle: c, originalDate: od });
                     });
 
                     if(Object.keys(newDB).length > 0) db = newDB;
